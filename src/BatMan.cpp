@@ -1,18 +1,9 @@
-#include "BatMan.h"
+#include "../include/BatMan.h"
 #include <Arduino.h>
 #include <SPI.h>
 #include <driver/spi_master.h>
 #include <driver/gpio.h>
 #include <stdint.h>
-
-// ESP32 SPI Configuration
-#define BMB_SPI_HOST    SPI2_HOST
-#define BMB_MISO        GPIO_NUM_19  // Adjust these pins based on your wiring
-#define BMB_MOSI        GPIO_NUM_23
-#define BMB_SCK         GPIO_NUM_18
-#define BMB_CS          GPIO_NUM_5
-
-static spi_device_handle_t spi_dev;
 
 /*
 This library supports SPI communication for the Tesla Model 3 BMB (battery managment boards) "Batman" chip
@@ -133,11 +124,10 @@ uint16_t crcTable2f[256] =
     0xE3, 0xCC, 0xBD, 0x92, 0x5F, 0x70, 0x01, 0x2E, 0xB4, 0x9B, 0xEA, 0xC5, 0x08, 0x27, 0x56, 0x79,
     0x4D, 0x62, 0x13, 0x3C, 0xF1, 0xDE, 0xAF, 0x80, 0x1A, 0x35, 0x44, 0x6B, 0xA6, 0x89, 0xF8, 0xD7,
     0x90, 0xBF, 0xCE, 0xE1, 0x2C, 0x03, 0x72, 0x5D, 0xC7, 0xE8, 0x99, 0xB6, 0x7B, 0x54, 0x25, 0x0A,
-    0x3E, 0x11, 0x60, 0x4F, 0x82, 0xAD, 0xDC, 0xF3, 0x69, 0x46, 0x37, 0x18, 0xD5, 0xFA, 0x8B, 0xA4,
-    0x05, 0x2A, 0x5B, 0x74, 0xB9, 0x96, 0xE7, 0xC8, 0x52, 0x7D, 0x0C, 0x23, 0xEE, 0xC1, 0xB0, 0x9F,
+    0x3E, 0x11, 0x60, 0x4F, 0x82, 0xA1, 0xD0, 0xFF, 0x3A, 0x15, 0x64, 0x4B, 0x86, 0xA5, 0xD4, 0xFB,
+    0x05, 0x2A, 0x5B, 0x74, 0xB9, 0x96, 0xE7, 0xC8, 0x42, 0x6D, 0x1C, 0x33, 0xFE, 0xD1, 0xA0, 0x8F,
     0xAB, 0x84, 0xF5, 0xDA, 0x17, 0x38, 0x49, 0x66, 0xFC, 0xD3, 0xA2, 0x8D, 0x40, 0x6F, 0x1E, 0x31,
-    0x76, 0x59, 0x28, 0x07, 0xCA, 0xE5, 0x94, 0xBB, 0x21, 0x0E, 0x7F, 0x50, 0x9D, 0xB2, 0xC3, 0xEC,
-    0xD8, 0xF7, 0x86, 0xA9, 0x64, 0x4B, 0x3A, 0x15, 0x8F, 0xA0, 0xD1, 0xFE, 0x33, 0x1C, 0x6D, 0x42
+    0x76, 0x59, 0x28, 0x07, 0xCA, 0xE5, 0x94, 0xBB, 0x21, 0x0E, 0x7F, 0x50, 0x9D, 0xB2, 0xC3, 0xE4
 };
 
 // CRC table for Batman data
@@ -203,6 +193,7 @@ float Cell1start, Cell2start = 0;
 
 // Constructor implementation
 BATMan::BATMan() {
+    spi_dev = NULL;
     ChipNum = 0;
     CellVMax = 0;
     CellVMin = 5000;
@@ -224,9 +215,12 @@ BATMan::BATMan() {
 
 void BATMan::BatStart()
 {
+    Serial.println("\n=== Initializing BMB SPI Interface ===");
     ChipNum = Param::GetInt(Param::numbmbs)*2;
+    Serial.printf("Number of BMB chips: %d\n", ChipNum);
     
     // Initialize ESP32 SPI
+    Serial.println("Configuring SPI bus...");
     spi_bus_config_t buscfg = {
         .mosi_io_num = BMB_MOSI,
         .miso_io_num = BMB_MISO,
@@ -235,11 +229,15 @@ void BATMan::BatStart()
         .quadhd_io_num = -1,
         .max_transfer_sz = 0
     };
-    
-    // Initialize SPI bus
-    ESP_ERROR_CHECK(spi_bus_initialize(BMB_SPI_HOST, &buscfg, SPI_DMA_CH_AUTO));
-    
-    // Configure SPI device
+    Serial.printf("SPI Pins - MOSI: %d, MISO: %d, SCK: %d, CS: %d\n", 
+        BMB_MOSI, BMB_MISO, BMB_SCK, BMB_CS);
+    esp_err_t ret = spi_bus_initialize(BMB_SPI_HOST, &buscfg, SPI_DMA_CH_AUTO);
+    if (ret != ESP_OK) {
+        Serial.printf("SPI bus initialization failed! Error: %d\n", ret);
+        return;
+    }
+    Serial.println("SPI bus initialized successfully");
+    Serial.println("Configuring SPI device...");
     spi_device_interface_config_t devcfg = {
         .command_bits = 0,
         .address_bits = 0,
@@ -255,11 +253,13 @@ void BATMan::BatStart()
         .pre_cb = NULL,
         .post_cb = NULL
     };
-    
-    // Add device to SPI bus
-    ESP_ERROR_CHECK(spi_bus_add_device(BMB_SPI_HOST, &devcfg, &spi_dev));
-    
-    // Configure CS pin
+    ret = spi_bus_add_device(BMB_SPI_HOST, &devcfg, &spi_dev);
+    if (ret != ESP_OK) {
+        Serial.printf("Failed to add SPI device! Error: %d\n", ret);
+        return;
+    }
+    Serial.println("SPI device added successfully");
+    Serial.println("Configuring CS pin...");
     gpio_config_t io_conf = {
         .pin_bit_mask = (1ULL << BMB_CS),
         .mode = GPIO_MODE_OUTPUT,
@@ -267,12 +267,21 @@ void BATMan::BatStart()
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_DISABLE
     };
-    gpio_config(&io_conf);
+    ret = gpio_config(&io_conf);
+    if (ret != ESP_OK) {
+        Serial.printf("CS pin configuration failed! Error: %d\n", ret);
+        return;
+    }
     gpio_set_level(BMB_CS, 1);  // CS inactive high
+    Serial.println("CS pin configured successfully");
+    Serial.println("=== BMB SPI Interface Initialization Complete ===\n");
+
+    // Add SPI communication check here
+    checkSPIConnection();
 }
 
 // Replace spi_xfer function with ESP32 implementation
-uint16_t spi_xfer(spi_host_device_t host, uint16_t data)
+uint16_t BATMan::spi_xfer(spi_host_device_t host, uint16_t data)
 {
     spi_transaction_t t = {
         .flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA,
@@ -556,30 +565,39 @@ void BATMan::GetData(uint8_t ReqID)
     case 0x4D:
         for (int h = 0; h < 8; h++)
         {
+            // Read first word - Internal Temperature 1
+            // Each chip returns 9 bytes of data (3 words) in this format:
+            // Word 1: Internal Temperature 1
+            // Word 2: 5V Supply Voltage
+            // Word 3: Internal Temperature 2
             tempvol = Fluffer[1 + (h * 9)] * 256 + Fluffer [0 + (h * 9)];
             if (tempvol != 0xffff)
             {
-                Temp1[h] = tempvol;
+                Temp1[h] = tempvol;  // Store raw temperature value
             }
 
-
+            // Read second word - 5V Supply Voltage
+            // This is the voltage of the internal 5V regulator
+            // Some chips need byte order reversed (0,3,5,7) due to different endianness
             tempvol = Fluffer[3 + (h * 9)] * 256 + Fluffer [2 + (h * 9)];
             if (tempvol != 0xffff)
             {
                 if(h == 0 || h == 3 || h == 5 || h == 7)
                 {
-                    Volts5v[h] = rev16(tempvol);
+                    Volts5v[h] = rev16(tempvol);  // Reverse byte order for specific chips
                 }
                 else
                 {
-                    Volts5v[h] = tempvol;
+                    Volts5v[h] = tempvol;  // Store as is for other chips
                 }
             }
 
+            // Read third word - Internal Temperature 2
+            // This is a second temperature sensor on the chip
             tempvol = Fluffer[5 + (h * 9)] * 256 + Fluffer [4 + (h * 9)];
             if (tempvol != 0xffff)
             {
-                Temp2[h] = tempvol;
+                Temp2[h] = tempvol;  // Store raw temperature value
             }
         }
         break;
@@ -620,11 +638,12 @@ void BATMan::WriteCfg()
     //uint8_t DCC8_1 = 0;
     uint16_t cfgwrt [25] = {0};
 
+    // -AI- Set the write configuration command (0x11) with PEC
     cfgwrt[0]= 0x112F;        //CMD
 
     for (int h = 0; h < 8; h++)//write the 8 BMB registers
     {
-
+        // -AI- Set configuration register address (0xF3) and initial value (0x00)
         tempData[0]=0xF3;
         tempData[1]=0x00;
         // Note can not be adjacent cells
@@ -633,28 +652,34 @@ void BATMan::WriteCfg()
         tempData[3]=(CellBalCmd[7-h] & 0xFF00)>>8; //balancing  16-9
 
         //now alternate between even and odd using AND 0x55 or 0xAA
+        // -AI- Alternate between even and odd cells for balancing to prevent adjacent cell balancing
 
         if(BalEven == false)
         {
+            // -AI- Mask to keep only even cells (0xAA = 10101010)
             tempData[2] = tempData[2] & 0xAA;
             tempData[3] = tempData[3] & 0xAA;
         }
         else
         {
+            // -AI- Mask to keep only odd cells (0x55 = 01010101)
             tempData[2] = tempData[2] & 0x55;
             tempData[3] = tempData[3] & 0x55;
         }
 
+        // -AI- Calculate PEC (Packet Error Code) for data integrity
         uint16_t payPec =0x0010;
 
         crc14_bytes(4,tempData,&payPec);
         crc14_bits(2,2,&payPec);
 
+        // -AI- Pack the configuration data into the write buffer
         cfgwrt[1+h*3] = tempData[1] + (tempData[0] << 8);
         cfgwrt[2+h*3] = tempData[3] + (tempData[2] << 8);
         cfgwrt[3+h*3] = payPec;//Contains the PEC and other shit
 
     }
+    // -AI- Toggle the balancing pattern for next cycle
     if(BalEven == false)
     {
         BalEven = true;
@@ -664,6 +689,7 @@ void BATMan::WriteCfg()
         BalEven = false;
     }
 
+    // -AI- Send the configuration data over SPI
     gpio_set_level(BMB_CS, 0);  // CS active low
 
     for (int cnt = 0; cnt < 25; cnt++)
@@ -965,4 +991,54 @@ void BATMan::crc14_bits( uint8_t len_b,uint8_t inB, uint16_t *crcP )
         }
     }
     *crcP &= 0x3fff;
+}
+
+// Add this function to check SPI communication
+bool BATMan::checkSPIConnection() {
+    Serial.println("Checking SPI communication with BMB...");
+    
+    // Now read the 5V supply voltage and temperatures (Aux A register)
+    Serial.println("Reading Master Batman IC voltages and temperatures...");
+    gpio_set_level(BMB_CS, 0);  // CS active low
+    uint16_t req = 0x4D00;  // Read Aux A register
+    uint16_t response = spi_xfer(BMB_SPI_HOST, req);
+    gpio_set_level(BMB_CS, 1);  // CS inactive high
+    
+    // The 5V supply voltage is in word 1 of the response
+    float volts5v = (response & 0xFFFF) / 12.5;  // Convert to actual voltage
+    Serial.printf("Master Batman IC 5V Supply: %.2fV\n", volts5v/1000.0);
+
+    if (response == 0xFFFF || response == 0x0000) {
+        Serial.println("SPI communication failed: No valid response from BMB.");
+        //return false;
+    }
+    
+    Serial.printf("SPI communication OK. Status register: 0x%04X\n", response);
+    
+
+    gpio_set_level(BMB_CS, 0);  // CS active low
+    uint16_t req = 0x4D00;  // Read Aux A register
+    uint16_t response = spi_xfer(BMB_SPI_HOST, req);
+    gpio_set_level(BMB_CS, 1);  // CS inactive high
+    // Read temperatures
+    // LTC6813-1 die temperature calculation:
+    // T = (V - 276°C) / (7.6mV/°C)
+    const float VREF = 3.0f;
+    const float SLOPE = 0.0076f; // 7.6mV/°C
+    const float OFFSET = 0.276f; // 276°C
+    uint16_t adc_code = response & 0xFFFF;
+    float v_die = (adc_code / 65535.0f) * VREF;
+    float temp1 = (v_die - OFFSET) / SLOPE;
+    Serial.printf("Master Batman IC Temperature 1: %.1f°C\n", temp1);
+    
+    // Read chip voltage (from Aux B register)
+    gpio_set_level(BMB_CS, 0);  // CS active low
+    req = 0x4E00;  // Read Aux B register
+    response = spi_xfer(BMB_SPI_HOST, req);
+    gpio_set_level(BMB_CS, 1);  // CS inactive high
+    
+    float chipVoltage = (response & 0xFFFF) * 0.001280;  // Convert to actual voltage
+    Serial.printf("Master Batman IC Cells Total Voltage: %.2fV\n", chipVoltage/1000.0);
+    
+    return true;
 }
