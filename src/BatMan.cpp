@@ -1,4 +1,5 @@
 #include "BatMan.h"
+#include <Arduino.h>
 #include <SPI.h>
 #include <driver/spi_master.h>
 #include <driver/gpio.h>
