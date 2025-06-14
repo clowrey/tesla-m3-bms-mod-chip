@@ -195,7 +195,7 @@ float CellVMax = 0;
 float CellVMin = 5000;
 float TempMax = 0;
 float TempMin = 1000;
-uint16_t SendDelay = 1000;
+uint16_t SendDelay = 125;  // 125 microseconds
 uint32_t lasttime = 0;
 bool BalEven = false;
 
@@ -215,7 +215,7 @@ BATMan::BATMan() {
     WakeCnt = 0;
     WaitCnt = 0;
     IdleCnt = 0;
-    SendDelay = 1000;
+    SendDelay = 125;  // 125 microseconds
     lasttime = 0;
     BalEven = false;
     Cell1start = 0;
@@ -327,7 +327,7 @@ void BATMan::StateMachine()
     case 2:
     {
         IdleWake();//unmute
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         Generic_Send_Once(Snap, 1);//Take a snapshot of the cell voltages
         LoopState++;
         break;
@@ -336,7 +336,7 @@ void BATMan::StateMachine()
     case 3:
     {
         IdleWake();//unmute
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         Generic_Send_Once(Snap, 1);//Take a snapshot of the cell voltages
         LoopState++;
         break;
@@ -345,17 +345,17 @@ void BATMan::StateMachine()
     case 4:
     {
         IdleWake();//unmute
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         GetData(0x4F);//Read status reg
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         GetData(0x4F);//Read status reg
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         GetData(0x47);//Read A. Contains Cell voltage measurements
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         GetData(0x48);//Read B. Contains Cell voltage measurements
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         GetData(0x49);//Read C. Contains Cell voltage measurements
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         GetData(0x4A);//Read D. Contains Cell voltage measurements
 
         LoopState++;
@@ -365,17 +365,17 @@ void BATMan::StateMachine()
     case 5:
     {
         IdleWake();//unmute
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         GetData(0x4F);//Read status reg
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         GetData(0x4F);//Read status reg
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         GetData(0x4B);//Read E. Contains Cell voltage measurements
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         GetData(0x4C);//Read F. Contains chip total V in word 1.
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         GetData(0x4D);//Read F. Contains chip total V in word 1.
-        delay(SendDelay);
+        delayMicroseconds(SendDelay);
         GetTempData();//Request temps
 
         //WriteCfg();
