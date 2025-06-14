@@ -312,6 +312,7 @@ void BATMan::StateMachine()
     {
     case 0: //first state check if there is time out of commms requiring full wake
     {
+        // -AI- Initial state: Check for BMB timeout and wake up if needed
         if(BmbTimeout == true)
         {
             WakeUP();//send wake up 4 times for 4 bmb boards
@@ -326,6 +327,7 @@ void BATMan::StateMachine()
 
     case 1:
     {
+        // -AI- Configuration state: Read auxiliary and configuration data
         IdleWake();//unmute
         GetData(0x4D);//Read Aux A.Contains 5v reg voltage in word 1
         GetData(0x50);//Read Cfg
@@ -335,6 +337,7 @@ void BATMan::StateMachine()
 
     case 2:
     {
+        // -AI- Snapshot state: Take snapshot of cell voltages
         IdleWake();//unmute
         delayMicroseconds(SendDelay);
         Generic_Send_Once(Snap, 1);//Take a snapshot of the cell voltages
@@ -344,6 +347,7 @@ void BATMan::StateMachine()
 
     case 3:
     {
+        // -AI- Snapshot state: Take another snapshot of cell voltages
         IdleWake();//unmute
         delayMicroseconds(SendDelay);
         Generic_Send_Once(Snap, 1);//Take a snapshot of the cell voltages
@@ -353,6 +357,7 @@ void BATMan::StateMachine()
 
     case 4:
     {
+        // -AI- Read state: Read status and cell voltage measurements
         IdleWake();//unmute
         delayMicroseconds(SendDelay);
         GetData(0x4F);//Read status reg
@@ -373,6 +378,7 @@ void BATMan::StateMachine()
 
     case 5:
     {
+        // -AI- Read state: Read remaining cell voltages and temperature data
         IdleWake();//unmute
         delayMicroseconds(SendDelay);
         GetData(0x4F);//Read status reg
@@ -395,6 +401,7 @@ void BATMan::StateMachine()
 
     case 6: //first state check if there is time out of commms requiring full wake
     {
+        // -AI- Wake state: Wake up BMBs and verify configuration
         WakeUP();//send wake up 4 times for 4 bmb boards
         GetData(0x50);//Read Cfg
         WriteCfg();
@@ -406,7 +413,7 @@ void BATMan::StateMachine()
 
     case 7:
     {
-
+        // -AI- Process state: Update temperature and voltage measurements
         upDateTemps();
         upDateCellVolts();
         upDateAuxVolts();
@@ -416,6 +423,7 @@ void BATMan::StateMachine()
 
     case 8: //Waiting State
     {
+        // -AI- Idle state: Wait for next cycle
         IdleCnt++;
 
         if(IdleCnt > cycletime)
@@ -430,6 +438,7 @@ void BATMan::StateMachine()
 
     default: //Should not get here
     {
+        // -AI- Error state: Reset to initial state
         break;
     }
 
@@ -454,25 +463,33 @@ void BATMan::IdleWake()
 
 void BATMan::GetData(uint8_t ReqID)
 {
+    // -AI- Initialize temporary arrays for command and data processing
     uint8_t tempData[2] = {0};
     uint16_t ReqData[2] = {0};
 
+    // -AI- Prepare command data with register ID
     tempData[0] = ReqID;
 
+    // -AI- Format command data with CRC
     ReqData[0] = ReqID << 8;
     ReqData[1] = (calcCRC(tempData, 2))<<8;
 
+    // -AI- Activate chip select (active low)
     gpio_set_level(BMB_CS, 0);  // CS active low
 
+    // -AI- Send command bytes over SPI
     receive1 = spi_xfer(BMB_SPI_HOST, ReqData[0]);  // do a transfer
     receive2 = spi_xfer(BMB_SPI_HOST, ReqData[1]);  // do a transfer
 
+    // -AI- Read response data (72 bytes total)
     for (count2 = 0; count2 <= 72; count2 = count2 + 2)
     {
         receive1 = spi_xfer(BMB_SPI_HOST, padding);  // do a transfer
         Fluffer[count2] = receive1 >> 8;
         Fluffer[count2 + 1] = receive1 & 0xFF;
     }
+
+    // -AI- Deactivate chip select
     gpio_set_level(BMB_CS, 1);  // CS inactive high
 
     uint16_t tempvol = 0;
@@ -480,6 +497,9 @@ void BATMan::GetData(uint8_t ReqID)
     switch (ReqID)
     {
     case 0x47:
+        // -AI- Read Register A: Contains cell voltage measurements for cells 1-3
+        // -AI- Each chip returns 3 words (6 bytes) of data
+        // -AI- Data format: [Word1][Word2][Word3] where each word represents one cell voltage
         for (int h = 0; h <= 8; h++)
         {
             for (int g = 0; g <= 2; g++)
@@ -494,6 +514,9 @@ void BATMan::GetData(uint8_t ReqID)
         break;
 
     case 0x48:
+        // -AI- Read Register B: Contains cell voltage measurements for cells 4-6
+        // -AI- Each chip returns 3 words (6 bytes) of data
+        // -AI- Data format: [Word1][Word2][Word3] where each word represents one cell voltage
         for (int h = 0; h <= 8; h++)
         {
             for (int g = 3; g <= 5; g++)
@@ -508,6 +531,9 @@ void BATMan::GetData(uint8_t ReqID)
         break;
 
     case 0x49:
+        // -AI- Read Register C: Contains cell voltage measurements for cells 7-9
+        // -AI- Each chip returns 3 words (6 bytes) of data
+        // -AI- Data format: [Word1][Word2][Word3] where each word represents one cell voltage
         for (int h = 0; h <= 8; h++)
         {
             for (int g = 6; g <= 8; g++)
@@ -521,8 +547,10 @@ void BATMan::GetData(uint8_t ReqID)
         }
         break;
 
-
     case 0x4A:
+        // -AI- Read Register D: Contains cell voltage measurements for cells 10-12
+        // -AI- Each chip returns 3 words (6 bytes) of data
+        // -AI- Data format: [Word1][Word2][Word3] where each word represents one cell voltage
         for (int h = 0; h <= 8; h++)
         {
             for (int g = 9; g <= 11; g++)
@@ -537,6 +565,9 @@ void BATMan::GetData(uint8_t ReqID)
         break;
 
     case 0x4B:
+        // -AI- Read Register E: Contains cell voltage measurements for cells 13-15
+        // -AI- Each chip returns 3 words (6 bytes) of data
+        // -AI- Data format: [Word1][Word2][Word3] where each word represents one cell voltage
         for (int h = 0; h <= 8; h++)
         {
             for (int g = 12; g <= 14; g++)
@@ -551,6 +582,9 @@ void BATMan::GetData(uint8_t ReqID)
         break;
 
     case 0x4C:
+        // -AI- Read Register F: Contains chip total voltage in word 1
+        // -AI- Each chip returns 7 bytes of data
+        // -AI- Data format: [Word1] where Word1 represents total chip voltage
         for (int h = 0; h <= 8; h++)
         {
             tempvol = Fluffer[3 + (h * 7)] * 256 + Fluffer [2 + (h * 7)];
@@ -561,8 +595,13 @@ void BATMan::GetData(uint8_t ReqID)
         }
         break;
 
-
     case 0x4D:
+        // -AI- Read Auxiliary A Register: Contains temperature and 5V supply data
+        // -AI- Each chip returns 9 bytes (3 words) of data
+        // -AI- Data format: [Temp1][5V][Temp2] where:
+        // -AI-   Temp1: Internal Temperature 1
+        // -AI-   5V: 5V Supply Voltage (needs byte order reversal for chips 0,3,5,7)
+        // -AI-   Temp2: Internal Temperature 2
         for (int h = 0; h < 8; h++)
         {
             // Read first word - Internal Temperature 1
@@ -603,6 +642,11 @@ void BATMan::GetData(uint8_t ReqID)
         break;
 
     case 0x50:
+        // -AI- Read Configuration Register: Contains chip configuration data
+        // -AI- Each chip returns 7 bytes of data
+        // -AI- Data format: [Word1][Word2] where:
+        // -AI-   Word1: Configuration register 1
+        // -AI-   Word2: Configuration register 2
         for (int h = 0; h < 8; h++)
         {
             tempvol = Fluffer[0 + (h * 7)] * 256 + Fluffer [1 + (h * 7)];
@@ -610,7 +654,6 @@ void BATMan::GetData(uint8_t ReqID)
             {
                 Cfg[h][0] = tempvol;
             }
-
 
             tempvol = Fluffer[2 + (h * 7)] * 256 + Fluffer [3 + (h * 7)];
             if (tempvol != 0xffff)
@@ -620,12 +663,10 @@ void BATMan::GetData(uint8_t ReqID)
         }
         break;
 
-
     default:
         // statements
         break;
     }
-
 }
 
 
@@ -652,7 +693,6 @@ void BATMan::WriteCfg()
         tempData[3]=(CellBalCmd[7-h] & 0xFF00)>>8; //balancing  16-9
 
         //now alternate between even and odd using AND 0x55 or 0xAA
-        // -AI- Alternate between even and odd cells for balancing to prevent adjacent cell balancing
 
         if(BalEven == false)
         {
@@ -749,44 +789,57 @@ void BATMan::Generic_Send_Once(uint16_t Command[], uint8_t len)
 
 void BATMan::upDateCellVolts(void)
 {
+    // -AI- Initialize tracking variables for cell monitoring
     uint8_t Xr = 0; //BMB number
     uint8_t Yc = 0; //Cell voltage register number
     uint8_t hc = 0; //Cells present per chip
     uint8_t h = 0; //Spot value index
     uint16_t CellBalancing = 0;
 
+    // -AI- Reset balancing state and voltage tracking
     BalanceFlag = false;
     CellVMax = 0;
     CellVMin = 5000;
 
+    // -AI- Clear all cell balancing commands
     for(uint8_t L =0; L < 8; L++)
     {
         CellBalCmd[L] = 0;
     }
 
+    // -AI- Process all cells across all BMB chips
     while (h <= 100)
     {
         if(Yc < 14) //Check actual measurement present
         {
             if(Voltage[Xr][Yc] > 10) //Check actual measurement present
             {
+                // -AI- Track maximum cell voltage and its position
                 if (CellVMax< Voltage[Xr][Yc])
                 {
                     CellVMax =  Voltage[Xr][Yc];
                     Param::SetInt(Param::CellMax, h+1);
                 }
+                // -AI- Track minimum cell voltage and its position
                 if (CellVMin > Voltage[Xr][Yc])
                 {
                     CellVMin =  Voltage[Xr][Yc];
                     Param::SetInt(Param::CellMin, h+1);
                 }
+                // -AI- Store cell voltage in parameter system
                 Param::SetFloat((Param::PARAM_NUM)(Param::u1 + h), (Voltage[Xr][Yc]));
-                //section to do balancing setup
+
+                // -AI- Cell balancing logic:
+                // 1. Check if balancing is enabled
+                // 2. If cell voltage is above minimum + hysteresis, enable balancing
+                // 3. Set corresponding bit in CellBalCmd register
                 if(Param::GetInt(Param::balance)) // Check if balancing flag is set
                 {
                     if((Param::GetFloat(Param::umin) + BalHys) < Voltage[Xr][Yc])
                     {
-                        CellBalCmd[Xr] = CellBalCmd[Xr]+(0x01 << Yc);//populate balancing command register
+                        // -AI- Set bit in balancing command register for this cell
+                        // Each bit in CellBalCmd corresponds to one cell
+                        CellBalCmd[Xr] = CellBalCmd[Xr]+(0x01 << Yc);
                         CellBalancing++;
                         BalanceFlag = true;
                     }
@@ -800,6 +853,7 @@ void BATMan::upDateCellVolts(void)
         }
         else
         {
+            // -AI- Store number of cells present for this BMB chip
             Param::SetInt((Param::PARAM_NUM)(Param::Chip1Cells+Xr),hc);
             Yc = 0; //reset Cell colum
             hc = 0; //reset cell count per chip
@@ -808,6 +862,7 @@ void BATMan::upDateCellVolts(void)
 
         if(Xr == ChipNum)
         {
+            // -AI- Store overall pack statistics
             Param::SetFloat(Param::umax,CellVMax);
             Param::SetFloat(Param::umin,CellVMin);
             Param::SetFloat(Param::deltaV,CellVMax-CellVMin);
@@ -815,6 +870,16 @@ void BATMan::upDateCellVolts(void)
             h = 100;
             break;
         }
+    }
+
+    // -AI- Store number of cells currently being balanced
+    Param::SetInt(Param::CellsBalancing, CellBalancing);
+
+    // -AI- Debug tracking of initial cell voltages
+    if(Cell1start == 0)
+    {
+        Cell1start= Param::GetFloat(Param::u1);
+        Cell2start=Param::GetFloat(Param::u2);
     }
 
     // Print cell voltage information
@@ -825,52 +890,70 @@ void BATMan::upDateCellVolts(void)
     Serial.printf("Voltage Delta: %.3fV\n", CellVMax-CellVMin);
     Serial.printf("Cells Balancing: %d\n", CellBalancing);
     Serial.println("==============================\n");
-
-//debugging balancing//
-    if(Cell1start == 0)
-    {
-        Cell1start= Param::GetFloat(Param::u1);
-        Cell2start=Param::GetFloat(Param::u2);
-    }
-
-    Param::SetInt(Param::CellsBalancing, CellBalancing);
 }
 
 void BATMan::upDateAuxVolts(void)
 {
+    // -AI- Convert 5V supply readings to actual voltage values
+    // -AI- Note: Chip 0 needs byte order reversal (rev16)
     Param::SetInt(Param::Chip1_5V,(rev16(Volts5v[0]))/12.5);
     Param::SetInt(Param::Chip2_5V,((Volts5v[1]))/12.5);
 
+    // -AI- Initialize total pack voltage to 0
     Param::SetFloat(Param::udc,0);
 
+    // -AI- Process first BMB module (if present)
+    // -AI- Calculate chip voltages and add to total pack voltage
     if(Param::GetInt(Param::numbmbs) >= 1)
     {
+        // -AI- Convert raw ADC values to actual voltages (multiply by 0.001280)
         Param::SetFloat(Param::ChipV1,ChipV[0]*0.001280);
         Param::SetFloat(Param::ChipV2,ChipV[1]*0.001280);
+        // -AI- Add both chip voltages to total pack voltage
         Param::SetFloat(Param::udc,(Param::GetFloat(Param::ChipV1)+Param::GetFloat(Param::ChipV2)));
     }
+
+    // -AI- Process second BMB module (if present)
+    // -AI- Calculate chip voltages and add to total pack voltage
     if(Param::GetInt(Param::numbmbs) >= 2)
     {
+        // -AI- Convert raw ADC values to actual voltages
         Param::SetFloat(Param::ChipV3,ChipV[2]*0.001280);
         Param::SetFloat(Param::ChipV4,ChipV[3]*0.001280);
+        // -AI- Add both chip voltages to running total
         Param::SetFloat(Param::udc,(Param::GetFloat(Param::udc)+Param::GetFloat(Param::ChipV3)+Param::GetFloat(Param::ChipV4)));
     }
+
+    // -AI- Process third BMB module (if present)
+    // -AI- Calculate chip voltages and add to total pack voltage
     if(Param::GetInt(Param::numbmbs) >= 3)
     {
+        // -AI- Convert raw ADC values to actual voltages
         Param::SetFloat(Param::ChipV5,ChipV[4]*0.001280);
         Param::SetFloat(Param::ChipV6,ChipV[5]*0.001280);
+        // -AI- Add both chip voltages to running total
         Param::SetFloat(Param::udc,(Param::GetFloat(Param::udc)+Param::GetFloat(Param::ChipV5)+Param::GetFloat(Param::ChipV6)));
     }
+
+    // -AI- Process fourth BMB module (if present)
+    // -AI- Calculate chip voltages and add to total pack voltage
     if(Param::GetInt(Param::numbmbs) == 4)
     {
+        // -AI- Convert raw ADC values to actual voltages
         Param::SetFloat(Param::ChipV7,ChipV[6]*0.001280);
         Param::SetFloat(Param::ChipV8,ChipV[7]*0.001280);
+        // -AI- Add both chip voltages to running total
         Param::SetFloat(Param::udc,(Param::GetFloat(Param::udc)+Param::GetFloat(Param::ChipV7)+Param::GetFloat(Param::ChipV8)));
     }
 
+    // -AI- Calculate average cell voltage
+    // -AI- Formula: Total pack voltage / Number of cells * 1000 (convert to mV)
     Param::SetInt(Param::uavg,(Param::GetFloat(Param::udc)/Param::GetInt(Param::CellsPresent)*1000));
 
     //Set Charge and discharge voltage limits !!! Update with configrable
+    // -AI- Calculate charge and discharge voltage limits
+    // -AI- Charge limit = Max cell voltage * Number of cells
+    // -AI- Discharge limit = Min cell voltage * Number of cells
     Param::SetFloat(Param::chargeVlim,(Param::GetInt(Param::CellVmax)*0.001*Param::GetInt(Param::CellsPresent)));
     Param::SetFloat(Param::dischargeVlim,(Param::GetInt(Param::CellVmin)*0.001*Param::GetInt(Param::CellsPresent)));
 
@@ -890,8 +973,10 @@ void BATMan::upDateTemps(void)
     TempMax = 0;
     TempMin= 100;
 
+    // -AI- Process temperature data for each chip in the chain
     for (int g = 0; g < ChipNum; g++)
     {
+        // -AI- Reverse byte order of temperature value and convert to actual temperature
         tempval1=rev16(Temps[g]);//bytes swapped in the 16 bit words
         if (tempval1==0)
         {
@@ -899,19 +984,25 @@ void BATMan::upDateTemps(void)
         }
         else if (tempval1 >= (1131))
         {
+            // -AI- Temperature calculation for values above 1131
             tempval1 = tempval1-1131;
             tempval2 = tempval1/10;
         }
         else
         {
+            // -AI- Temperature calculation for values below 1131
             tempval1 = 1131-tempval1;
             tempval2 = tempval1/10;
         }
+        // -AI- Store calculated temperature in parameter system
         Param::SetFloat((Param::PARAM_NUM)(Param::Chipt0 + g), tempval2);
 
+        // -AI- Convert internal temperature sensors to Celsius
+        // -AI- Formula: ((ADC value * 0.01) - 40) for both sensors
         Temp1[g] = ((Temp1[g])*0.01)-40;
         Temp2[g] = ((Temp2[g])*0.01)-40;
 
+        // -AI- Track maximum temperature from both sensors
         if(TempMax < Temp1[g])
         {
             TempMax = Temp1[g];
@@ -921,6 +1012,7 @@ void BATMan::upDateTemps(void)
             TempMax = Temp2[g];
         }
 
+        // -AI- Track minimum temperature from both sensors
         if(TempMin > Temp1[g])
         {
             TempMin = Temp1[g];
@@ -931,9 +1023,11 @@ void BATMan::upDateTemps(void)
             TempMin = Temp2[g];
         }
 
+        // -AI- Store both temperature sensor values in parameter system
         Param::SetFloat((Param::PARAM_NUM)(Param::Cellt0_0 + g*2),Temp1[g]);
         Param::SetFloat((Param::PARAM_NUM)(Param::Cellt0_1 + g*2),Temp2[g]);
     }
+    // -AI- Store overall max and min temperatures in parameter system
     Param::SetFloat(Param::TempMax,TempMax);
     Param::SetFloat(Param::TempMin,TempMin);
 
@@ -1000,7 +1094,7 @@ bool BATMan::checkSPIConnection() {
     // Now read the 5V supply voltage and temperatures (Aux A register)
     Serial.println("Reading Master Batman IC voltages and temperatures...");
     gpio_set_level(BMB_CS, 0);  // CS active low
-    uint16_t req = 0x4D00;  // Read Aux A register
+    uint16_t req = 0x4D;  // Read Aux A register
     uint16_t response = spi_xfer(BMB_SPI_HOST, req);
     gpio_set_level(BMB_CS, 1);  // CS inactive high
     
@@ -1017,8 +1111,8 @@ bool BATMan::checkSPIConnection() {
     
 
     gpio_set_level(BMB_CS, 0);  // CS active low
-    uint16_t req = 0x4D00;  // Read Aux A register
-    uint16_t response = spi_xfer(BMB_SPI_HOST, req);
+    req = 0x4D;  // Read Aux A register
+    response = spi_xfer(BMB_SPI_HOST, req);
     gpio_set_level(BMB_CS, 1);  // CS inactive high
     // Read temperatures
     // LTC6813-1 die temperature calculation:
@@ -1033,7 +1127,7 @@ bool BATMan::checkSPIConnection() {
     
     // Read chip voltage (from Aux B register)
     gpio_set_level(BMB_CS, 0);  // CS active low
-    req = 0x4E00;  // Read Aux B register
+    req = 0x4E;  // Read Aux B register
     response = spi_xfer(BMB_SPI_HOST, req);
     gpio_set_level(BMB_CS, 1);  // CS inactive high
     
