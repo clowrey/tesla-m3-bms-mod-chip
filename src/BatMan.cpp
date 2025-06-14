@@ -61,7 +61,7 @@ float tempval1 = 0;
 float tempval2 = 0;
 float temp1 = 0;
 float temp2 = 0;
-uint8_t  Fluffer[72];
+uint8_t  Fluffer[72]; // Buffer - This size is chosen because each BMB chip can return up to 9 bytes of data, and there can be up to 8 chips (4 BMB boards × 2 chips per board)
 uint8_t count1 = 0;
 uint8_t count2 = 0;
 uint8_t count3 = 0;

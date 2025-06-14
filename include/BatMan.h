@@ -4,18 +4,14 @@
 #include <stdint.h>
 #include "Param.h"
 #include "driver/spi_master.h"
-#include "driver/gpio.h"
-#include "esp_system.h"
-#include "esp_spi_flash.h"
-#include "esp32-hal.h"
-#include "esp32-hal-spi.h"
+
 
 // ESP32 SPI Configuration
 #define BMB_SPI_HOST    SPI2_HOST
-#define BMB_MISO        GPIO_NUM_19  // Adjust these pins based on your wiring
-#define BMB_MOSI        GPIO_NUM_23
-#define BMB_SCK         GPIO_NUM_18
-#define BMB_CS          GPIO_NUM_5
+#define BMB_MISO        GPIO_NUM_34  // Adjust these pins based on your wiring
+#define BMB_MOSI        GPIO_NUM_18
+#define BMB_SCK         GPIO_NUM_5
+#define BMB_CS          GPIO_NUM_32
 
 // Helper function to reverse 16-bit value
 static inline uint16_t rev16(uint16_t x) {
@@ -40,8 +36,11 @@ public:
     uint8_t calcCRC(uint8_t *inData, uint8_t Length);
     void crc14_bytes(uint8_t len_B, uint8_t *bytes, uint16_t *crcP);
     void crc14_bits(uint8_t len_b, uint8_t inB, uint16_t *crcP);
+    uint16_t spi_xfer(spi_host_device_t host, uint16_t data);
+    bool checkSPIConnection();
 
 private:
+    spi_device_handle_t spi_dev;
     uint8_t ChipNum;
     uint16_t Voltage[8][15];
     uint16_t CellBalCmd[8];
