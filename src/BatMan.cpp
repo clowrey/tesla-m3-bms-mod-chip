@@ -790,24 +790,29 @@ void BATMan::upDateCellVolts(void)
         }
     }
 
+    // Print cell voltage information
+    Serial.println("\n=== Cell Voltage Information ===");
+    Serial.printf("Total Cells Present: %d\n", Param::GetInt(Param::CellsPresent));
+    Serial.printf("Max Cell Voltage: %.3fV (Cell %d)\n", CellVMax, Param::GetInt(Param::CellMax));
+    Serial.printf("Min Cell Voltage: %.3fV (Cell %d)\n", CellVMin, Param::GetInt(Param::CellMin));
+    Serial.printf("Voltage Delta: %.3fV\n", CellVMax-CellVMin);
+    Serial.printf("Cells Balancing: %d\n", CellBalancing);
+    Serial.println("==============================\n");
+
 //debugging balancing//
     if(Cell1start == 0)
     {
         Cell1start= Param::GetFloat(Param::u1);
         Cell2start=Param::GetFloat(Param::u2);
-        //Param::SetFloat(Param::dischargelim,Cell1start);
-        //Param::SetFloat(Param::chargelim,Cell2start);
     }
 
     Param::SetInt(Param::CellsBalancing, CellBalancing);
-//
 }
 
 void BATMan::upDateAuxVolts(void)
 {
     Param::SetInt(Param::Chip1_5V,(rev16(Volts5v[0]))/12.5);
     Param::SetInt(Param::Chip2_5V,((Volts5v[1]))/12.5);
-    //Param::SetInt(Param::soc,((Volts5v[2])));
 
     Param::SetFloat(Param::udc,0);
 
@@ -841,11 +846,20 @@ void BATMan::upDateAuxVolts(void)
     //Set Charge and discharge voltage limits !!! Update with configrable
     Param::SetFloat(Param::chargeVlim,(Param::GetInt(Param::CellVmax)*0.001*Param::GetInt(Param::CellsPresent)));
     Param::SetFloat(Param::dischargeVlim,(Param::GetInt(Param::CellVmin)*0.001*Param::GetInt(Param::CellsPresent)));
+
+    // Print auxiliary voltage information
+    Serial.println("=== Auxiliary Voltage Information ===");
+    Serial.printf("Total Pack Voltage: %.2fV\n", Param::GetFloat(Param::udc));
+    Serial.printf("Average Cell Voltage: %.2fV\n", Param::GetFloat(Param::uavg)/1000.0);
+    Serial.printf("Charge Voltage Limit: %.2fV\n", Param::GetFloat(Param::chargeVlim));
+    Serial.printf("Discharge Voltage Limit: %.2fV\n", Param::GetFloat(Param::dischargeVlim));
+    Serial.printf("Chip1 5V Supply: %.2fV\n", Param::GetInt(Param::Chip1_5V)/1000.0);
+    Serial.printf("Chip2 5V Supply: %.2fV\n", Param::GetInt(Param::Chip2_5V)/1000.0);
+    Serial.println("===================================\n");
 }
 
 void BATMan::upDateTemps(void)
 {
-
     TempMax = 0;
     TempMin= 100;
 
@@ -861,7 +875,6 @@ void BATMan::upDateTemps(void)
             tempval1 = tempval1-1131;
             tempval2 = tempval1/10;
         }
-
         else
         {
             tempval1 = 1131-tempval1;
@@ -896,6 +909,17 @@ void BATMan::upDateTemps(void)
     }
     Param::SetFloat(Param::TempMax,TempMax);
     Param::SetFloat(Param::TempMin,TempMin);
+
+    // Print temperature information
+    Serial.println("=== Temperature Information ===");
+    Serial.printf("Max Temperature: %.1f°C\n", TempMax);
+    Serial.printf("Min Temperature: %.1f°C\n", TempMin);
+    for (int g = 0; g < ChipNum; g++)
+    {
+        Serial.printf("Chip %d - Temp1: %.1f°C, Temp2: %.1f°C\n", 
+            g+1, Temp1[g], Temp2[g]);
+    }
+    Serial.println("=============================\n");
 }
 
 uint8_t BATMan::calcCRC(uint8_t *inData, uint8_t Length)
