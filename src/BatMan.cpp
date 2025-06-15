@@ -885,10 +885,26 @@ void BATMan::upDateCellVolts(void)
     // Print cell voltage information
     Serial.println("\n=== Cell Voltage Information ===");
     Serial.printf("Total Cells Present: %d\n", Param::GetInt(Param::CellsPresent));
-    Serial.printf("Max Cell Voltage: %.3fV (Cell %d)\n", CellVMax, Param::GetInt(Param::CellMax));
-    Serial.printf("Min Cell Voltage: %.3fV (Cell %d)\n", CellVMin, Param::GetInt(Param::CellMin));
-    Serial.printf("Voltage Delta: %.3fV\n", CellVMax-CellVMin);
+    Serial.printf("Max Cell Voltage: %.3fV (Cell %d)\n", CellVMax/1000.0, Param::GetInt(Param::CellMax));
+    Serial.printf("Min Cell Voltage: %.3fV (Cell %d)\n", CellVMin/1000.0, Param::GetInt(Param::CellMin));
+    Serial.printf("Voltage Delta: %.3fV\n", (CellVMax-CellVMin)/1000.0);
     Serial.printf("Cells Balancing: %d\n", CellBalancing);
+    
+    // Print individual cell voltages
+    Serial.println("\nIndividual Cell Voltages:");
+    for (int i = 0; i < Param::GetInt(Param::CellsPresent); i++) {
+        float cellVoltage = Param::GetFloat((Param::PARAM_NUM)(Param::u1 + i));
+        if (cellVoltage > 0) {  // Only print if cell is present
+            Serial.printf("Cell %d: %.3fV", i + 1, cellVoltage/1000.0);  // Convert millivolts to volts
+            if (i + 1 == Param::GetInt(Param::CellMax)) {
+                Serial.print(" (MAX)");
+            }
+            if (i + 1 == Param::GetInt(Param::CellMin)) {
+                Serial.print(" (MIN)");
+            }
+            Serial.println();
+        }
+    }
     Serial.println("==============================\n");
 }
 
