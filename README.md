@@ -5,6 +5,7 @@ This project implements an interface for the Tesla Model 3 Battery Management Bo
 Batman code created by Damien and Tom here: https://github.com/damienmaguire/Tesla-M3-Bms-Software
 
 ## Example
+![image](https://github.com/user-attachments/assets/57a223b0-6f92-4a42-a34e-47e2fbd58b88)
 
 ```cpp
 === Cell Voltage Information ===
