@@ -310,27 +310,20 @@ void loop() {
     
     // Read current from AS8510 sensor
     if (currentSensorInitialized && currentSensor.isDataReady()) {
-        // Double-check that device is actually present before reading
-        if (currentSensor.isDevicePresent()) {
-            currentSensorPresent = true;
-            currentReading = currentSensor.readCurrent(1); // Read current from channel 1
-            
-            // Print current reading to serial (only when it changes significantly)
-            if (abs(currentReading - prevCurrentReading) > 0.001) { // 1mA threshold
-                Serial.printf("Current: %.3fA\n", currentReading);
-            }
-        } else {
-            // Device was initialized but is no longer present
-            currentSensorInitialized = false;
-            currentSensorPresent = false;
-            currentReading = 0;
-            Serial.println("AS8510 device no longer detected - disabling current sensor");
+        currentReading = currentSensor.readCurrent(1); // Read current from channel 1
+        
+        // Print current reading to serial (only when it changes significantly)
+        if (abs(currentReading - prevCurrentReading) > 0.001) { // 1mA threshold
+            Serial.printf("Current: %.3fA\n", currentReading);
         }
+        
+        // Mark sensor as present if we successfully read data
+        currentSensorPresent = true;
     }
     
-    // Periodic device presence check (every 10 seconds)
+    // Periodic device presence check (every 30 seconds) - less frequent
     static unsigned long lastDeviceCheck = 0;
-    if (currentMillis - lastDeviceCheck >= 10000) { // Every 10 seconds
+    if (currentMillis - lastDeviceCheck >= 30000) { // Every 30 seconds
         if (currentSensorInitialized && !currentSensor.isDevicePresent()) {
             currentSensorPresent = false;
             currentReading = 0;
