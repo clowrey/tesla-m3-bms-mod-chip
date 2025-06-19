@@ -284,6 +284,16 @@ void setup() {
         currentSensorPresent = true;
         Serial.println("AS8510 current sensor initialized successfully");
         
+        // Verify device is awake
+        if (currentSensor.isAwake()) {
+            Serial.println("AS8510: Device is awake and ready for measurements");
+        } else {
+            Serial.println("AS8510: Warning - Device may still be in sleep mode");
+            // Try to wake up again
+            currentSensor.wakeUp();
+            delay(10);
+        }
+        
         // Configure AS8510 settings
         currentSensor.setPGAGain(1, PGA_GAIN_4X);  // Channel 1: 4x gain for current measurement
         currentSensor.setSampleRate(RATE_1000_SPS); // 1000 samples per second
