@@ -132,6 +132,14 @@ public:
     };
     
     BalancingInfo getBalancingInfo() const;
+    
+    // Get voltage from specific chip and register position
+    uint16_t getVoltage(int chip, int register_pos) const {
+        if (chip >= 0 && chip < 8 && register_pos >= 0 && register_pos < 15) {
+            return Voltage[chip][register_pos];
+        }
+        return 0;
+    }
 
 private:
     spi_device_handle_t spi_dev;

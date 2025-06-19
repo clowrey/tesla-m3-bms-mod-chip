@@ -2,6 +2,7 @@
 #define PARAM_H
 
 #include <stdint.h>
+#include <Arduino.h>
 
 class Param {
 public:
@@ -74,6 +75,20 @@ public:
     static void SetInt(PARAM_NUM param, int value);
     static float GetFloat(PARAM_NUM param);
     static void SetFloat(PARAM_NUM param, float value);
+    
+    // Serial API methods
+    static const char* GetParamName(PARAM_NUM param);
+    static PARAM_NUM GetParamFromName(const char* name);
+    static void PrintAllParams();
+    static void PrintParam(PARAM_NUM param);
+    static bool SetParamFromString(const char* name, const char* value);
+    static void PrintParamHelp();
+    
+    // Overloaded methods for specific serial ports
+    static void PrintAllParams(HardwareSerial& serialPort);
+    static void PrintParam(PARAM_NUM param, HardwareSerial& serialPort);
+    static bool SetParamFromString(const char* name, const char* value, HardwareSerial& serialPort);
+    static void PrintParamHelp(HardwareSerial& serialPort);
 };
 
 #endif // PARAM_H 

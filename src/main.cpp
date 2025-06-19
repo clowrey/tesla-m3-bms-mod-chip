@@ -3,6 +3,7 @@
 #include <TFT_eSPI.h>
 #include <SPI.h>
 #include "../AS8510-library/as8510.h"
+#include <HardwareSerial.h>
 
 /*> 
 balance on
@@ -26,6 +27,8 @@ Available commands:
 BATMan batman;
 TFT_eSPI tft = TFT_eSPI();
 
+// Second serial interface on pins 12 and 13
+HardwareSerial Serial2(2); // Use UART2
 
 /* Tesla Shunt Debug Header Pinout
 
@@ -45,8 +48,8 @@ TFT_eSPI tft = TFT_eSPI();
 #define SHUNT_RESISTANCE 0.0001 // 100µΩ shunt resistance
 AS8510 currentSensor(AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, SHUNT_RESISTANCE);
 
-// PWM Configuration for Economizer
-#define ECONOMIZER_PWM_PIN 12  // GPIO pin for PWM output
+// PWM Configuration for Economizer (moved to avoid conflict with Serial2)
+#define ECONOMIZER_PWM_PIN 14  // Changed from 12 to 14 to avoid conflict with Serial2
 #define PWM_FREQ 20000        // 20kHz PWM frequency
 #define PWM_RESOLUTION 8      // 8-bit resolution (0-255)
 #define ECONOMIZER_DUTY 15   // Normal duty cycle (25%)
@@ -56,6 +59,8 @@ AS8510 currentSensor(AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK
 #define BUTTON_PIN 35        // GPIO pin for push button
 #define DEBOUNCE_TIME 50     // Debounce time in milliseconds
 
+// Serial interface configuration
+#define SERIAL2_BAUD_RATE 115200
 
 // Variables to store previous values for comparison
 float prevMinVoltage = 0;
@@ -68,7 +73,6 @@ uint8_t prevDutyCycle = 0;  // Track duty cycle changes
 float currentReading = 0;
 float prevCurrentReading = 0;
 bool currentSensorInitialized = false;
-bool currentSensorPresent = false; // Track if sensor is actually present
 
 // Balance control variable
 bool balanceEnabled = false;
@@ -88,41 +92,79 @@ volatile uint8_t currentDutyCycle = 0;
 unsigned long lastDisplayUpdate = 0;
 const unsigned long DISPLAY_UPDATE_INTERVAL = 1000; // Update display every 1000ms (1 second)
 
-// Serial command buffer
+// Serial command buffers
 String serialCommand = "";
+String serial2Command = "";
 
-// Function to process serial commands
-void processSerialCommand(String command) {
+// Function to process serial commands (now takes a HardwareSerial reference)
+void processSerialCommand(String command, HardwareSerial& serialPort) {
     command.trim(); // Remove whitespace
     command.toLowerCase(); // Convert to lowercase
     
     if (command == "balance on" || command == "balance enable") {
         balanceEnabled = true;
         Param::SetInt(Param::balance, 1);
-        Serial.println("Balance ENABLED");
+        serialPort.println("Balance ENABLED");
     }
     else if (command == "balance off" || command == "balance disable") {
         balanceEnabled = false;
         Param::SetInt(Param::balance, 0);
-        Serial.println("Balance DISABLED");
+        serialPort.println("Balance DISABLED");
     }
     else if (command == "balance status" || command == "balance") {
-        Serial.printf("Balance is currently: %s\n", balanceEnabled ? "ENABLED" : "DISABLED");
+        serialPort.printf("Balance is currently: %s\n", balanceEnabled ? "ENABLED" : "DISABLED");
     }
     else if (command == "mapping" || command == "debug") {
         batman.printHardwareMapping();
     }
+    // Parameter API commands
+    else if (command.startsWith("param ")) {
+        String paramCommand = command.substring(6); // Remove "param " prefix
+        
+        if (paramCommand == "list") {
+            Param::PrintAllParams(serialPort);
+        }
+        else if (paramCommand == "help") {
+            Param::PrintParamHelp(serialPort);
+        }
+        else if (paramCommand.startsWith("get ")) {
+            String paramName = paramCommand.substring(4);
+            Param::PARAM_NUM param = Param::GetParamFromName(paramName.c_str());
+            if (param != static_cast<Param::PARAM_NUM>(-1)) {
+                Param::PrintParam(param, serialPort);
+            } else {
+                serialPort.printf("Error: Unknown parameter '%s'\n", paramName.c_str());
+            }
+        }
+        else if (paramCommand.startsWith("set ")) {
+            int spacePos = paramCommand.indexOf(' ', 4);
+            if (spacePos > 0) {
+                String paramName = paramCommand.substring(4, spacePos);
+                String paramValue = paramCommand.substring(spacePos + 1);
+                Param::SetParamFromString(paramName.c_str(), paramValue.c_str(), serialPort);
+            } else {
+                serialPort.println("Error: Invalid parameter set command. Use: param set <name> <value>");
+            }
+        }
+        else {
+            serialPort.println("Error: Unknown parameter command. Use 'param help' for available commands.");
+        }
+    }
     else if (command == "help") {
-        Serial.println("Available commands:");
-        Serial.println("  balance on / balance enable  - Enable cell balancing");
-        Serial.println("  balance off / balance disable - Disable cell balancing");
-        Serial.println("  balance status / balance     - Show current balance status");
-        Serial.println("  mapping / debug              - Show hardware register mapping");
-        Serial.println("  help                         - Show this help message");
+        serialPort.println("Available commands:");
+        serialPort.println("  balance on / balance enable  - Enable cell balancing");
+        serialPort.println("  balance off / balance disable - Disable cell balancing");
+        serialPort.println("  balance status / balance     - Show current balance status");
+        serialPort.println("  mapping / debug              - Show hardware register mapping");
+        serialPort.println("  param list                   - List all parameters");
+        serialPort.println("  param get <name>             - Get parameter value");
+        serialPort.println("  param set <name> <value>     - Set parameter value");
+        serialPort.println("  param help                   - Show parameter API help");
+        serialPort.println("  help                         - Show this help message");
     }
     else if (command.length() > 0) {
-        Serial.printf("Unknown command: '%s'\n", command.c_str());
-        Serial.println("Type 'help' for available commands");
+        serialPort.printf("Unknown command: '%s'\n", command.c_str());
+        serialPort.println("Type 'help' for available commands");
     }
 }
 
@@ -137,6 +179,9 @@ void setEconomizerDutyCycle(uint8_t dutyCycle) {
         Serial.print("Economizer duty cycle: ");
         Serial.print(dutyCycle);
         Serial.println("%");
+        Serial2.print("Economizer duty cycle: ");
+        Serial2.print(dutyCycle);
+        Serial2.println("%");
         prevDutyCycle = dutyCycle;
     }
     currentDutyCycle = dutyCycle; // Always update global
@@ -195,12 +240,8 @@ void updateDisplay(uint8_t currentDutyCycle) {
     // Display current reading
     tft.setCursor(10, 110);
     tft.print("Current: ");
-    if (currentSensorInitialized && currentSensorPresent) {
-        tft.print(currentReading, 3);
-        tft.println("A");
-    } else {
-        tft.println("N/A");
-    }
+    tft.print(currentReading, 3);
+    tft.println("A");
     
     // Display economizer status with duty cycle
     tft.setCursor(10, 130);
@@ -261,9 +302,44 @@ void updateDisplay(uint8_t currentDutyCycle) {
     prevCurrentReading = currentReading;
 }
 
+// Function to update parameters from BATMan system data
+void updateParametersFromBATMan() {
+    // Update cell voltages (u1-u108)
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 15; j++) {
+            int cellNumber = batman.getSequentialCellNumber(i, j);
+            if (cellNumber > 0 && cellNumber <= 108) {
+                Param::SetInt(static_cast<Param::PARAM_NUM>(Param::u1 + cellNumber - 1), batman.getVoltage(i, j));
+            }
+        }
+    }
+    
+    // Update voltage statistics
+    Param::SetInt(Param::CellMax, batman.getMaxCell());
+    Param::SetInt(Param::CellMin, batman.getMinCell());
+    Param::SetInt(Param::umax, batman.getMaxVoltage());
+    Param::SetInt(Param::umin, batman.getMinVoltage());
+    Param::SetInt(Param::deltaV, batman.getMaxVoltage() - batman.getMinVoltage());
+    
+    // Update balance status
+    Param::SetInt(Param::balance, balanceEnabled ? 1 : 0);
+    Param::SetInt(Param::CellVmax, batman.getMaxVoltage());
+    Param::SetInt(Param::CellVmin, batman.getMinVoltage());
+    
+    // Update temperature data (if available)
+    // Note: This would need to be implemented based on actual temperature data from BATMan
+    
+    // Update chip voltages (if available)
+    // Note: This would need to be implemented based on actual chip voltage data from BATMan
+}
+
 void setup() {
     Serial.begin(115200);
     Serial.println("Tesla Model 3 BMB Interface Starting...");
+    
+    // Initialize second serial interface
+    Serial2.begin(SERIAL2_BAUD_RATE, SERIAL_8N1, 12, 13); // RX=12, TX=13
+    Serial2.println("Tesla Model 3 BMB Interface - Serial2 Starting...");
     
     // Initialize the display
     tft.init();
@@ -279,16 +355,19 @@ void setup() {
     
     // Initialize AS8510 current sensor
     Serial.println("Initializing AS8510 current sensor...");
+    Serial2.println("Initializing AS8510 current sensor...");
     if (currentSensor.begin()) {
         currentSensorInitialized = true;
-        currentSensorPresent = true;
         Serial.println("AS8510 current sensor initialized successfully");
+        Serial2.println("AS8510 current sensor initialized successfully");
         
         // Verify device is awake
         if (currentSensor.isAwake()) {
             Serial.println("AS8510: Device is awake and ready for measurements");
+            Serial2.println("AS8510: Device is awake and ready for measurements");
         } else {
             Serial.println("AS8510: Warning - Device may still be in sleep mode");
+            Serial2.println("AS8510: Warning - Device may still be in sleep mode");
             // Try to wake up again
             currentSensor.wakeUp();
             delay(10);
@@ -301,19 +380,27 @@ void setup() {
         
         Serial.printf("AS8510 configured - CS: %d, MOSI: %d, MISO: %d, SCK: %d, Shunt: %.6fΩ\n", 
             AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, SHUNT_RESISTANCE);
+        Serial2.printf("AS8510 configured - CS: %d, MOSI: %d, MISO: %d, SCK: %d, Shunt: %.6fΩ\n", 
+            AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, SHUNT_RESISTANCE);
     } else {
         Serial.println("Failed to initialize AS8510 current sensor");
+        Serial2.println("Failed to initialize AS8510 current sensor");
         currentSensorInitialized = false;
-        currentSensorPresent = false;
     }
     
     // Initialize the BATMan interface
     batman.BatStart();
+    
+    Serial.println("System ready. Commands available on both Serial and Serial2 (pins 12/13)");
+    Serial2.println("System ready. Commands available on both Serial and Serial2 (pins 12/13)");
 }
 
 void loop() {
     // Run the BATMan state machine
     batman.loop();
+    
+    // Update parameters from BATMan system data
+    updateParametersFromBATMan();
     
     // Get current time for all timing operations
     unsigned long currentMillis = millis();
@@ -325,21 +412,8 @@ void loop() {
         // Print current reading to serial (only when it changes significantly)
         if (abs(currentReading - prevCurrentReading) > 0.001) { // 1mA threshold
             Serial.printf("Current: %.3fA\n", currentReading);
+            Serial2.printf("Current: %.3fA\n", currentReading);
         }
-        
-        // Mark sensor as present if we successfully read data
-        currentSensorPresent = true;
-    }
-    
-    // Periodic device presence check (every 30 seconds) - less frequent
-    static unsigned long lastDeviceCheck = 0;
-    if (currentMillis - lastDeviceCheck >= 30000) { // Every 30 seconds
-        if (currentSensorInitialized && !currentSensor.isDevicePresent()) {
-            currentSensorPresent = false;
-            currentReading = 0;
-            Serial.println("AS8510 device disconnected - showing N/A");
-        }
-        lastDeviceCheck = currentMillis;
     }
     
     // Print periodic status update to serial
@@ -349,14 +423,21 @@ void loop() {
         Serial.printf("Min Voltage: %.3fV (Cell %d)\n", batman.getMinVoltage()/1000.0, batman.getMinCell());
         Serial.printf("Max Voltage: %.3fV (Cell %d)\n", batman.getMaxVoltage()/1000.0, batman.getMaxCell());
         Serial.printf("Voltage Delta: %.3fV\n", (batman.getMaxVoltage() - batman.getMinVoltage())/1000.0);
-        if (currentSensorInitialized && currentSensorPresent) {
-            Serial.printf("Current: %.3fA\n", currentReading);
-        } else {
-            Serial.println("Current: N/A (Sensor not connected)");
-        }
+        Serial.printf("Current: %.3fA\n", currentReading);
         Serial.printf("Balance: %s\n", balanceEnabled ? "ON" : "OFF");
         Serial.printf("Economizer: %d%%\n", currentDutyCycle);
         Serial.println("========================\n");
+        
+        // Also send to Serial2
+        Serial2.println("\n=== BMS Status Update ===");
+        Serial2.printf("Min Voltage: %.3fV (Cell %d)\n", batman.getMinVoltage()/1000.0, batman.getMinCell());
+        Serial2.printf("Max Voltage: %.3fV (Cell %d)\n", batman.getMaxVoltage()/1000.0, batman.getMaxCell());
+        Serial2.printf("Voltage Delta: %.3fV\n", (batman.getMaxVoltage() - batman.getMinVoltage())/1000.0);
+        Serial2.printf("Current: %.3fA\n", currentReading);
+        Serial2.printf("Balance: %s\n", balanceEnabled ? "ON" : "OFF");
+        Serial2.printf("Economizer: %d%%\n", currentDutyCycle);
+        Serial2.println("========================\n");
+        
         lastSerialUpdate = currentMillis;
     }
     
@@ -414,11 +495,24 @@ void loop() {
         char c = Serial.read();
         if (c == '\n' || c == '\r') {
             if (serialCommand.length() > 0) {
-                processSerialCommand(serialCommand);
+                processSerialCommand(serialCommand, Serial);
                 serialCommand = "";
             }
         } else {
             serialCommand += c;
+        }
+    }
+
+    // Process serial2 commands
+    while (Serial2.available()) {
+        char c = Serial2.read();
+        if (c == '\n' || c == '\r') {
+            if (serial2Command.length() > 0) {
+                processSerialCommand(serial2Command, Serial2);
+                serial2Command = "";
+            }
+        } else {
+            serial2Command += c;
         }
     }
 } 
