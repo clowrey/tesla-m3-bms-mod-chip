@@ -147,6 +147,9 @@ void updateDisplay(uint8_t currentDutyCycle) {
     float maxVoltage = batman.getMaxVoltage() / 1000.0; // Convert mV to V
     int minCell = batman.getMinCell();
     int maxCell = batman.getMaxCell();
+    
+    // Get balancing information
+    BATMan::BalancingInfo balanceInfo = batman.getBalancingInfo();
 
         
     // Clear the display
@@ -213,6 +216,38 @@ void updateDisplay(uint8_t currentDutyCycle) {
     } else {
         tft.setTextColor(TFT_RED, TFT_BLACK);
         tft.println("OFF");
+    }
+    tft.setTextColor(TFT_WHITE, TFT_BLACK); // Reset text color
+    
+    // Display compact balancing information
+    tft.setCursor(10, 170);
+    tft.print("Balancing: ");
+    if (balanceInfo.balancingCells > 0) {
+        tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+        tft.print(balanceInfo.balancingCells);
+        tft.print(" cells");
+        
+        // Show first few balancing cell numbers in compact format
+        if (balanceInfo.balancingCells <= 8) {
+            tft.print(" (");
+            for (int i = 0; i < balanceInfo.balancingCells; i++) {
+                if (i > 0) tft.print(",");
+                tft.print(balanceInfo.balancingCellNumbers[i]);
+            }
+            tft.print(")");
+        } else {
+            tft.print(" (");
+            for (int i = 0; i < 6; i++) {
+                if (i > 0) tft.print(",");
+                tft.print(balanceInfo.balancingCellNumbers[i]);
+            }
+            tft.print("...");
+            tft.print(balanceInfo.balancingCellNumbers[balanceInfo.balancingCells-1]);
+            tft.print(")");
+        }
+    } else {
+        tft.setTextColor(TFT_GREEN, TFT_BLACK);
+        tft.print("None");
     }
     tft.setTextColor(TFT_WHITE, TFT_BLACK); // Reset text color
     

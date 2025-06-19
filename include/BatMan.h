@@ -124,6 +124,15 @@ public:
         return 0;
     }
 
+    // Get balancing information for display
+    struct BalancingInfo {
+        int totalCells;
+        int balancingCells;
+        int balancingCellNumbers[96]; // Array to store cell numbers being balanced
+    };
+    
+    BalancingInfo getBalancingInfo() const;
+
 private:
     spi_device_handle_t spi_dev;
     uint8_t ChipNum;

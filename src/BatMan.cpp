@@ -1232,3 +1232,40 @@ void BATMan::printHardwareMapping() const {
     }
     Serial.println("================================\n");
 }
+
+BATMan::BalancingInfo BATMan::getBalancingInfo() const {
+    BalancingInfo info = {0, 0, {0}};
+    int cellCount = 0;
+    int balancingCount = 0;
+    
+    // Check if balancing is enabled
+    if (!Param::GetInt(Param::balance)) {
+        return info;
+    }
+    
+    float minVoltage = Param::GetFloat(Param::umin);
+    float balanceThreshold = minVoltage + BalHys;
+    
+    // Scan through all cells to find which ones are being balanced
+    for (int chip = 0; chip < 8; chip++) {
+        for (int reg = 0; reg < 15; reg++) {
+            if (Voltage[chip][reg] > 10) { // Cell is present
+                cellCount++;
+                
+                // Check if this cell is being balanced
+                if (Voltage[chip][reg] > balanceThreshold) {
+                    // Check if the balancing bit is set in CellBalCmd
+                    if (CellBalCmd[chip] & (0x01 << reg)) {
+                        info.balancingCellNumbers[balancingCount] = cellCount;
+                        balancingCount++;
+                    }
+                }
+            }
+        }
+    }
+    
+    info.totalCells = cellCount;
+    info.balancingCells = balancingCount;
+    
+    return info;
+}
