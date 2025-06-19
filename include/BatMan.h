@@ -55,11 +55,59 @@ public:
     // New getter methods for display
     float getMinVoltage() const { return CellVMin; }
     float getMaxVoltage() const { return CellVMax; }
+    
+    // Helper method to get hardware register position for a cell
+    struct CellPosition {
+        int chip;
+        int register_pos;
+        bool valid;
+    };
+    
+    CellPosition getCellHardwarePosition(int sequentialCellNum) const {
+        CellPosition pos = {0, 0, false};
+        int cellCount = 0;
+        
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 15; j++) {
+                if (Voltage[i][j] > 10) { // Cell is present
+                    cellCount++;
+                    if (cellCount == sequentialCellNum) {
+                        pos.chip = i;
+                        pos.register_pos = j;
+                        pos.valid = true;
+                        return pos;
+                    }
+                }
+            }
+        }
+        return pos;
+    }
+    
+    // Get sequential cell number from hardware position
+    int getSequentialCellNumber(int chip, int register_pos) const {
+        int cellCount = 0;
+        
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 15; j++) {
+                if (Voltage[i][j] > 10) { // Cell is present
+                    cellCount++;
+                    if (i == chip && j == register_pos) {
+                        return cellCount;
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+    
+    // Debug method to print hardware register mapping
+    void printHardwareMapping() const;
+    
     int getMinCell() const {
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 15; j++) {
                 if (Voltage[i][j] == CellVMin) {
-                    return i * 15 + j + 1;
+                    return getSequentialCellNumber(i, j);
                 }
             }
         }
@@ -69,7 +117,7 @@ public:
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 15; j++) {
                 if (Voltage[i][j] == CellVMax) {
-                    return i * 15 + j + 1;
+                    return getSequentialCellNumber(i, j);
                 }
             }
         }

@@ -108,11 +108,15 @@ void processSerialCommand(String command) {
     else if (command == "balance status" || command == "balance") {
         Serial.printf("Balance is currently: %s\n", balanceEnabled ? "ENABLED" : "DISABLED");
     }
+    else if (command == "mapping" || command == "debug") {
+        batman.printHardwareMapping();
+    }
     else if (command == "help") {
         Serial.println("Available commands:");
         Serial.println("  balance on / balance enable  - Enable cell balancing");
         Serial.println("  balance off / balance disable - Disable cell balancing");
         Serial.println("  balance status / balance     - Show current balance status");
+        Serial.println("  mapping / debug              - Show hardware register mapping");
         Serial.println("  help                         - Show this help message");
     }
     else if (command.length() > 0) {

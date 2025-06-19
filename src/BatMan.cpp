@@ -836,12 +836,14 @@ void BATMan::upDateCellVolts(void)
                 if (CellVMax< Voltage[Xr][Yc])
                 {
                     CellVMax =  Voltage[Xr][Yc];
+                    // Store both sequential cell number and hardware position
                     Param::SetInt(Param::CellMax, h+1);
                 }
                 // -AI- Track minimum cell voltage and its position
                 if (CellVMin > Voltage[Xr][Yc])
                 {
                     CellVMin =  Voltage[Xr][Yc];
+                    // Store both sequential cell number and hardware position
                     Param::SetInt(Param::CellMin, h+1);
                 }
                 // -AI- Store cell voltage in parameter system
@@ -850,14 +852,14 @@ void BATMan::upDateCellVolts(void)
                 // -AI- Cell balancing logic:
                 // 1. Check if balancing is enabled
                 // 2. If cell voltage is above minimum + hysteresis, enable balancing
-                // 3. Set corresponding bit in CellBalCmd register
+                // 3. Set corresponding bit in CellBalCmd register using HARDWARE POSITION
                 if(Param::GetInt(Param::balance)) // Check if balancing flag is set
                 {
                     if((Param::GetFloat(Param::umin) + BalHys) < Voltage[Xr][Yc])
                     {
-                        // -AI- Set bit in balancing command register for this cell
-                        // Each bit in CellBalCmd corresponds to one cell
-                        CellBalCmd[Xr] = CellBalCmd[Xr]+(0x01 << Yc);
+                        // -AI- CRITICAL FIX: Set bit in balancing command register using HARDWARE REGISTER POSITION (Yc)
+                        // NOT sequential cell number (h). This ensures balancing commands map to correct hardware registers.
+                        CellBalCmd[Xr] = CellBalCmd[Xr] | (0x01 << Yc);
                         CellBalancing++;
                         BalanceFlag = true;
                     }
@@ -900,7 +902,7 @@ void BATMan::upDateCellVolts(void)
         Cell2start=Param::GetFloat(Param::u2);
     }
 
-    // Print cell voltage information
+    // Print cell voltage information with hardware position mapping
     Serial.println("\n=== Cell Voltage Information ===");
     Serial.printf("Total Cells Present: %d\n", Param::GetInt(Param::CellsPresent));
     Serial.printf("Max Cell Voltage: %.3fV (Cell %d)\n", CellVMax/1000.0, Param::GetInt(Param::CellMax));
@@ -918,31 +920,51 @@ void BATMan::upDateCellVolts(void)
     }
     Serial.printf("Total Cell Voltage Sum: %.3fV\n", totalCellVoltage/1000.0);
     
-    // Print individual cell voltages
-    Serial.println("\nIndividual Cell Voltages:");
-    for (int i = 0; i < Param::GetInt(Param::CellsPresent); i++) {
-        float cellVoltage = Param::GetFloat((Param::PARAM_NUM)(Param::u1 + i));
-        if (cellVoltage > 0) {  // Only print if cell is present
-            Serial.printf("Cell %d: %.3fV", i + 1, cellVoltage/1000.0);  // Convert millivolts to volts
-            if (i + 1 == Param::GetInt(Param::CellMax)) {
-                Serial.print(" (MAX)");
-            }
-            if (i + 1 == Param::GetInt(Param::CellMin)) {
-                Serial.print(" (MIN)");
-            }
-            
-            // Check if this cell is being balanced
-            if(Param::GetInt(Param::balance)) // Check if balancing flag is set
-            {
-                if((Param::GetFloat(Param::umin) + BalHys) < cellVoltage)
-                {
-                    Serial.print(" (BALANCING)");
+    // Print individual cell voltages with hardware position mapping
+    Serial.println("\nIndividual Cell Voltages (Sequential# -> Chip:Register):");
+    int sequentialCell = 1;
+    for (int chip = 0; chip < ChipNum; chip++) {
+        for (int reg = 0; reg < 15; reg++) {
+            if (Voltage[chip][reg] > 10) { // Cell is present
+                float cellVoltage = Voltage[chip][reg];
+                Serial.printf("Cell %d (Chip%d:R%d): %.3fV", sequentialCell, chip, reg, cellVoltage/1000.0);
+                
+                if (cellVoltage == CellVMax) {
+                    Serial.print(" (MAX)");
                 }
+                if (cellVoltage == CellVMin) {
+                    Serial.print(" (MIN)");
+                }
+                
+                // Check if this cell is being balanced using HARDWARE REGISTER POSITION
+                if(Param::GetInt(Param::balance)) // Check if balancing flag is set
+                {
+                    if((Param::GetFloat(Param::umin) + BalHys) < cellVoltage)
+                    {
+                        Serial.printf(" (BALANCING-Bit%d)", reg);
+                    }
+                }
+                
+                Serial.println();
+                sequentialCell++;
             }
-            
-            Serial.println();
         }
     }
+    
+    // Print balancing command registers for debugging
+    if (Param::GetInt(Param::balance) && CellBalancing > 0) {
+        Serial.println("\nBalancing Command Registers:");
+        for (int chip = 0; chip < ChipNum; chip++) {
+            if (CellBalCmd[chip] != 0) {
+                Serial.printf("Chip %d: 0x%04X (Binary: ", chip, CellBalCmd[chip]);
+                for (int bit = 14; bit >= 0; bit--) {
+                    Serial.print((CellBalCmd[chip] >> bit) & 1);
+                }
+                Serial.println(")");
+            }
+        }
+    }
+    
     Serial.println("==============================\n");
 }
 
@@ -1189,4 +1211,24 @@ bool BATMan::checkSPIConnection() {
     Serial.printf("Master Batman IC Cells Total Voltage: %.2fV\n", chipVoltage/1000.0);
     
     return true;
+}
+
+void BATMan::printHardwareMapping() const {
+    Serial.println("\n=== Hardware Register Mapping ===");
+    int sequentialCell = 1;
+    for (int chip = 0; chip < 8; chip++) {
+        bool chipHasCells = false;
+        for (int reg = 0; reg < 15; reg++) {
+            if (Voltage[chip][reg] > 10) {
+                if (!chipHasCells) {
+                    Serial.printf("Chip %d:\n", chip);
+                    chipHasCells = true;
+                }
+                Serial.printf("  Register %d -> Sequential Cell %d (%.3fV)\n", 
+                    reg, sequentialCell, Voltage[chip][reg]/1000.0);
+                sequentialCell++;
+            }
+        }
+    }
+    Serial.println("================================\n");
 }
