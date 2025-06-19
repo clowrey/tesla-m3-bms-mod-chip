@@ -2,9 +2,29 @@
 #include "BatMan.h"
 #include <TFT_eSPI.h>
 #include <SPI.h>
+#include "../AS8510-library/as8510.h"
 
 BATMan batman;
 TFT_eSPI tft = TFT_eSPI();
+
+
+/* Tesla Shunt Debug Header Pinout
+
+#1 - SCK  (Square pin)
+#2 - MOSI
+#3 - MISO
+#4 - CS 
+#5 - ??
+#6 - GND
+*/
+
+// AS8510 Current Sensor Configuration
+#define AS8510_CS_PIN 26        // GPIO pin for AS8510 chip select
+#define AS8510_MOSI_PIN 33      // GPIO pin for AS8510 MOSI
+#define AS8510_MISO_PIN 25     // GPIO pin for AS8510 MISO  
+#define AS8510_SCK_PIN 32       // GPIO pin for AS8510 SCK
+#define SHUNT_RESISTANCE 0.0001 // 100µΩ shunt resistance
+AS8510 currentSensor(AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, SHUNT_RESISTANCE);
 
 // PWM Configuration for Economizer
 #define ECONOMIZER_PWM_PIN 12  // GPIO pin for PWM output
@@ -15,7 +35,6 @@ TFT_eSPI tft = TFT_eSPI();
 
 // Button Configuration
 #define BUTTON_PIN 35        // GPIO pin for push button
-#define BALANCE_BUTTON_PIN 0 // GPIO pin for balance toggle button
 #define DEBOUNCE_TIME 50     // Debounce time in milliseconds
 
 
@@ -26,6 +45,14 @@ int prevMinCell = 0;
 int prevMaxCell = 0;
 uint8_t prevDutyCycle = 0;  // Track duty cycle changes
 
+// Current measurement variables
+float currentReading = 0;
+float prevCurrentReading = 0;
+bool currentSensorInitialized = false;
+
+// Balance control variable
+bool balanceEnabled = false;
+
 // Button and Economizer state variables
 bool economizerEnabled = false;
 bool lastButtonState = HIGH;
@@ -34,18 +61,46 @@ unsigned long lastDebounceTime = 0;
 unsigned long economizerStartTime = 0;
 bool initialPulseComplete = false;
 
-// Balance button state variables
-bool lastBalanceButtonState = HIGH;
-bool balanceButtonState = HIGH;
-unsigned long lastBalanceDebounceTime = 0;
-bool balanceEnabled = false;
-
 // Add global variable for current duty cycle
 volatile uint8_t currentDutyCycle = 0;
 
 // Add display update timer variables
 unsigned long lastDisplayUpdate = 0;
 const unsigned long DISPLAY_UPDATE_INTERVAL = 1000; // Update display every 1000ms (1 second)
+
+// Serial command buffer
+String serialCommand = "";
+
+// Function to process serial commands
+void processSerialCommand(String command) {
+    command.trim(); // Remove whitespace
+    command.toLowerCase(); // Convert to lowercase
+    
+    if (command == "balance on" || command == "balance enable") {
+        balanceEnabled = true;
+        Param::SetInt(Param::balance, 1);
+        Serial.println("Balance ENABLED");
+    }
+    else if (command == "balance off" || command == "balance disable") {
+        balanceEnabled = false;
+        Param::SetInt(Param::balance, 0);
+        Serial.println("Balance DISABLED");
+    }
+    else if (command == "balance status" || command == "balance") {
+        Serial.printf("Balance is currently: %s\n", balanceEnabled ? "ENABLED" : "DISABLED");
+    }
+    else if (command == "help") {
+        Serial.println("Available commands:");
+        Serial.println("  balance on / balance enable  - Enable cell balancing");
+        Serial.println("  balance off / balance disable - Disable cell balancing");
+        Serial.println("  balance status / balance     - Show current balance status");
+        Serial.println("  help                         - Show this help message");
+    }
+    else if (command.length() > 0) {
+        Serial.printf("Unknown command: '%s'\n", command.c_str());
+        Serial.println("Type 'help' for available commands");
+    }
+}
 
 // Function to set economizer PWM duty cycle (0-100%)
 void setEconomizerDutyCycle(uint8_t dutyCycle) {
@@ -65,8 +120,8 @@ void setEconomizerDutyCycle(uint8_t dutyCycle) {
 
 void updateDisplay(uint8_t currentDutyCycle) {
     // Get current values
-    float minVoltage = batman.getMinVoltage();
-    float maxVoltage = batman.getMaxVoltage();
+    float minVoltage = batman.getMinVoltage() / 1000.0; // Convert mV to V
+    float maxVoltage = batman.getMaxVoltage() / 1000.0; // Convert mV to V
     int minCell = batman.getMinCell();
     int maxCell = batman.getMaxCell();
 
@@ -110,14 +165,24 @@ void updateDisplay(uint8_t currentDutyCycle) {
     tft.print(maxVoltage - minVoltage, 3);
     tft.println("V");
     
-    // Display economizer status with duty cycle
+    // Display current reading
     tft.setCursor(10, 110);
+    tft.print("Current: ");
+    if (currentSensorInitialized) {
+        tft.print(currentReading, 3);
+        tft.println("A");
+    } else {
+        tft.println("N/A");
+    }
+    
+    // Display economizer status with duty cycle
+    tft.setCursor(10, 130);
     tft.print("Economizer: ");
     tft.print(currentDutyCycle);
     tft.println("%");
     
     // Display balance status
-    tft.setCursor(10, 130);
+    tft.setCursor(10, 150);
     tft.print("Balance: ");
     if (balanceEnabled) {
         tft.setTextColor(TFT_GREEN, TFT_BLACK);
@@ -134,7 +199,7 @@ void updateDisplay(uint8_t currentDutyCycle) {
     prevMinCell = minCell;
     prevMaxCell = maxCell;
     prevDutyCycle = currentDutyCycle;
-
+    prevCurrentReading = currentReading;
 }
 
 void setup() {
@@ -153,8 +218,23 @@ void setup() {
     // Initialize button pin
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     
-    // Initialize balance button pin
-    pinMode(BALANCE_BUTTON_PIN, INPUT_PULLUP);
+    // Initialize AS8510 current sensor
+    Serial.println("Initializing AS8510 current sensor...");
+    if (currentSensor.begin()) {
+        currentSensorInitialized = true;
+        Serial.println("AS8510 current sensor initialized successfully");
+        
+        // Configure AS8510 settings
+        currentSensor.setPGAGain(1, PGA_GAIN_4X);  // Channel 1: 4x gain for current measurement
+        currentSensor.setSampleRate(RATE_1000_SPS); // 1000 samples per second
+        currentSensor.enableContinuousMode(true);   // Enable continuous mode
+        
+        Serial.printf("AS8510 configured - CS: %d, MOSI: %d, MISO: %d, SCK: %d, Shunt: %.6fΩ\n", 
+            AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, SHUNT_RESISTANCE);
+    } else {
+        Serial.println("Failed to initialize AS8510 current sensor");
+        currentSensorInitialized = false;
+    }
     
     // Initialize the BATMan interface
     batman.BatStart();
@@ -164,8 +244,38 @@ void loop() {
     // Run the BATMan state machine
     batman.loop();
     
-    // Check if it's time to update the display
+    // Get current time for all timing operations
     unsigned long currentMillis = millis();
+    
+    // Read current from AS8510 sensor
+    if (currentSensorInitialized && currentSensor.isDataReady()) {
+        currentReading = currentSensor.readCurrent(1); // Read current from channel 1
+        
+        // Print current reading to serial (only when it changes significantly)
+        if (abs(currentReading - prevCurrentReading) > 0.001) { // 1mA threshold
+            Serial.printf("Current: %.3fA\n", currentReading);
+        }
+    }
+    
+    // Print periodic status update to serial
+    static unsigned long lastSerialUpdate = 0;
+    if (currentMillis - lastSerialUpdate >= 5000) { // Every 5 seconds
+        Serial.println("\n=== BMS Status Update ===");
+        Serial.printf("Min Voltage: %.3fV (Cell %d)\n", batman.getMinVoltage()/1000.0, batman.getMinCell());
+        Serial.printf("Max Voltage: %.3fV (Cell %d)\n", batman.getMaxVoltage()/1000.0, batman.getMaxCell());
+        Serial.printf("Voltage Delta: %.3fV\n", (batman.getMaxVoltage() - batman.getMinVoltage())/1000.0);
+        if (currentSensorInitialized) {
+            Serial.printf("Current: %.3fA\n", currentReading);
+        } else {
+            Serial.println("Current: N/A (Sensor not initialized)");
+        }
+        Serial.printf("Balance: %s\n", balanceEnabled ? "ON" : "OFF");
+        Serial.printf("Economizer: %d%%\n", currentDutyCycle);
+        Serial.println("========================\n");
+        lastSerialUpdate = currentMillis;
+    }
+    
+    // Check if it's time to update the display
     if (currentMillis - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
         updateDisplay(currentDutyCycle);
         lastDisplayUpdate = currentMillis;
@@ -211,40 +321,19 @@ void loop() {
     
     lastButtonState = reading;
     
-    // Handle balance button with debouncing
-    bool balanceReading = digitalRead(BALANCE_BUTTON_PIN);
-    
-    // Check if balance button state has changed
-    if (balanceReading != lastBalanceButtonState) {
-        lastBalanceDebounceTime = millis();
-    }
-    
-    // If balance button state is stable for debounce time
-    if ((millis() - lastBalanceDebounceTime) > DEBOUNCE_TIME) {
-        if (balanceReading != balanceButtonState) {
-            balanceButtonState = balanceReading;
-            
-            // If balance button is pressed (LOW due to INPUT_PULLUP)
-            if (balanceButtonState == LOW) {
-                balanceEnabled = !balanceEnabled;
-                
-                // Update the balance parameter in the BATMan system
-                Param::SetInt(Param::balance, balanceEnabled ? 1 : 0);
-                
-                // Print balance status to serial
-                Serial.print("Balance ");
-                if (balanceEnabled) {
-                    Serial.println("ENABLED");
-                } else {
-                    Serial.println("DISABLED");
-                }
-            }
-        }
-    }
-    
-    lastButtonState = reading;
-    lastBalanceButtonState = balanceReading;
-    
     // Add a small delay to prevent overwhelming the serial output
     delay(100);
+    
+    // Process serial commands
+    while (Serial.available()) {
+        char c = Serial.read();
+        if (c == '\n' || c == '\r') {
+            if (serialCommand.length() > 0) {
+                processSerialCommand(serialCommand);
+                serialCommand = "";
+            }
+        } else {
+            serialCommand += c;
+        }
+    }
 } 
