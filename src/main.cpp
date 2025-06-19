@@ -4,6 +4,25 @@
 #include <SPI.h>
 #include "../AS8510-library/as8510.h"
 
+/*> 
+balance on
+Balance ENABLED
+
+> balance status
+Balance is currently: ENABLED
+
+> balance off
+Balance DISABLED
+
+> help
+Available commands:
+  balance on / balance enable  - Enable cell balancing
+  balance off / balance disable - Disable cell balancing
+  balance status / balance     - Show current balance status
+  help                         - Show this help message
+  
+  */
+
 BATMan batman;
 TFT_eSPI tft = TFT_eSPI();
 
