@@ -20,7 +20,7 @@ Available commands:
   balance off / balance disable - Disable cell balancing
   balance status / balance     - Show current balance status
   help                         - Show this help message
-  
+
   */
 
 BATMan batman;
@@ -29,11 +29,11 @@ TFT_eSPI tft = TFT_eSPI();
 
 /* Tesla Shunt Debug Header Pinout
 
-#1 - SCK  (Square pin)
+#1 - SCK  (Square pin)  Clock signal (SPI Interface)
 #2 - MOSI
-#3 - MISO
+#3 - MISO 
 #4 - CS 
-#5 - ??
+#5 - INT Digital output Active high Interrupt to indicate data is ready
 #6 - GND
 */
 
