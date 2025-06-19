@@ -68,6 +68,7 @@ uint8_t prevDutyCycle = 0;  // Track duty cycle changes
 float currentReading = 0;
 float prevCurrentReading = 0;
 bool currentSensorInitialized = false;
+bool currentSensorPresent = false; // Track if sensor is actually present
 
 // Balance control variable
 bool balanceEnabled = false;
@@ -194,7 +195,7 @@ void updateDisplay(uint8_t currentDutyCycle) {
     // Display current reading
     tft.setCursor(10, 110);
     tft.print("Current: ");
-    if (currentSensorInitialized) {
+    if (currentSensorInitialized && currentSensorPresent) {
         tft.print(currentReading, 3);
         tft.println("A");
     } else {
@@ -280,6 +281,7 @@ void setup() {
     Serial.println("Initializing AS8510 current sensor...");
     if (currentSensor.begin()) {
         currentSensorInitialized = true;
+        currentSensorPresent = true;
         Serial.println("AS8510 current sensor initialized successfully");
         
         // Configure AS8510 settings
@@ -292,6 +294,7 @@ void setup() {
     } else {
         Serial.println("Failed to initialize AS8510 current sensor");
         currentSensorInitialized = false;
+        currentSensorPresent = false;
     }
     
     // Initialize the BATMan interface
@@ -309,6 +312,7 @@ void loop() {
     if (currentSensorInitialized && currentSensor.isDataReady()) {
         // Double-check that device is actually present before reading
         if (currentSensor.isDevicePresent()) {
+            currentSensorPresent = true;
             currentReading = currentSensor.readCurrent(1); // Read current from channel 1
             
             // Print current reading to serial (only when it changes significantly)
@@ -318,9 +322,21 @@ void loop() {
         } else {
             // Device was initialized but is no longer present
             currentSensorInitialized = false;
+            currentSensorPresent = false;
             currentReading = 0;
             Serial.println("AS8510 device no longer detected - disabling current sensor");
         }
+    }
+    
+    // Periodic device presence check (every 10 seconds)
+    static unsigned long lastDeviceCheck = 0;
+    if (currentMillis - lastDeviceCheck >= 10000) { // Every 10 seconds
+        if (currentSensorInitialized && !currentSensor.isDevicePresent()) {
+            currentSensorPresent = false;
+            currentReading = 0;
+            Serial.println("AS8510 device disconnected - showing N/A");
+        }
+        lastDeviceCheck = currentMillis;
     }
     
     // Print periodic status update to serial
@@ -330,10 +346,10 @@ void loop() {
         Serial.printf("Min Voltage: %.3fV (Cell %d)\n", batman.getMinVoltage()/1000.0, batman.getMinCell());
         Serial.printf("Max Voltage: %.3fV (Cell %d)\n", batman.getMaxVoltage()/1000.0, batman.getMaxCell());
         Serial.printf("Voltage Delta: %.3fV\n", (batman.getMaxVoltage() - batman.getMinVoltage())/1000.0);
-        if (currentSensorInitialized) {
+        if (currentSensorInitialized && currentSensorPresent) {
             Serial.printf("Current: %.3fA\n", currentReading);
         } else {
-            Serial.println("Current: N/A (Sensor not initialized)");
+            Serial.println("Current: N/A (Sensor not connected)");
         }
         Serial.printf("Balance: %s\n", balanceEnabled ? "ON" : "OFF");
         Serial.printf("Economizer: %d%%\n", currentDutyCycle);
