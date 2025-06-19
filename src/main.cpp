@@ -10,11 +10,12 @@ TFT_eSPI tft = TFT_eSPI();
 #define ECONOMIZER_PWM_PIN 12  // GPIO pin for PWM output
 #define PWM_FREQ 20000        // 20kHz PWM frequency
 #define PWM_RESOLUTION 8      // 8-bit resolution (0-255)
-#define ECONOMIZER_DUTY 25    // Normal duty cycle (25%)
+#define ECONOMIZER_DUTY 15   // Normal duty cycle (25%)
 #define INITIAL_PULSE_TIME 100  // Initial 100% duty cycle time in milliseconds
 
 // Button Configuration
 #define BUTTON_PIN 35        // GPIO pin for push button
+#define BALANCE_BUTTON_PIN 0 // GPIO pin for balance toggle button
 #define DEBOUNCE_TIME 50     // Debounce time in milliseconds
 
 
@@ -32,6 +33,12 @@ bool buttonState = HIGH;
 unsigned long lastDebounceTime = 0;
 unsigned long economizerStartTime = 0;
 bool initialPulseComplete = false;
+
+// Balance button state variables
+bool lastBalanceButtonState = HIGH;
+bool balanceButtonState = HIGH;
+unsigned long lastBalanceDebounceTime = 0;
+bool balanceEnabled = false;
 
 // Add global variable for current duty cycle
 volatile uint8_t currentDutyCycle = 0;
@@ -109,6 +116,18 @@ void updateDisplay(uint8_t currentDutyCycle) {
     tft.print(currentDutyCycle);
     tft.println("%");
     
+    // Display balance status
+    tft.setCursor(10, 130);
+    tft.print("Balance: ");
+    if (balanceEnabled) {
+        tft.setTextColor(TFT_GREEN, TFT_BLACK);
+        tft.println("ON");
+    } else {
+        tft.setTextColor(TFT_RED, TFT_BLACK);
+        tft.println("OFF");
+    }
+    tft.setTextColor(TFT_WHITE, TFT_BLACK); // Reset text color
+    
     // Update previous values
     prevMinVoltage = minVoltage;
     prevMaxVoltage = maxVoltage;
@@ -133,6 +152,9 @@ void setup() {
     
     // Initialize button pin
     pinMode(BUTTON_PIN, INPUT_PULLUP);
+    
+    // Initialize balance button pin
+    pinMode(BALANCE_BUTTON_PIN, INPUT_PULLUP);
     
     // Initialize the BATMan interface
     batman.BatStart();
@@ -188,6 +210,40 @@ void loop() {
     }
     
     lastButtonState = reading;
+    
+    // Handle balance button with debouncing
+    bool balanceReading = digitalRead(BALANCE_BUTTON_PIN);
+    
+    // Check if balance button state has changed
+    if (balanceReading != lastBalanceButtonState) {
+        lastBalanceDebounceTime = millis();
+    }
+    
+    // If balance button state is stable for debounce time
+    if ((millis() - lastBalanceDebounceTime) > DEBOUNCE_TIME) {
+        if (balanceReading != balanceButtonState) {
+            balanceButtonState = balanceReading;
+            
+            // If balance button is pressed (LOW due to INPUT_PULLUP)
+            if (balanceButtonState == LOW) {
+                balanceEnabled = !balanceEnabled;
+                
+                // Update the balance parameter in the BATMan system
+                Param::SetInt(Param::balance, balanceEnabled ? 1 : 0);
+                
+                // Print balance status to serial
+                Serial.print("Balance ");
+                if (balanceEnabled) {
+                    Serial.println("ENABLED");
+                } else {
+                    Serial.println("DISABLED");
+                }
+            }
+        }
+    }
+    
+    lastButtonState = reading;
+    lastBalanceButtonState = balanceReading;
     
     // Add a small delay to prevent overwhelming the serial output
     delay(100);

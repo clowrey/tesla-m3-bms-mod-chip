@@ -7,12 +7,25 @@
 
 
 // ESP32 SPI Configuration
+// Adjust these pins based on your wiring
 #define BMB_SPI_HOST    SPI2_HOST
-#define BMB_MISO        GPIO_NUM_21  // Adjust these pins based on your wiring
-#define BMB_MOSI        GPIO_NUM_22
-#define BMB_SCK         GPIO_NUM_17
-#define BMB_CS          GPIO_NUM_2
+#define BMB_ENABLE      GPIO_NUM_21
+#define BMB_MISO        GPIO_NUM_17 
+#define BMB_MOSI        GPIO_NUM_2
+#define BMB_SCK         GPIO_NUM_15
+#define BMB_CS          GPIO_NUM_22
 
+
+/* Tesla HVC Batman Debug Header Pinout
+
+#1 - SCK  (Square pin)
+#2 - MOSI
+#3 - MISO
+#4 - CS 
+#5 - Batman Enable
+#6 - GND
+
+*/
 // Helper function to reverse 16-bit value
 static inline uint16_t rev16(uint16_t x) {
     return ((x & 0xFF00) >> 8) | ((x & 0x00FF) << 8);

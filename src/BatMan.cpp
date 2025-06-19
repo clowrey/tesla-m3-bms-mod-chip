@@ -274,6 +274,24 @@ void BATMan::BatStart()
     }
     gpio_set_level(BMB_CS, 1);  // CS inactive high
     Serial.println("CS pin configured successfully");
+    
+    // Configure BMB_ENABLE pin to be always low/0
+    Serial.println("Configuring BMB_ENABLE pin...");
+    gpio_config_t enable_conf = {
+        .pin_bit_mask = (1ULL << BMB_ENABLE),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    ret = gpio_config(&enable_conf);
+    if (ret != ESP_OK) {
+        Serial.printf("BMB_ENABLE pin configuration failed! Error: %d\n", ret);
+        return;
+    }
+    gpio_set_level(BMB_ENABLE, 0);  // BMB_ENABLE always low/0
+    Serial.println("BMB_ENABLE pin configured to low state");
+    
     Serial.println("=== BMB SPI Interface Initialization Complete ===\n");
 
     // Add SPI communication check here
@@ -890,6 +908,16 @@ void BATMan::upDateCellVolts(void)
     Serial.printf("Voltage Delta: %.3fV\n", (CellVMax-CellVMin)/1000.0);
     Serial.printf("Cells Balancing: %d\n", CellBalancing);
     
+    // Calculate sum of all cell voltages
+    float totalCellVoltage = 0;
+    for (int i = 0; i < Param::GetInt(Param::CellsPresent); i++) {
+        float cellVoltage = Param::GetFloat((Param::PARAM_NUM)(Param::u1 + i));
+        if (cellVoltage > 0) {  // Only include if cell is present
+            totalCellVoltage += cellVoltage;
+        }
+    }
+    Serial.printf("Total Cell Voltage Sum: %.3fV\n", totalCellVoltage/1000.0);
+    
     // Print individual cell voltages
     Serial.println("\nIndividual Cell Voltages:");
     for (int i = 0; i < Param::GetInt(Param::CellsPresent); i++) {
@@ -902,6 +930,16 @@ void BATMan::upDateCellVolts(void)
             if (i + 1 == Param::GetInt(Param::CellMin)) {
                 Serial.print(" (MIN)");
             }
+            
+            // Check if this cell is being balanced
+            if(Param::GetInt(Param::balance)) // Check if balancing flag is set
+            {
+                if((Param::GetFloat(Param::umin) + BalHys) < cellVoltage)
+                {
+                    Serial.print(" (BALANCING)");
+                }
+            }
+            
             Serial.println();
         }
     }
