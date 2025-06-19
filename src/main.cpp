@@ -307,11 +307,19 @@ void loop() {
     
     // Read current from AS8510 sensor
     if (currentSensorInitialized && currentSensor.isDataReady()) {
-        currentReading = currentSensor.readCurrent(1); // Read current from channel 1
-        
-        // Print current reading to serial (only when it changes significantly)
-        if (abs(currentReading - prevCurrentReading) > 0.001) { // 1mA threshold
-            Serial.printf("Current: %.3fA\n", currentReading);
+        // Double-check that device is actually present before reading
+        if (currentSensor.isDevicePresent()) {
+            currentReading = currentSensor.readCurrent(1); // Read current from channel 1
+            
+            // Print current reading to serial (only when it changes significantly)
+            if (abs(currentReading - prevCurrentReading) > 0.001) { // 1mA threshold
+                Serial.printf("Current: %.3fA\n", currentReading);
+            }
+        } else {
+            // Device was initialized but is no longer present
+            currentSensorInitialized = false;
+            currentReading = 0;
+            Serial.println("AS8510 device no longer detected - disabling current sensor");
         }
     }
     
