@@ -1555,8 +1555,27 @@ interval:
             if (id(u19).has_state()) cell_data.push_back({18, id(u19).state});
             if (id(u20).has_state()) cell_data.push_back({19, id(u20).state});
             
-            // Get overall balance status for visual indication
+            // Get overall balance status and count for visual indication
             bool balance_active = id(balance).has_state() && id(balance).state > 0.5;
+            int cells_balancing_count = id(cellsbalancing).has_state() ? (int)id(cellsbalancing).state : 0;
+            
+            // Sort cells by voltage to identify which ones are likely balancing
+            std::vector<std::pair<float, int>> voltage_sorted;
+            for (auto& cell : cell_data) {
+              if (cell.second > 0.0f) {
+                voltage_sorted.push_back({cell.second, cell.first});
+              }
+            }
+            std::sort(voltage_sorted.rbegin(), voltage_sorted.rend()); // Sort descending by voltage
+            
+            // Create list of cell indices that should show balance indication
+            std::vector<int> balancing_cells;
+            if (balance_active && cells_balancing_count > 0) {
+              // Show balance indication for the top N highest voltage cells where N = cells_balancing_count
+              for (int i = 0; i < std::min(cells_balancing_count, (int)voltage_sorted.size()); i++) {
+                balancing_cells.push_back(voltage_sorted[i].second);
+              }
+            }
             
             // Update bars for cells with data
             for (auto& cell : cell_data) {
@@ -1570,8 +1589,8 @@ interval:
                   voltage = std::max(3.0f, std::min(4.2f, voltage)); // Clamp to range
                   int base_height = (int)((voltage - 3.0f) / 1.2f * 178.0f) + 2;
                   
-                  // Check if this cell is balancing
-                  bool cell_balancing = balance_active && voltage > 3.8f;
+                  // Check if this cell is in the balancing list
+                  bool cell_balancing = std::find(balancing_cells.begin(), balancing_cells.end(), cell_idx) != balancing_cells.end();
                   
                   int total_height, y_pos;
                   if (cell_balancing) {
