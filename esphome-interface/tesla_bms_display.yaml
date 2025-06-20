@@ -1637,9 +1637,8 @@ interval:
                   lv_obj_set_style_border_width(bar, 0, LV_PART_MAIN);
                   
                   if (cell_balancing) {
-                    // For balancing cells, use gradient: normal color above, red below
-                    // Since LVGL doesn't easily support gradients, we'll make the whole bar red
-                    lv_obj_set_style_bg_color(bar, lv_color_make(255, 100, 100), LV_PART_MAIN);
+                    // For balancing cells, use bright blue to distinguish from voltage status
+                    lv_obj_set_style_bg_color(bar, lv_color_make(100, 150, 255), LV_PART_MAIN);
                   } else {
                     // Standard voltage color coding for non-balancing cells
                     if (voltage > 4.1f) {
