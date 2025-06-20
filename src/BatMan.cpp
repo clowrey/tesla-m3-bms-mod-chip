@@ -1022,9 +1022,22 @@ void BATMan::upDateAuxVolts(void)
         Param::SetFloat(Param::udc,(Param::GetFloat(Param::udc)+Param::GetFloat(Param::ChipV7)+Param::GetFloat(Param::ChipV8)));
     }
 
-    // -AI- Calculate average cell voltage
-    // -AI- Formula: Total pack voltage / Number of cells * 1000 (convert to mV)
-    Param::SetInt(Param::uavg,(Param::GetFloat(Param::udc)/Param::GetInt(Param::CellsPresent)*1000));
+    // -AI- Calculate average cell voltage from sum of individual cell voltages (more accurate than using pack voltage)
+    // -AI- Sum all individual cell voltages and divide by number of cells
+    float totalCellVoltage = 0;
+    int cellCount = Param::GetInt(Param::CellsPresent);
+    for (int i = 0; i < cellCount; i++) {
+        float cellVoltage = Param::GetFloat((Param::PARAM_NUM)(Param::u1 + i));
+        if (cellVoltage > 10) {  // Only include cells with valid readings (> 10mV)
+            totalCellVoltage += cellVoltage;
+        }
+    }
+    // Calculate average and store in mV
+    if (cellCount > 0) {
+        Param::SetInt(Param::uavg, (int)(totalCellVoltage / cellCount));
+    } else {
+        Param::SetInt(Param::uavg, 0);
+    }
 
     //Set Charge and discharge voltage limits !!! Update with configrable
     // -AI- Calculate charge and discharge voltage limits
