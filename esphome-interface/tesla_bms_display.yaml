@@ -1568,34 +1568,43 @@ interval:
                 if (bar) {
                   // Map voltage (3.0-4.2V) to height (2-180px)
                   voltage = std::max(3.0f, std::min(4.2f, voltage)); // Clamp to range
-                  int height = (int)((voltage - 3.0f) / 1.2f * 178.0f) + 2;
-                  int y_pos = 180 - height;
+                  int base_height = (int)((voltage - 3.0f) / 1.2f * 178.0f) + 2;
                   
-                  lv_obj_set_size(bar, 3, height);
-                  lv_obj_set_pos(bar, cell_idx * 4, y_pos);
-                  
-                  // Enhanced color coding with balance indication
-                  // If balancing is active and this cell is likely being balanced, add border
+                  // Check if this cell is balancing
                   bool cell_balancing = balance_active && voltage > 3.8f;
                   
+                  int total_height, y_pos;
                   if (cell_balancing) {
-                    // Add yellow border to indicate balancing
-                    lv_obj_set_style_border_width(bar, 1, LV_PART_MAIN);
-                    lv_obj_set_style_border_color(bar, lv_color_make(255, 255, 0), LV_PART_MAIN);
+                    // Extend bar below graph with red indicator (extra 8px below)
+                    total_height = base_height + 8;
+                    y_pos = 180 - base_height;
                   } else {
-                    // No border for non-balancing cells
-                    lv_obj_set_style_border_width(bar, 0, LV_PART_MAIN);
+                    // Normal bar height
+                    total_height = base_height;
+                    y_pos = 180 - base_height;
                   }
                   
-                  // Standard voltage color coding
-                  if (voltage > 4.1f) {
-                    lv_obj_set_style_bg_color(bar, lv_color_make(255, 0, 0), LV_PART_MAIN);
-                  } else if (voltage > 3.9f) {
-                    lv_obj_set_style_bg_color(bar, lv_color_make(255, 255, 0), LV_PART_MAIN);
-                  } else if (voltage > 3.2f) {
-                    lv_obj_set_style_bg_color(bar, lv_color_make(0, 255, 0), LV_PART_MAIN);
+                  lv_obj_set_size(bar, 3, total_height);
+                  lv_obj_set_pos(bar, cell_idx * 4, y_pos);
+                  
+                  // Remove any borders (no longer needed)
+                  lv_obj_set_style_border_width(bar, 0, LV_PART_MAIN);
+                  
+                  if (cell_balancing) {
+                    // For balancing cells, use gradient: normal color above, red below
+                    // Since LVGL doesn't easily support gradients, we'll make the whole bar red
+                    lv_obj_set_style_bg_color(bar, lv_color_make(255, 100, 100), LV_PART_MAIN);
                   } else {
-                    lv_obj_set_style_bg_color(bar, lv_color_make(0, 100, 255), LV_PART_MAIN);
+                    // Standard voltage color coding for non-balancing cells
+                    if (voltage > 4.1f) {
+                      lv_obj_set_style_bg_color(bar, lv_color_make(255, 0, 0), LV_PART_MAIN);
+                    } else if (voltage > 3.9f) {
+                      lv_obj_set_style_bg_color(bar, lv_color_make(255, 255, 0), LV_PART_MAIN);
+                    } else if (voltage > 3.2f) {
+                      lv_obj_set_style_bg_color(bar, lv_color_make(0, 255, 0), LV_PART_MAIN);
+                    } else {
+                      lv_obj_set_style_bg_color(bar, lv_color_make(0, 100, 255), LV_PART_MAIN);
+                    }
                   }
                 }
               }
