@@ -911,6 +911,7 @@ interval:
                       ESP_LOGI("BMS", "PARSED VALUE: %s = %f", param.c_str(), value);
                   
                                         // Update corresponding sensors - All parameter names now match BMS exactly
+                      // Note: Skip 5V (5000mV) initialization values to prevent sending misleading data to Home Assistant
                       bool sensor_updated = false;
                       if (param == "numbmbs") { id(numbmbs).publish_state(value); sensor_updated = true; }
                       else if (param == "LoopCnt") { id(loopcnt).publish_state(value); sensor_updated = true; }
@@ -919,8 +920,26 @@ interval:
                       else if (param == "CellsBalancing") { id(cellsbalancing).publish_state(value); sensor_updated = true; }
                       else if (param == "CellMax") { id(cellmax).publish_state(value); sensor_updated = true; }
                       else if (param == "CellMin") { id(cellmin).publish_state(value); sensor_updated = true; }
-                      else if (param == "umax") { id(umax).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "umin") { id(umin).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "umax") { 
+                        // Check for 5V initialization value (5000mV) and publish NaN instead
+                        if (value == 5000.0) {
+                          ESP_LOGI("BMS", "Detected 5V initialization value for %s, publishing NaN", param.c_str());
+                          // Don't publish the 5V initialization value - let it remain NaN until real data arrives
+                        } else {
+                          id(umax).publish_state(value / 1000.0); 
+                        }
+                        sensor_updated = true; 
+                      }
+                      else if (param == "umin") { 
+                        // Check for 5V initialization value (5000mV) and publish NaN instead
+                        if (value == 5000.0) {
+                          ESP_LOGI("BMS", "Detected 5V initialization value for %s, publishing NaN", param.c_str());
+                          // Don't publish the 5V initialization value - let it remain NaN until real data arrives
+                        } else {
+                          id(umin).publish_state(value / 1000.0); 
+                        }
+                        sensor_updated = true; 
+                      }
                       else if (param == "deltaV") { id(deltav).publish_state(value / 1000.0); sensor_updated = true; }
                       else if (param == "uavg") { id(uavg).publish_state(value / 1000.0); sensor_updated = true; }
                       else if (param == "udc") { id(udc).publish_state(value); sensor_updated = true; }
@@ -939,115 +958,199 @@ interval:
                         sensor_updated = true;
                       }
                       
-                      // Individual cell voltages (u1-u108) - convert from mV to V
-                      else if (param == "u1") { id(u1).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u2") { id(u2).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u3") { id(u3).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u4") { id(u4).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u5") { id(u5).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u6") { id(u6).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u7") { id(u7).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u8") { id(u8).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u9") { id(u9).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u10") { id(u10).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u11") { id(u11).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u12") { id(u12).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u13") { id(u13).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u14") { id(u14).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u15") { id(u15).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u16") { id(u16).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u17") { id(u17).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u18") { id(u18).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u19") { id(u19).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u20") { id(u20).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u21") { id(u21).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u22") { id(u22).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u23") { id(u23).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u24") { id(u24).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u25") { id(u25).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u26") { id(u26).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u27") { id(u27).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u28") { id(u28).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u29") { id(u29).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u30") { id(u30).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u31") { id(u31).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u32") { id(u32).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u33") { id(u33).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u34") { id(u34).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u35") { id(u35).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u36") { id(u36).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u37") { id(u37).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u38") { id(u38).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u39") { id(u39).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u40") { id(u40).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u41") { id(u41).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u42") { id(u42).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u43") { id(u43).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u44") { id(u44).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u45") { id(u45).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u46") { id(u46).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u47") { id(u47).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u48") { id(u48).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u49") { id(u49).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u50") { id(u50).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u51") { id(u51).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u52") { id(u52).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u53") { id(u53).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u54") { id(u54).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u55") { id(u55).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u56") { id(u56).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u57") { id(u57).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u58") { id(u58).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u59") { id(u59).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u60") { id(u60).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u61") { id(u61).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u62") { id(u62).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u63") { id(u63).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u64") { id(u64).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u65") { id(u65).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u66") { id(u66).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u67") { id(u67).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u68") { id(u68).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u69") { id(u69).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u70") { id(u70).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u71") { id(u71).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u72") { id(u72).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u73") { id(u73).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u74") { id(u74).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u75") { id(u75).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u76") { id(u76).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u77") { id(u77).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u78") { id(u78).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u79") { id(u79).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u80") { id(u80).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u81") { id(u81).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u82") { id(u82).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u83") { id(u83).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u84") { id(u84).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u85") { id(u85).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u86") { id(u86).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u87") { id(u87).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u88") { id(u88).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u89") { id(u89).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u90") { id(u90).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u91") { id(u91).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u92") { id(u92).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u93") { id(u93).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u94") { id(u94).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u95") { id(u95).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u96") { id(u96).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u97") { id(u97).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u98") { id(u98).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u99") { id(u99).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u100") { id(u100).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u101") { id(u101).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u102") { id(u102).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u103") { id(u103).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u104") { id(u104).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u105") { id(u105).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u106") { id(u106).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u107") { id(u107).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "u108") { id(u108).publish_state(value / 1000.0); sensor_updated = true; }
+                      // Individual cell voltages (u1-u108) - convert from mV to V, skip 5V initialization values
+                      else if (param == "u1") { 
+                        if (value == 5000.0) {
+                          ESP_LOGI("BMS", "Skipping 5V initialization value for %s", param.c_str());
+                        } else {
+                          id(u1).publish_state(value / 1000.0); 
+                        }
+                        sensor_updated = true; 
+                      }
+                      else if (param == "u2") { 
+                        if (value == 5000.0) {
+                          ESP_LOGV("BMS", "Skipping 5V initialization value for %s", param.c_str());
+                        } else {
+                          id(u2).publish_state(value / 1000.0); 
+                        }
+                        sensor_updated = true; 
+                      }
+                      else if (param == "u3") { 
+                        if (value == 5000.0) {
+                          ESP_LOGV("BMS", "Skipping 5V initialization value for %s", param.c_str());
+                        } else {
+                          id(u3).publish_state(value / 1000.0); 
+                        }
+                        sensor_updated = true; 
+                      }
+                      else if (param == "u4") { 
+                        if (value == 5000.0) {
+                          ESP_LOGV("BMS", "Skipping 5V initialization value for %s", param.c_str());
+                        } else {
+                          id(u4).publish_state(value / 1000.0); 
+                        }
+                        sensor_updated = true; 
+                      }
+                      else if (param == "u5") { 
+                        if (value == 5000.0) {
+                          ESP_LOGV("BMS", "Skipping 5V initialization value for %s", param.c_str());
+                        } else {
+                          id(u5).publish_state(value / 1000.0); 
+                        }
+                        sensor_updated = true; 
+                      }
+                      else if (param == "u6") { 
+                        if (value == 5000.0) {
+                          ESP_LOGV("BMS", "Skipping 5V initialization value for %s", param.c_str());
+                        } else {
+                          id(u6).publish_state(value / 1000.0); 
+                        }
+                        sensor_updated = true; 
+                      }
+                      else if (param == "u7") { 
+                        if (value == 5000.0) {
+                          ESP_LOGV("BMS", "Skipping 5V initialization value for %s", param.c_str());
+                        } else {
+                          id(u7).publish_state(value / 1000.0); 
+                        }
+                        sensor_updated = true; 
+                      }
+                      else if (param == "u8") { 
+                        if (value == 5000.0) {
+                          ESP_LOGV("BMS", "Skipping 5V initialization value for %s", param.c_str());
+                        } else {
+                          id(u8).publish_state(value / 1000.0); 
+                        }
+                        sensor_updated = true; 
+                      }
+                      else if (param == "u9") { 
+                        if (value == 5000.0) {
+                          ESP_LOGV("BMS", "Skipping 5V initialization value for %s", param.c_str());
+                        } else {
+                          id(u9).publish_state(value / 1000.0); 
+                        }
+                        sensor_updated = true; 
+                      }
+                      else if (param == "u10") { 
+                        if (value == 5000.0) {
+                          ESP_LOGV("BMS", "Skipping 5V initialization value for %s", param.c_str());
+                        } else {
+                          id(u10).publish_state(value / 1000.0); 
+                        }
+                        sensor_updated = true; 
+                      }
+                      // Handle remaining cell voltages u11-u108 with 5V initialization check
+                      else if (param.substr(0,1) == "u" && param.length() >= 2) {
+                        // This handles all cell voltage parameters (u11, u12, ..., u108)
+                        // Skip 5V initialization values (5000mV)
+                        if (value == 5000.0) {
+                          ESP_LOGV("BMS", "Skipping 5V initialization value for %s", param.c_str());
+                          sensor_updated = true;
+                        } else {
+                          // Publish the voltage value converted from mV to V
+                          float voltage_v = value / 1000.0;
+                          
+                          // Manually check each cell parameter and publish to corresponding sensor
+                          if (param == "u11") { id(u11).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u12") { id(u12).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u13") { id(u13).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u14") { id(u14).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u15") { id(u15).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u16") { id(u16).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u17") { id(u17).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u18") { id(u18).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u19") { id(u19).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u20") { id(u20).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u21") { id(u21).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u22") { id(u22).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u23") { id(u23).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u24") { id(u24).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u25") { id(u25).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u26") { id(u26).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u27") { id(u27).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u28") { id(u28).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u29") { id(u29).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u30") { id(u30).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u31") { id(u31).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u32") { id(u32).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u33") { id(u33).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u34") { id(u34).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u35") { id(u35).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u36") { id(u36).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u37") { id(u37).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u38") { id(u38).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u39") { id(u39).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u40") { id(u40).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u41") { id(u41).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u42") { id(u42).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u43") { id(u43).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u44") { id(u44).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u45") { id(u45).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u46") { id(u46).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u47") { id(u47).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u48") { id(u48).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u49") { id(u49).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u50") { id(u50).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u51") { id(u51).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u52") { id(u52).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u53") { id(u53).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u54") { id(u54).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u55") { id(u55).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u56") { id(u56).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u57") { id(u57).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u58") { id(u58).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u59") { id(u59).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u60") { id(u60).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u61") { id(u61).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u62") { id(u62).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u63") { id(u63).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u64") { id(u64).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u65") { id(u65).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u66") { id(u66).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u67") { id(u67).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u68") { id(u68).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u69") { id(u69).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u70") { id(u70).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u71") { id(u71).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u72") { id(u72).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u73") { id(u73).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u74") { id(u74).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u75") { id(u75).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u76") { id(u76).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u77") { id(u77).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u78") { id(u78).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u79") { id(u79).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u80") { id(u80).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u81") { id(u81).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u82") { id(u82).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u83") { id(u83).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u84") { id(u84).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u85") { id(u85).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u86") { id(u86).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u87") { id(u87).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u88") { id(u88).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u89") { id(u89).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u90") { id(u90).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u91") { id(u91).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u92") { id(u92).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u93") { id(u93).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u94") { id(u94).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u95") { id(u95).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u96") { id(u96).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u97") { id(u97).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u98") { id(u98).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u99") { id(u99).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u100") { id(u100).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u101") { id(u101).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u102") { id(u102).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u103") { id(u103).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u104") { id(u104).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u105") { id(u105).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u106") { id(u106).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u107") { id(u107).publish_state(voltage_v); sensor_updated = true; }
+                          else if (param == "u108") { id(u108).publish_state(voltage_v); sensor_updated = true; }
+                        }
+                      }
                       
                                              if (sensor_updated) {
                          ESP_LOGI("BMS", "SENSOR UPDATED: %s = %f", param.c_str(), value);
@@ -1644,17 +1747,17 @@ interval:
             // Array of cell voltage sensors - collect all 108 cells, use actual BMS values (including 0V)
             std::vector<std::pair<int, float>> cell_data;
             
-            // Cells 1-20
-            cell_data.push_back({0, id(u1).has_state() ? id(u1).state : 0.0f});
-            cell_data.push_back({1, id(u2).has_state() ? id(u2).state : 0.0f});
-            cell_data.push_back({2, id(u3).has_state() ? id(u3).state : 0.0f});
-            cell_data.push_back({3, id(u4).has_state() ? id(u4).state : 0.0f});
-            cell_data.push_back({4, id(u5).has_state() ? id(u5).state : 0.0f});
-            cell_data.push_back({5, id(u6).has_state() ? id(u6).state : 0.0f});
-            cell_data.push_back({6, id(u7).has_state() ? id(u7).state : 0.0f});
-            cell_data.push_back({7, id(u8).has_state() ? id(u8).state : 0.0f});
-            cell_data.push_back({8, id(u9).has_state() ? id(u9).state : 0.0f});
-            cell_data.push_back({9, id(u10).has_state() ? id(u10).state : 0.0f});
+            // Cells 1-20 - Use NaN for uninitialized sensors to avoid showing misleading 0V or 5V values
+            cell_data.push_back({0, id(u1).has_state() ? id(u1).state : NAN});
+            cell_data.push_back({1, id(u2).has_state() ? id(u2).state : NAN});
+            cell_data.push_back({2, id(u3).has_state() ? id(u3).state : NAN});
+            cell_data.push_back({3, id(u4).has_state() ? id(u4).state : NAN});
+            cell_data.push_back({4, id(u5).has_state() ? id(u5).state : NAN});
+            cell_data.push_back({5, id(u6).has_state() ? id(u6).state : NAN});
+            cell_data.push_back({6, id(u7).has_state() ? id(u7).state : NAN});
+            cell_data.push_back({7, id(u8).has_state() ? id(u8).state : NAN});
+            cell_data.push_back({8, id(u9).has_state() ? id(u9).state : NAN});
+            cell_data.push_back({9, id(u10).has_state() ? id(u10).state : NAN});
             cell_data.push_back({10, id(u11).has_state() ? id(u11).state : 0.0f});
             cell_data.push_back({11, id(u12).has_state() ? id(u12).state : 0.0f});
             cell_data.push_back({12, id(u13).has_state() ? id(u13).state : 0.0f});
@@ -1800,6 +1903,15 @@ interval:
               if (cell_idx < lv_obj_get_child_cnt(container)) {
                 lv_obj_t* bar = lv_obj_get_child(container, cell_idx);
                 if (bar) {
+                  // Handle NaN values (uninitialized sensors) - show minimal bar with gray color
+                  if (std::isnan(voltage)) {
+                    lv_obj_set_size(bar, 3, 2);
+                    lv_obj_set_pos(bar, cell_idx * 4, 178);
+                    lv_obj_set_style_bg_color(bar, lv_color_make(100, 100, 100), LV_PART_MAIN); // Gray for no data
+                    lv_obj_set_style_border_width(bar, 0, LV_PART_MAIN);
+                    continue; // Skip rest of processing for this cell
+                  }
+                  
                   // Map voltage (0-4.2V) to height (2-180px), handle 0V and low voltages
                   voltage = std::max(0.0f, std::min(4.2f, voltage)); // Clamp to range (allow 0V)
                   int base_height;
