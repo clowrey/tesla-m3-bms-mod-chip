@@ -637,7 +637,7 @@ lvgl:
             x: 0
             y: -5
             id: label_cells_info
-            text: "All 108 Cells (3.5V default)"
+            text: "All 108 Cells (Real BMS Data)"
             text_color: white
         - label:
             align: BOTTOM_RIGHT
@@ -1553,128 +1553,128 @@ interval:
           // Update cell voltage bars with current values (all 108 cells)
           lv_obj_t* container = (lv_obj_t*)id(cells_container);
           if (container && lv_obj_get_child_cnt(container) >= 108) {
-            // Array of cell voltage sensors - collect all 108 cells, use 3.5V default for testing
+            // Array of cell voltage sensors - collect all 108 cells, use actual BMS values (including 0V)
             std::vector<std::pair<int, float>> cell_data;
             
             // Cells 1-20
-            cell_data.push_back({0, id(u1).has_state() ? id(u1).state : 3.5f});
-            cell_data.push_back({1, id(u2).has_state() ? id(u2).state : 3.5f});
-            cell_data.push_back({2, id(u3).has_state() ? id(u3).state : 3.5f});
-            cell_data.push_back({3, id(u4).has_state() ? id(u4).state : 3.5f});
-            cell_data.push_back({4, id(u5).has_state() ? id(u5).state : 3.5f});
-            cell_data.push_back({5, id(u6).has_state() ? id(u6).state : 3.5f});
-            cell_data.push_back({6, id(u7).has_state() ? id(u7).state : 3.5f});
-            cell_data.push_back({7, id(u8).has_state() ? id(u8).state : 3.5f});
-            cell_data.push_back({8, id(u9).has_state() ? id(u9).state : 3.5f});
-            cell_data.push_back({9, id(u10).has_state() ? id(u10).state : 3.5f});
-            cell_data.push_back({10, id(u11).has_state() ? id(u11).state : 3.5f});
-            cell_data.push_back({11, id(u12).has_state() ? id(u12).state : 3.5f});
-            cell_data.push_back({12, id(u13).has_state() ? id(u13).state : 3.5f});
-            cell_data.push_back({13, id(u14).has_state() ? id(u14).state : 3.5f});
-            cell_data.push_back({14, id(u15).has_state() ? id(u15).state : 3.5f});
-            cell_data.push_back({15, id(u16).has_state() ? id(u16).state : 3.5f});
-            cell_data.push_back({16, id(u17).has_state() ? id(u17).state : 3.5f});
-            cell_data.push_back({17, id(u18).has_state() ? id(u18).state : 3.5f});
-            cell_data.push_back({18, id(u19).has_state() ? id(u19).state : 3.5f});
-            cell_data.push_back({19, id(u20).has_state() ? id(u20).state : 3.5f});
+            cell_data.push_back({0, id(u1).has_state() ? id(u1).state : 0.0f});
+            cell_data.push_back({1, id(u2).has_state() ? id(u2).state : 0.0f});
+            cell_data.push_back({2, id(u3).has_state() ? id(u3).state : 0.0f});
+            cell_data.push_back({3, id(u4).has_state() ? id(u4).state : 0.0f});
+            cell_data.push_back({4, id(u5).has_state() ? id(u5).state : 0.0f});
+            cell_data.push_back({5, id(u6).has_state() ? id(u6).state : 0.0f});
+            cell_data.push_back({6, id(u7).has_state() ? id(u7).state : 0.0f});
+            cell_data.push_back({7, id(u8).has_state() ? id(u8).state : 0.0f});
+            cell_data.push_back({8, id(u9).has_state() ? id(u9).state : 0.0f});
+            cell_data.push_back({9, id(u10).has_state() ? id(u10).state : 0.0f});
+            cell_data.push_back({10, id(u11).has_state() ? id(u11).state : 0.0f});
+            cell_data.push_back({11, id(u12).has_state() ? id(u12).state : 0.0f});
+            cell_data.push_back({12, id(u13).has_state() ? id(u13).state : 0.0f});
+            cell_data.push_back({13, id(u14).has_state() ? id(u14).state : 0.0f});
+            cell_data.push_back({14, id(u15).has_state() ? id(u15).state : 0.0f});
+            cell_data.push_back({15, id(u16).has_state() ? id(u16).state : 0.0f});
+            cell_data.push_back({16, id(u17).has_state() ? id(u17).state : 0.0f});
+            cell_data.push_back({17, id(u18).has_state() ? id(u18).state : 0.0f});
+            cell_data.push_back({18, id(u19).has_state() ? id(u19).state : 0.0f});
+            cell_data.push_back({19, id(u20).has_state() ? id(u20).state : 0.0f});
             
             // Cells 21-40
-            cell_data.push_back({20, id(u21).has_state() ? id(u21).state : 3.5f});
-            cell_data.push_back({21, id(u22).has_state() ? id(u22).state : 3.5f});
-            cell_data.push_back({22, id(u23).has_state() ? id(u23).state : 3.5f});
-            cell_data.push_back({23, id(u24).has_state() ? id(u24).state : 3.5f});
-            cell_data.push_back({24, id(u25).has_state() ? id(u25).state : 3.5f});
-            cell_data.push_back({25, id(u26).has_state() ? id(u26).state : 3.5f});
-            cell_data.push_back({26, id(u27).has_state() ? id(u27).state : 3.5f});
-            cell_data.push_back({27, id(u28).has_state() ? id(u28).state : 3.5f});
-            cell_data.push_back({28, id(u29).has_state() ? id(u29).state : 3.5f});
-            cell_data.push_back({29, id(u30).has_state() ? id(u30).state : 3.5f});
-            cell_data.push_back({30, id(u31).has_state() ? id(u31).state : 3.5f});
-            cell_data.push_back({31, id(u32).has_state() ? id(u32).state : 3.5f});
-            cell_data.push_back({32, id(u33).has_state() ? id(u33).state : 3.5f});
-            cell_data.push_back({33, id(u34).has_state() ? id(u34).state : 3.5f});
-            cell_data.push_back({34, id(u35).has_state() ? id(u35).state : 3.5f});
-            cell_data.push_back({35, id(u36).has_state() ? id(u36).state : 3.5f});
-            cell_data.push_back({36, id(u37).has_state() ? id(u37).state : 3.5f});
-            cell_data.push_back({37, id(u38).has_state() ? id(u38).state : 3.5f});
-            cell_data.push_back({38, id(u39).has_state() ? id(u39).state : 3.5f});
-            cell_data.push_back({39, id(u40).has_state() ? id(u40).state : 3.5f});
+            cell_data.push_back({20, id(u21).has_state() ? id(u21).state : 0.0f});
+            cell_data.push_back({21, id(u22).has_state() ? id(u22).state : 0.0f});
+            cell_data.push_back({22, id(u23).has_state() ? id(u23).state : 0.0f});
+            cell_data.push_back({23, id(u24).has_state() ? id(u24).state : 0.0f});
+            cell_data.push_back({24, id(u25).has_state() ? id(u25).state : 0.0f});
+            cell_data.push_back({25, id(u26).has_state() ? id(u26).state : 0.0f});
+            cell_data.push_back({26, id(u27).has_state() ? id(u27).state : 0.0f});
+            cell_data.push_back({27, id(u28).has_state() ? id(u28).state : 0.0f});
+            cell_data.push_back({28, id(u29).has_state() ? id(u29).state : 0.0f});
+            cell_data.push_back({29, id(u30).has_state() ? id(u30).state : 0.0f});
+            cell_data.push_back({30, id(u31).has_state() ? id(u31).state : 0.0f});
+            cell_data.push_back({31, id(u32).has_state() ? id(u32).state : 0.0f});
+            cell_data.push_back({32, id(u33).has_state() ? id(u33).state : 0.0f});
+            cell_data.push_back({33, id(u34).has_state() ? id(u34).state : 0.0f});
+            cell_data.push_back({34, id(u35).has_state() ? id(u35).state : 0.0f});
+            cell_data.push_back({35, id(u36).has_state() ? id(u36).state : 0.0f});
+            cell_data.push_back({36, id(u37).has_state() ? id(u37).state : 0.0f});
+            cell_data.push_back({37, id(u38).has_state() ? id(u38).state : 0.0f});
+            cell_data.push_back({38, id(u39).has_state() ? id(u39).state : 0.0f});
+            cell_data.push_back({39, id(u40).has_state() ? id(u40).state : 0.0f});
             
             // Cells 41-60
-            cell_data.push_back({40, id(u41).has_state() ? id(u41).state : 3.5f});
-            cell_data.push_back({41, id(u42).has_state() ? id(u42).state : 3.5f});
-            cell_data.push_back({42, id(u43).has_state() ? id(u43).state : 3.5f});
-            cell_data.push_back({43, id(u44).has_state() ? id(u44).state : 3.5f});
-            cell_data.push_back({44, id(u45).has_state() ? id(u45).state : 3.5f});
-            cell_data.push_back({45, id(u46).has_state() ? id(u46).state : 3.5f});
-            cell_data.push_back({46, id(u47).has_state() ? id(u47).state : 3.5f});
-            cell_data.push_back({47, id(u48).has_state() ? id(u48).state : 3.5f});
-            cell_data.push_back({48, id(u49).has_state() ? id(u49).state : 3.5f});
-            cell_data.push_back({49, id(u50).has_state() ? id(u50).state : 3.5f});
-            cell_data.push_back({50, id(u51).has_state() ? id(u51).state : 3.5f});
-            cell_data.push_back({51, id(u52).has_state() ? id(u52).state : 3.5f});
-            cell_data.push_back({52, id(u53).has_state() ? id(u53).state : 3.5f});
-            cell_data.push_back({53, id(u54).has_state() ? id(u54).state : 3.5f});
-            cell_data.push_back({54, id(u55).has_state() ? id(u55).state : 3.5f});
-            cell_data.push_back({55, id(u56).has_state() ? id(u56).state : 3.5f});
-            cell_data.push_back({56, id(u57).has_state() ? id(u57).state : 3.5f});
-            cell_data.push_back({57, id(u58).has_state() ? id(u58).state : 3.5f});
-            cell_data.push_back({58, id(u59).has_state() ? id(u59).state : 3.5f});
-            cell_data.push_back({59, id(u60).has_state() ? id(u60).state : 3.5f});
+            cell_data.push_back({40, id(u41).has_state() ? id(u41).state : 0.0f});
+            cell_data.push_back({41, id(u42).has_state() ? id(u42).state : 0.0f});
+            cell_data.push_back({42, id(u43).has_state() ? id(u43).state : 0.0f});
+            cell_data.push_back({43, id(u44).has_state() ? id(u44).state : 0.0f});
+            cell_data.push_back({44, id(u45).has_state() ? id(u45).state : 0.0f});
+            cell_data.push_back({45, id(u46).has_state() ? id(u46).state : 0.0f});
+            cell_data.push_back({46, id(u47).has_state() ? id(u47).state : 0.0f});
+            cell_data.push_back({47, id(u48).has_state() ? id(u48).state : 0.0f});
+            cell_data.push_back({48, id(u49).has_state() ? id(u49).state : 0.0f});
+            cell_data.push_back({49, id(u50).has_state() ? id(u50).state : 0.0f});
+            cell_data.push_back({50, id(u51).has_state() ? id(u51).state : 0.0f});
+            cell_data.push_back({51, id(u52).has_state() ? id(u52).state : 0.0f});
+            cell_data.push_back({52, id(u53).has_state() ? id(u53).state : 0.0f});
+            cell_data.push_back({53, id(u54).has_state() ? id(u54).state : 0.0f});
+            cell_data.push_back({54, id(u55).has_state() ? id(u55).state : 0.0f});
+            cell_data.push_back({55, id(u56).has_state() ? id(u56).state : 0.0f});
+            cell_data.push_back({56, id(u57).has_state() ? id(u57).state : 0.0f});
+            cell_data.push_back({57, id(u58).has_state() ? id(u58).state : 0.0f});
+            cell_data.push_back({58, id(u59).has_state() ? id(u59).state : 0.0f});
+            cell_data.push_back({59, id(u60).has_state() ? id(u60).state : 0.0f});
             
             // Cells 61-80
-            cell_data.push_back({60, id(u61).has_state() ? id(u61).state : 3.5f});
-            cell_data.push_back({61, id(u62).has_state() ? id(u62).state : 3.5f});
-            cell_data.push_back({62, id(u63).has_state() ? id(u63).state : 3.5f});
-            cell_data.push_back({63, id(u64).has_state() ? id(u64).state : 3.5f});
-            cell_data.push_back({64, id(u65).has_state() ? id(u65).state : 3.5f});
-            cell_data.push_back({65, id(u66).has_state() ? id(u66).state : 3.5f});
-            cell_data.push_back({66, id(u67).has_state() ? id(u67).state : 3.5f});
-            cell_data.push_back({67, id(u68).has_state() ? id(u68).state : 3.5f});
-            cell_data.push_back({68, id(u69).has_state() ? id(u69).state : 3.5f});
-            cell_data.push_back({69, id(u70).has_state() ? id(u70).state : 3.5f});
-            cell_data.push_back({70, id(u71).has_state() ? id(u71).state : 3.5f});
-            cell_data.push_back({71, id(u72).has_state() ? id(u72).state : 3.5f});
-            cell_data.push_back({72, id(u73).has_state() ? id(u73).state : 3.5f});
-            cell_data.push_back({73, id(u74).has_state() ? id(u74).state : 3.5f});
-            cell_data.push_back({74, id(u75).has_state() ? id(u75).state : 3.5f});
-            cell_data.push_back({75, id(u76).has_state() ? id(u76).state : 3.5f});
-            cell_data.push_back({76, id(u77).has_state() ? id(u77).state : 3.5f});
-            cell_data.push_back({77, id(u78).has_state() ? id(u78).state : 3.5f});
-            cell_data.push_back({78, id(u79).has_state() ? id(u79).state : 3.5f});
-            cell_data.push_back({79, id(u80).has_state() ? id(u80).state : 3.5f});
+            cell_data.push_back({60, id(u61).has_state() ? id(u61).state : 0.0f});
+            cell_data.push_back({61, id(u62).has_state() ? id(u62).state : 0.0f});
+            cell_data.push_back({62, id(u63).has_state() ? id(u63).state : 0.0f});
+            cell_data.push_back({63, id(u64).has_state() ? id(u64).state : 0.0f});
+            cell_data.push_back({64, id(u65).has_state() ? id(u65).state : 0.0f});
+            cell_data.push_back({65, id(u66).has_state() ? id(u66).state : 0.0f});
+            cell_data.push_back({66, id(u67).has_state() ? id(u67).state : 0.0f});
+            cell_data.push_back({67, id(u68).has_state() ? id(u68).state : 0.0f});
+            cell_data.push_back({68, id(u69).has_state() ? id(u69).state : 0.0f});
+            cell_data.push_back({69, id(u70).has_state() ? id(u70).state : 0.0f});
+            cell_data.push_back({70, id(u71).has_state() ? id(u71).state : 0.0f});
+            cell_data.push_back({71, id(u72).has_state() ? id(u72).state : 0.0f});
+            cell_data.push_back({72, id(u73).has_state() ? id(u73).state : 0.0f});
+            cell_data.push_back({73, id(u74).has_state() ? id(u74).state : 0.0f});
+            cell_data.push_back({74, id(u75).has_state() ? id(u75).state : 0.0f});
+            cell_data.push_back({75, id(u76).has_state() ? id(u76).state : 0.0f});
+            cell_data.push_back({76, id(u77).has_state() ? id(u77).state : 0.0f});
+            cell_data.push_back({77, id(u78).has_state() ? id(u78).state : 0.0f});
+            cell_data.push_back({78, id(u79).has_state() ? id(u79).state : 0.0f});
+            cell_data.push_back({79, id(u80).has_state() ? id(u80).state : 0.0f});
             
             // Cells 81-100
-            cell_data.push_back({80, id(u81).has_state() ? id(u81).state : 3.5f});
-            cell_data.push_back({81, id(u82).has_state() ? id(u82).state : 3.5f});
-            cell_data.push_back({82, id(u83).has_state() ? id(u83).state : 3.5f});
-            cell_data.push_back({83, id(u84).has_state() ? id(u84).state : 3.5f});
-            cell_data.push_back({84, id(u85).has_state() ? id(u85).state : 3.5f});
-            cell_data.push_back({85, id(u86).has_state() ? id(u86).state : 3.5f});
-            cell_data.push_back({86, id(u87).has_state() ? id(u87).state : 3.5f});
-            cell_data.push_back({87, id(u88).has_state() ? id(u88).state : 3.5f});
-            cell_data.push_back({88, id(u89).has_state() ? id(u89).state : 3.5f});
-            cell_data.push_back({89, id(u90).has_state() ? id(u90).state : 3.5f});
-            cell_data.push_back({90, id(u91).has_state() ? id(u91).state : 3.5f});
-            cell_data.push_back({91, id(u92).has_state() ? id(u92).state : 3.5f});
-            cell_data.push_back({92, id(u93).has_state() ? id(u93).state : 3.5f});
-            cell_data.push_back({93, id(u94).has_state() ? id(u94).state : 3.5f});
-            cell_data.push_back({94, id(u95).has_state() ? id(u95).state : 3.5f});
-            cell_data.push_back({95, id(u96).has_state() ? id(u96).state : 3.5f});
-            cell_data.push_back({96, id(u97).has_state() ? id(u97).state : 3.5f});
-            cell_data.push_back({97, id(u98).has_state() ? id(u98).state : 3.5f});
-            cell_data.push_back({98, id(u99).has_state() ? id(u99).state : 3.5f});
-            cell_data.push_back({99, id(u100).has_state() ? id(u100).state : 3.5f});
+            cell_data.push_back({80, id(u81).has_state() ? id(u81).state : 0.0f});
+            cell_data.push_back({81, id(u82).has_state() ? id(u82).state : 0.0f});
+            cell_data.push_back({82, id(u83).has_state() ? id(u83).state : 0.0f});
+            cell_data.push_back({83, id(u84).has_state() ? id(u84).state : 0.0f});
+            cell_data.push_back({84, id(u85).has_state() ? id(u85).state : 0.0f});
+            cell_data.push_back({85, id(u86).has_state() ? id(u86).state : 0.0f});
+            cell_data.push_back({86, id(u87).has_state() ? id(u87).state : 0.0f});
+            cell_data.push_back({87, id(u88).has_state() ? id(u88).state : 0.0f});
+            cell_data.push_back({88, id(u89).has_state() ? id(u89).state : 0.0f});
+            cell_data.push_back({89, id(u90).has_state() ? id(u90).state : 0.0f});
+            cell_data.push_back({90, id(u91).has_state() ? id(u91).state : 0.0f});
+            cell_data.push_back({91, id(u92).has_state() ? id(u92).state : 0.0f});
+            cell_data.push_back({92, id(u93).has_state() ? id(u93).state : 0.0f});
+            cell_data.push_back({93, id(u94).has_state() ? id(u94).state : 0.0f});
+            cell_data.push_back({94, id(u95).has_state() ? id(u95).state : 0.0f});
+            cell_data.push_back({95, id(u96).has_state() ? id(u96).state : 0.0f});
+            cell_data.push_back({96, id(u97).has_state() ? id(u97).state : 0.0f});
+            cell_data.push_back({97, id(u98).has_state() ? id(u98).state : 0.0f});
+            cell_data.push_back({98, id(u99).has_state() ? id(u99).state : 0.0f});
+            cell_data.push_back({99, id(u100).has_state() ? id(u100).state : 0.0f});
             
             // Cells 101-108
-            cell_data.push_back({100, id(u101).has_state() ? id(u101).state : 3.5f});
-            cell_data.push_back({101, id(u102).has_state() ? id(u102).state : 3.5f});
-            cell_data.push_back({102, id(u103).has_state() ? id(u103).state : 3.5f});
-            cell_data.push_back({103, id(u104).has_state() ? id(u104).state : 3.5f});
-            cell_data.push_back({104, id(u105).has_state() ? id(u105).state : 3.5f});
-            cell_data.push_back({105, id(u106).has_state() ? id(u106).state : 3.5f});
-            cell_data.push_back({106, id(u107).has_state() ? id(u107).state : 3.5f});
-            cell_data.push_back({107, id(u108).has_state() ? id(u108).state : 3.5f});
+            cell_data.push_back({100, id(u101).has_state() ? id(u101).state : 0.0f});
+            cell_data.push_back({101, id(u102).has_state() ? id(u102).state : 0.0f});
+            cell_data.push_back({102, id(u103).has_state() ? id(u103).state : 0.0f});
+            cell_data.push_back({103, id(u104).has_state() ? id(u104).state : 0.0f});
+            cell_data.push_back({104, id(u105).has_state() ? id(u105).state : 0.0f});
+            cell_data.push_back({105, id(u106).has_state() ? id(u106).state : 0.0f});
+            cell_data.push_back({106, id(u107).has_state() ? id(u107).state : 0.0f});
+            cell_data.push_back({107, id(u108).has_state() ? id(u108).state : 0.0f});
             
             // Get balance cell list from the BMS (exact cell numbers being balanced)
             std::vector<int> balancing_cells;
@@ -1712,9 +1712,16 @@ interval:
               if (cell_idx < lv_obj_get_child_cnt(container)) {
                 lv_obj_t* bar = lv_obj_get_child(container, cell_idx);
                 if (bar) {
-                  // Map voltage (3.0-4.2V) to height (2-180px)
-                  voltage = std::max(3.0f, std::min(4.2f, voltage)); // Clamp to range
-                  int base_height = (int)((voltage - 3.0f) / 1.2f * 178.0f) + 2;
+                  // Map voltage (0-4.2V) to height (2-180px), handle 0V and low voltages
+                  voltage = std::max(0.0f, std::min(4.2f, voltage)); // Clamp to range (allow 0V)
+                  int base_height;
+                  if (voltage < 3.0f) {
+                    // For voltages below 3.0V (including 0V), scale from 2-10px height
+                    base_height = (int)(voltage / 3.0f * 8.0f) + 2;
+                  } else {
+                    // For normal voltages (3.0-4.2V), scale from 10-180px height  
+                    base_height = (int)((voltage - 3.0f) / 1.2f * 170.0f) + 10;
+                  }
                   
                   // Check if this cell is in the balancing list
                   bool cell_balancing = std::find(balancing_cells.begin(), balancing_cells.end(), cell_idx) != balancing_cells.end();
@@ -1755,7 +1762,7 @@ interval:
               }
             }
             
-            ESP_LOGI("DISPLAY", "Updated all 108 cell voltage bars (performance test)");
+            ESP_LOGI("DISPLAY", "Updated all 108 cell voltage bars (real BMS data)");
           }
 
 font:
