@@ -57,23 +57,29 @@ param get balance
 param set balance 1
 ```
 
-## Output Synchronization
+## Output Behavior
 
-Both serial interfaces receive:
+### Primary Serial (USB)
 - System startup messages
-- Current sensor readings
+- Current sensor readings  
 - Periodic BMS status updates (every 5 seconds)
 - Economizer duty cycle changes
 - All command responses
 - Error messages
 
+### Secondary Serial (Hardware UART - Pins 12/13)
+- Command responses only
+- No periodic logging or status updates
+- Interactive API access without noise
+
 ## Benefits
 
 1. **Dual Access**: Access the system from two different interfaces simultaneously
-2. **Debugging**: Use one interface for monitoring while using the other for commands
-3. **Integration**: Connect to other systems via the hardware serial interface
-4. **Redundancy**: Backup communication path if one interface fails
-5. **Development**: Test commands on one interface while monitoring on another
+2. **Clean API Interface**: Hardware serial provides clean command/response interface without periodic logging noise
+3. **Debugging**: Use USB for monitoring while using hardware serial for commands
+4. **Integration**: Connect external systems via the hardware serial interface for clean API access
+5. **Redundancy**: Backup communication path if one interface fails
+6. **Development**: Monitor system logs on USB while testing API commands on hardware serial
 
 ## Configuration
 
@@ -114,10 +120,10 @@ Serial2.begin(SERIAL2_BAUD_RATE, SERIAL_8N1, 12, 13); // RX=12, TX=13
 
 ## Advanced Usage
 
-### Simultaneous Monitoring
-You can monitor the system from both interfaces simultaneously:
-- Use Serial for real-time monitoring
-- Use Serial2 for parameter configuration
+### Clean API Access
+The hardware serial interface provides a clean command/response environment:
+- Use Serial (USB) for system monitoring and periodic status updates
+- Use Serial2 (hardware) for clean API commands without logging noise
 
 ### External Integration
 The Serial2 interface can be used to:

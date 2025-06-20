@@ -1,0 +1,1114 @@
+esphome:
+  name: tesla_bms_display
+  friendly_name: Tesla BMS Display
+  min_version: 2024.11.0
+  on_boot:
+    priority: 800.0
+    then:
+      - lambda: |-
+          // Test display with a simple message
+          lv_label_set_text((lv_obj_t*)id(label_title), "Display Test - Working!");
+          lv_label_set_text((lv_obj_t*)id(label_cells), "Backlight: ON");
+          lv_label_set_text((lv_obj_t*)id(label_balance), "Status: OK");
+          ESP_LOGI("DISPLAY", "Display labels updated");
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      COMPILER_OPTIMIZATION_SIZE: y
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
+      CONFIG_SPIRAM_RODATA: y
+
+preferences:
+  flash_write_interval: 1min
+
+external_components:
+  - source: ./external_components/tesla_bms_uart
+  - source: github://pr#8553
+    components: [axs15231]
+    refresh: 1h
+
+# Include individual cell voltage sensors
+packages:
+  cell_voltages: !include cell_voltage_sensors.yaml
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+# Enable logging
+logger:
+  level: INFO
+  hardware_uart: USB_SERIAL_JTAG
+
+# WiFi configuration
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  reboot_timeout: 0s
+  ap:
+    ssid: "Tesla_BMS_Display_AP"
+    password: "12345678"
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_encryption_key
+  reboot_timeout: 0s
+
+# Enable OTA updates
+ota:
+  platform: esphome
+  password: !secret ota_password
+
+# Enable web server
+web_server:
+  port: 80
+  version: 3
+
+# Time component for timestamps
+time:
+  - platform: sntp
+    id: sntp_time
+
+# UART for communication with Tesla BMS
+uart:
+  id: tesla_bms_uart_uart
+  tx_pin: GPIO43
+  rx_pin: GPIO44
+  baud_rate: 115200
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+
+# Global variables to store UART buffer
+globals:
+  - id: uart_buffer
+    type: std::string
+    restore_value: no
+    initial_value: '""'
+  # Alternative: Parameter request queue for more sophisticated control
+  # - id: param_request_queue
+  #   type: std::vector<std::string>
+  #   restore_value: no
+  # - id: current_param_index
+  #   type: int
+  #   restore_value: no
+  #   initial_value: '0'
+
+# Display backlight control
+output:
+  - platform: ledc 
+    pin: GPIO1
+    id: backlight
+    frequency: "1000Hz"
+
+light:
+  - platform: monochromatic
+    output: backlight
+    name: Display Backlight
+    id: display_backlight
+    restore_mode: ALWAYS_ON
+
+i2c:
+  sda: 4
+  scl: 8
+  id: touchscreen_bus
+
+touchscreen:
+  - platform: axs15231
+    id: my_touchscreen
+    display: my_display
+    i2c_id: touchscreen_bus
+    calibration:
+      x_min: 0
+      x_max: 480
+      y_min: 0
+      y_max: 320
+    transform:
+      swap_xy: true
+      mirror_x: true
+      mirror_y: false
+    on_touch:
+      - lambda: |-
+          ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
+            touch.x,
+            touch.y,
+            touch.x_raw,
+            touch.y_raw
+          );
+
+# QSPI Display (matching ESPHome EVSE configuration)
+spi:
+  id: display_qspi
+  type: quad
+  clk_pin: 47
+  data_pins: [21, 48, 40, 39]
+
+display:
+  - platform: qspi_dbi
+    model: JC4832W535
+    data_rate: 40MHz
+    id: my_display
+    spi_id: display_qspi
+    dimensions:
+      height: 480
+      width: 320
+    cs_pin:
+      number: 45
+      ignore_strapping_warning: true
+    rotation: 270
+    auto_clear_enabled: false
+
+# LVGL interface
+lvgl:
+  displays:
+    - my_display
+  touchscreens:
+    - my_touchscreen
+  page_wrap: true
+  theme:
+    obj:
+      border_width: 0
+      pad_all: 0
+      bg_color: 0
+      text_color: white
+      scrollable: false
+    label:
+      border_width: 0
+      scrollable: false
+    button:
+      text_font: roboto18
+      scroll_on_focus: true
+      radius: 10px
+      shadow_width: 0
+      checked:
+        bg_color: green
+        text_color: white
+
+# Main Page
+  pages:
+    - id: main_page
+      height: 320
+      width: 480
+      text_font: roboto18
+      scrollable: false
+      text_color: white
+      bg_color: 0
+      bg_opa: COVER
+      radius: 0
+      pad_all: 5
+      widgets:
+        - obj:
+            align: LEFT_MID
+            width: 480
+            height: 320
+            pad_all: 5
+            layout:
+              pad_column: 5
+              type: GRID
+              grid_rows: [FR(40), FR(40), FR(40), FR(40), FR(40), FR(40), FR(40)]
+              grid_columns: [FR(240), FR(240)]
+            widgets:
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 0
+                  grid_cell_column_span: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_title
+                  align: CENTER
+                  text: "Tesla BMS Status"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 1
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_cells
+                  align: LEFT_MID
+                  text: "Cells: 0/0"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 1
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_balance
+                  align: RIGHT_MID
+                  text: "Balance: OFF"
+                  text_color: red
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_max_voltage
+                  align: LEFT_MID
+                  text: "Max: 0.000V (Cell 0)"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_min_voltage
+                  align: RIGHT_MID
+                  text: "Min: 0.000V (Cell 0)"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 3
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_delta
+                  align: LEFT_MID
+                  text: "Delta: 0.000V"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 3
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_temp
+                  align: RIGHT_MID
+                  text: "Temp: 0.0°C"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 4
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_loop
+                  align: LEFT_MID
+                  text: "Loop: 0 (State: 0)"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 4
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_connected
+                  align: RIGHT_MID
+                  text: "Connected: No"
+                  text_color: red
+              - button:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 5
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_balance_on
+                  bg_color: grey
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "Balance ON"
+                        text_color: white
+                  on_short_click:
+                    - uart.write:
+                        id: tesla_bms_uart_uart
+                        data: "balance on\n"
+              - button:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 5
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_balance_off
+                  bg_color: grey
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "Balance OFF"
+                        text_color: white
+                  on_short_click:
+                    - uart.write:
+                        id: tesla_bms_uart_uart
+                        data: "balance off\n"
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 6
+                  grid_cell_column_span: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_time
+                  align: CENTER
+                  text: "00:00:00"
+                  text_color: white
+
+# Binary sensors for system status
+binary_sensor:
+  - platform: status
+    name: "Tesla BMS Display Status"
+    id: display_status
+
+# Sensors for system parameters
+sensor:
+  # System parameters
+  - platform: template
+    name: "Number of BMBs"
+    id: numbmbs
+    unit_of_measurement: "boards"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Loop Counter"
+    id: loopcnt
+    unit_of_measurement: "count"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Loop State"
+    id: loopstate
+    unit_of_measurement: "state"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Cells Present"
+    id: cellspresent
+    unit_of_measurement: "cells"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Cells Balancing"
+    id: cellsbalancing
+    unit_of_measurement: "cells"
+    accuracy_decimals: 0
+
+  # Voltage statistics
+  - platform: template
+    name: "Cell Max Number"
+    id: cellmax
+    unit_of_measurement: "cell"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Cell Min Number"
+    id: cellmin
+    unit_of_measurement: "cell"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Max Voltage"
+    id: umax
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Min Voltage"
+    id: umin
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Voltage Delta"
+    id: deltav
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Average Voltage"
+    id: uavg
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "DC Voltage"
+    id: udc
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+
+  # Temperature sensors
+  - platform: template
+    name: "Chip Temperature"
+    id: chipt0
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "Cell Temperature 0"
+    id: cellt0_0
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "Cell Temperature 1"
+    id: cellt0_1
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "Max Temperature"
+    id: tempmax
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "Min Temperature"
+    id: tempmin
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+
+  # Balance control
+  - platform: template
+    name: "Balance Status"
+    id: balance
+    unit_of_measurement: "status"
+    accuracy_decimals: 0
+
+# Interval to periodically request parameters and update display
+interval:
+  # Fast interval to read and parse UART data
+  - interval: 100ms
+    then:
+      - lambda: |-
+          // Read available UART data
+          std::string &buffer = id(uart_buffer);
+          uint8_t data;
+          while (id(tesla_bms_uart_uart).available()) {
+            id(tesla_bms_uart_uart).read_byte(&data);
+            char c = (char)data;
+            if (c == '\n' || c == '\r') {
+              if (!buffer.empty()) {
+                ESP_LOGI("BMS", "RECEIVED: [%s] (length: %d)", buffer.c_str(), buffer.length());
+                
+                // Individual parameter requests return "param: value" format (colon + space)
+                // Skip error messages, empty lines, and help text
+                if (buffer.empty() || 
+                    buffer.find("Error:") != std::string::npos ||
+                    buffer.find("Unknown") != std::string::npos ||
+                    buffer.find("===") != std::string::npos ||
+                    buffer.find("Available") != std::string::npos ||
+                    buffer.find_first_not_of("= -+*") == std::string::npos) {
+                  ESP_LOGV("BMS", "Skipping non-parameter line: %s", buffer.c_str());
+                } else {
+                  // Parse the line in format "param: value" (BMS uses colon format)
+                  size_t pos = buffer.find(": ");
+                  if (pos != std::string::npos) {
+                    std::string param = buffer.substr(0, pos);
+                    std::string value_str = buffer.substr(pos + 2); // Skip ": "
+                    
+                    // Trim whitespace
+                    param.erase(0, param.find_first_not_of(" \t\r\n"));
+                    param.erase(param.find_last_not_of(" \t\r\n") + 1);
+                    value_str.erase(0, value_str.find_first_not_of(" \t\r\n"));
+                    value_str.erase(value_str.find_last_not_of(" \t\r\n") + 1);
+                    
+                    // Skip if parameter name is empty (header lines)
+                    if (!param.empty()) {
+                  
+                                      // Debug: Show what we're trying to parse
+                    ESP_LOGI("BMS", "PARSING: param='%s' value_str='%s' (from line: %s)", param.c_str(), value_str.c_str(), buffer.c_str());
+                    
+                    // Validate that value_str is not empty and looks like a number
+                    if (!value_str.empty() && (isdigit(value_str[0]) || value_str[0] == '.' || value_str[0] == '-')) {
+                      float value = atof(value_str.c_str());
+                      ESP_LOGI("BMS", "PARSED VALUE: %s = %f", param.c_str(), value);
+                  
+                                        // Update corresponding sensors - All parameter names now match BMS exactly
+                      bool sensor_updated = false;
+                      if (param == "numbmbs") { id(numbmbs).publish_state(value); sensor_updated = true; }
+                      else if (param == "LoopCnt") { id(loopcnt).publish_state(value); sensor_updated = true; }
+                      else if (param == "LoopState") { id(loopstate).publish_state(value); sensor_updated = true; }
+                      else if (param == "CellsPresent") { id(cellspresent).publish_state(value); sensor_updated = true; }
+                      else if (param == "CellsBalancing") { id(cellsbalancing).publish_state(value); sensor_updated = true; }
+                      else if (param == "CellMax") { id(cellmax).publish_state(value); sensor_updated = true; }
+                      else if (param == "CellMin") { id(cellmin).publish_state(value); sensor_updated = true; }
+                      else if (param == "umax") { id(umax).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "umin") { id(umin).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "deltaV") { id(deltav).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "uavg") { id(uavg).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "udc") { id(udc).publish_state(value); sensor_updated = true; }
+                      else if (param == "Chipt0") { id(chipt0).publish_state(value); sensor_updated = true; }
+                      else if (param == "Cellt0_0") { id(cellt0_0).publish_state(value); sensor_updated = true; }
+                      else if (param == "Cellt0_1") { id(cellt0_1).publish_state(value); sensor_updated = true; }
+                      else if (param == "TempMax") { id(tempmax).publish_state(value); sensor_updated = true; }
+                      else if (param == "TempMin") { id(tempmin).publish_state(value); sensor_updated = true; }
+                      else if (param == "balance") { id(balance).publish_state(value); sensor_updated = true; }
+                      
+                      // Individual cell voltages (u1-u108) - convert from mV to V
+                      else if (param == "u1") { id(u1).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u2") { id(u2).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u3") { id(u3).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u4") { id(u4).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u5") { id(u5).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u6") { id(u6).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u7") { id(u7).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u8") { id(u8).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u9") { id(u9).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u10") { id(u10).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u11") { id(u11).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u12") { id(u12).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u13") { id(u13).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u14") { id(u14).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u15") { id(u15).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u16") { id(u16).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u17") { id(u17).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u18") { id(u18).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u19") { id(u19).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u20") { id(u20).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u21") { id(u21).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u22") { id(u22).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u23") { id(u23).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u24") { id(u24).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u25") { id(u25).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u26") { id(u26).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u27") { id(u27).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u28") { id(u28).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u29") { id(u29).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u30") { id(u30).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u31") { id(u31).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u32") { id(u32).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u33") { id(u33).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u34") { id(u34).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u35") { id(u35).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u36") { id(u36).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u37") { id(u37).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u38") { id(u38).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u39") { id(u39).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u40") { id(u40).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u41") { id(u41).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u42") { id(u42).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u43") { id(u43).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u44") { id(u44).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u45") { id(u45).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u46") { id(u46).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u47") { id(u47).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u48") { id(u48).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u49") { id(u49).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u50") { id(u50).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u51") { id(u51).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u52") { id(u52).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u53") { id(u53).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u54") { id(u54).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u55") { id(u55).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u56") { id(u56).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u57") { id(u57).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u58") { id(u58).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u59") { id(u59).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u60") { id(u60).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u61") { id(u61).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u62") { id(u62).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u63") { id(u63).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u64") { id(u64).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u65") { id(u65).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u66") { id(u66).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u67") { id(u67).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u68") { id(u68).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u69") { id(u69).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u70") { id(u70).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u71") { id(u71).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u72") { id(u72).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u73") { id(u73).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u74") { id(u74).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u75") { id(u75).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u76") { id(u76).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u77") { id(u77).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u78") { id(u78).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u79") { id(u79).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u80") { id(u80).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u81") { id(u81).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u82") { id(u82).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u83") { id(u83).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u84") { id(u84).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u85") { id(u85).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u86") { id(u86).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u87") { id(u87).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u88") { id(u88).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u89") { id(u89).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u90") { id(u90).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u91") { id(u91).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u92") { id(u92).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u93") { id(u93).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u94") { id(u94).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u95") { id(u95).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u96") { id(u96).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u97") { id(u97).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u98") { id(u98).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u99") { id(u99).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u100") { id(u100).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u101") { id(u101).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u102") { id(u102).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u103") { id(u103).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u104") { id(u104).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u105") { id(u105).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u106") { id(u106).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u107") { id(u107).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "u108") { id(u108).publish_state(value / 1000.0); sensor_updated = true; }
+                      
+                                             if (sensor_updated) {
+                         ESP_LOGI("BMS", "SENSOR UPDATED: %s = %f", param.c_str(), value);
+                       } else {
+                         ESP_LOGW("BMS", "UNKNOWN PARAMETER: %s", param.c_str());
+                       }
+                      } else {
+                        ESP_LOGW("BMS", "Invalid value for parameter %s: '%s'", param.c_str(), value_str.c_str());
+                      }
+                    } else {
+                      ESP_LOGV("BMS", "Empty parameter name in line: %s", buffer.c_str());
+                    }
+                  } else {
+                    ESP_LOGV("BMS", "Line without ': ' separator: %s", buffer.c_str());
+                  }
+                }
+                buffer.clear();
+              }
+            } else {
+              // Prevent buffer overflow - limit buffer size to reasonable length
+              if (buffer.length() < 200) {
+                buffer += c;
+              } else {
+                ESP_LOGW("BMS", "Buffer overflow, clearing buffer");
+                buffer.clear();
+              }
+            }
+          }
+  
+  # Slower interval for parameter requests and display updates
+  - interval: 5s
+    then:
+      # Request system parameters
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get numbmbs");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get numbmbs\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get LoopCnt");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get LoopCnt\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get LoopState");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get LoopState\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get CellsPresent");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get CellsPresent\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get CellsBalancing");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get CellsBalancing\n"
+      - delay: 100ms
+      
+      # Request voltage parameters
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get umax");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get umax\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get umin");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get umin\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get deltaV");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get deltaV\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get uavg");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get uavg\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get udc");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get udc\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get CellMax");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get CellMax\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get CellMin");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get CellMin\n"
+      - delay: 100ms
+      
+      # Request temperature parameters
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get Chipt0");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get Chipt0\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get Cellt0_0");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get Cellt0_0\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get Cellt0_1");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get Cellt0_1\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get TempMax");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get TempMax\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get TempMin");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get TempMin\n"
+      - delay: 100ms
+      
+      # Request balance status
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get balance");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get balance\n"
+      - delay: 100ms
+
+  # Separate faster interval for individual cell voltage requests (every 10 seconds)
+  - interval: 10s
+    then:
+      # Request individual cell voltages in batches to avoid overwhelming the system
+      # Batch 1: Cells 1-20
+      - lambda: 'ESP_LOGI("BMS", "REQUESTING: Cell voltages batch 1 (u1-u20)");'
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u1\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u2\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u3\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u4\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u5\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u6\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u7\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u8\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u9\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u10\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u11\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u12\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u13\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u14\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u15\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u16\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u17\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u18\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u19\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u20\n" }
+      - delay: 500ms  # Longer delay between batches
+
+  # Batch 2: Cells 21-40 (offset by 2s)
+  - interval: 10s
+    then:
+      - delay: 2s  # Offset to spread requests
+      - lambda: 'ESP_LOGI("BMS", "REQUESTING: Cell voltages batch 2 (u21-u40)");'
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u21\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u22\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u23\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u24\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u25\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u26\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u27\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u28\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u29\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u30\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u31\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u32\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u33\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u34\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u35\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u36\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u37\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u38\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u39\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u40\n" }
+      - delay: 500ms
+
+  # Batch 3: Cells 41-60 (offset by 4s)
+  - interval: 10s
+    then:
+      - delay: 4s
+      - lambda: 'ESP_LOGI("BMS", "REQUESTING: Cell voltages batch 3 (u41-u60)");'
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u41\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u42\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u43\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u44\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u45\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u46\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u47\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u48\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u49\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u50\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u51\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u52\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u53\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u54\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u55\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u56\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u57\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u58\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u59\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u60\n" }
+      - delay: 500ms
+
+  # Batch 4: Cells 61-80 (offset by 6s)
+  - interval: 10s
+    then:
+      - delay: 6s
+      - lambda: 'ESP_LOGI("BMS", "REQUESTING: Cell voltages batch 4 (u61-u80)");'
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u61\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u62\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u63\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u64\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u65\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u66\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u67\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u68\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u69\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u70\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u71\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u72\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u73\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u74\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u75\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u76\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u77\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u78\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u79\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u80\n" }
+      - delay: 500ms
+
+  # Batch 5: Cells 81-100 (offset by 8s)
+  - interval: 10s
+    then:
+      - delay: 8s
+      - lambda: 'ESP_LOGI("BMS", "REQUESTING: Cell voltages batch 5 (u81-u100)");'
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u81\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u82\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u83\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u84\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u85\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u86\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u87\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u88\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u89\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u90\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u91\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u92\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u93\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u94\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u95\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u96\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u97\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u98\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u99\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u100\n" }
+      - delay: 500ms
+
+  # Batch 6: Cells 101-108 (offset by 9s)
+  - interval: 10s
+    then:
+      - delay: 9s
+      - lambda: 'ESP_LOGI("BMS", "REQUESTING: Cell voltages batch 6 (u101-u108)");'
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u101\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u102\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u103\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u104\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u105\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u106\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u107\n" }
+      - delay: 50ms
+      - uart.write: { id: tesla_bms_uart_uart, data: "param get u108\n" }
+      - delay: 50ms
+      - lambda: |-
+          // Update display labels with current sensor values
+          char buffer[64];
+          
+          // Update cells info - show BMB count since individual cell counts aren't available
+          if (id(numbmbs).has_state()) {
+            snprintf(buffer, sizeof(buffer), "BMBs: %d (Bal: %s)", 
+                     (int)id(numbmbs).state, 
+                     (id(balance).has_state() && id(balance).state > 0.5) ? "ON" : "OFF");
+          } else {
+            snprintf(buffer, sizeof(buffer), "BMBs: -- (Bal: --)");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_cells), buffer);
+          
+          // Update balance status
+          if (id(balance).has_state() && id(balance).state > 0.5) {
+            lv_label_set_text((lv_obj_t*)id(label_balance), "Balance: ON");
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_balance), lv_color_make(0, 255, 0), LV_PART_MAIN); // Green
+          } else {
+            lv_label_set_text((lv_obj_t*)id(label_balance), "Balance: OFF");
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_balance), lv_color_make(255, 0, 0), LV_PART_MAIN); // Red
+          }
+          
+          // Update voltage info - check for valid data
+          if (id(umax).has_state() && id(cellmax).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Max: %.3fV (Cell %d)", 
+                     id(umax).state, (int)id(cellmax).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Max: --.---V (Cell --)");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_max_voltage), buffer);
+          
+          if (id(umin).has_state() && id(cellmin).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Min: %.3fV (Cell %d)", 
+                     id(umin).state, (int)id(cellmin).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Min: --.---V (Cell --)");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_min_voltage), buffer);
+          
+          if (id(deltav).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Delta: %.3fV", 
+                     id(deltav).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Delta: --.---V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_delta), buffer);
+          
+          // Update temperature - check for valid data
+          if (id(chipt0).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Temp: %.1f°C", 
+                     id(chipt0).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Temp: --.--°C");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_temp), buffer);
+          
+          // Update loop info - check for valid data
+          if (id(loopcnt).has_state() && id(loopstate).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Loop: %d (State: %d)", 
+                     (int)id(loopcnt).state, (int)id(loopstate).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Loop: -- (State: --)");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_loop), buffer);
+          
+          // Update connection status
+          if (id(display_status).state) {
+            lv_label_set_text((lv_obj_t*)id(label_connected), "Connected: Yes");
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_connected), lv_color_make(0, 255, 0), LV_PART_MAIN); // Green
+          } else {
+            lv_label_set_text((lv_obj_t*)id(label_connected), "Connected: No");
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_connected), lv_color_make(255, 0, 0), LV_PART_MAIN); // Red
+          }
+          
+          // Update time
+          auto time = id(sntp_time).now();
+          if (time.is_valid()) {
+            snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", 
+                     time.hour, time.minute, time.second);
+            lv_label_set_text((lv_obj_t*)id(label_time), buffer);
+          }
+
+font:
+  - file: "gfonts://Roboto"
+    id: roboto18
+    size: 18
+
+# (rest of the YAML follows...) 

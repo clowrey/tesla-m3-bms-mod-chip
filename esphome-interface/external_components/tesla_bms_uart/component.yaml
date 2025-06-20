@@ -1,0 +1,19 @@
+esphome:
+  name: tesla_bms_uart
+  friendly_name: "Tesla BMS UART Parser"
+
+files:
+  - tesla_bms_uart.h
+  - tesla_bms_uart.cpp
+
+codeowners:
+  - "@esphome/core"
+
+requirements:
+  uart: ">=1.0.0"
+  sensor: ">=1.0.0"
+
+# Configuration schema
+config_schema:
+  uart_id: uart.uart_component
+  sensors: sensor.sensor 
