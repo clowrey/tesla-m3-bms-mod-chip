@@ -27,9 +27,6 @@ Available commands:
 BATMan batman;
 TFT_eSPI tft = TFT_eSPI();
 
-// Second serial interface on pins 12 and 13
-HardwareSerial Serial2(2); // Use UART2
-
 /* Tesla Shunt Debug Header Pinout
 
 #1 - SCK  (Square pin)  Clock signal (SPI Interface)
@@ -46,10 +43,14 @@ HardwareSerial Serial2(2); // Use UART2
 #define AS8510_MISO_PIN 25     // GPIO pin for AS8510 MISO  
 #define AS8510_SCK_PIN 32       // GPIO pin for AS8510 SCK
 #define SHUNT_RESISTANCE 0.0001 // 100µΩ shunt resistance
-AS8510 currentSensor(AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, SHUNT_RESISTANCE);
+
+// Serial Interface Configuration
+#define SERIAL2_RX_PIN 12       // GPIO pin for Serial2 RX
+#define SERIAL2_TX_PIN 13       // GPIO pin for Serial2 TX
+#define SERIAL2_BAUD_RATE 115200 // Baud rate for Serial2
 
 // PWM Configuration for Economizer (moved to avoid conflict with Serial2)
-#define ECONOMIZER_PWM_PIN 14  // Changed from 12 to 14 to avoid conflict with Serial2
+#define ECONOMIZER_PWM_PIN 36  // Changed from 12 to 14 to avoid conflict with Serial2
 #define PWM_FREQ 20000        // 20kHz PWM frequency
 #define PWM_RESOLUTION 8      // 8-bit resolution (0-255)
 #define ECONOMIZER_DUTY 15   // Normal duty cycle (25%)
@@ -59,8 +60,7 @@ AS8510 currentSensor(AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK
 #define BUTTON_PIN 35        // GPIO pin for push button
 #define DEBOUNCE_TIME 50     // Debounce time in milliseconds
 
-// Serial interface configuration
-#define SERIAL2_BAUD_RATE 115200
+AS8510 currentSensor(AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, SHUNT_RESISTANCE);
 
 // Variables to store previous values for comparison
 float prevMinVoltage = 0;
@@ -338,7 +338,7 @@ void setup() {
     Serial.println("Tesla Model 3 BMB Interface Starting...");
     
     // Initialize second serial interface
-    Serial2.begin(SERIAL2_BAUD_RATE, SERIAL_8N1, 12, 13); // RX=12, TX=13
+    Serial2.begin(SERIAL2_BAUD_RATE, SERIAL_8N1, SERIAL2_RX_PIN, SERIAL2_TX_PIN); // RX=12, TX=13
     Serial2.println("Tesla Model 3 BMB Interface - Serial2 Starting...");
     
     // Initialize the display
