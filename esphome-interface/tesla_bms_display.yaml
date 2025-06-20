@@ -225,7 +225,7 @@ lvgl:
                   grid_cell_y_align: STRETCH
                   id: label_title
                   align: CENTER
-                  text: "Tesla BMS Status"
+                  text: "M3Y BMS MOD Interface"
                   text_color: white
               - label:
                   grid_cell_column_pos: 0
