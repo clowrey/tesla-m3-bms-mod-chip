@@ -237,6 +237,68 @@ This program is free software: you can redistribute it and/or modify it under th
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
+## Changelog
+
+### Version 1.3.0 - Cell Voltage Visualization (Latest)
+**Added comprehensive ESPHome display interface enhancements:**
+
+#### **New Third Display Page - Cell Voltage Graph**
+- **Visual Bar Graph**: All 108 individual cell voltages displayed as vertical bars
+- **Real-time Updates**: Bars dynamically adjust height based on actual voltages (3.0V-4.2V range)
+- **Color-Coded Status**: 
+  - 🔴 **Red**: >4.1V (overcharged cells)
+  - 🟡 **Yellow**: 3.9-4.1V (high voltage)
+  - 🟢 **Green**: 3.2-3.9V (normal operating range)  
+  - 🔵 **Blue**: <3.2V (low voltage cells)
+- **Compact Layout**: 3px wide bars with 4px spacing to fit all 108 cells on 480px display
+- **Visual Scale**: Voltage reference lines at 3.0V, 3.4V, 3.8V, and 4.2V
+
+#### **Enhanced Navigation System**
+- **Three-Page Interface**: Main → Details → Cell Graph
+- **Touch Navigation**: 
+  - Main page: "Details >" button
+  - Details page: "< Back" and "Cells >" buttons  
+  - Cell graph: "< Details" button
+- **Seamless Flow**: Intuitive page transitions with consistent UI
+
+#### **Comprehensive Data Integration**
+- **Parameter Expansion**: Added 15+ new BMS parameters
+  - System: `numbmbs`, `LoopCnt`, `LoopState`, `CellsPresent`, `CellsBalancing`
+  - Voltages: `umax`, `umin`, `deltaV`, `uavg`, `udc`, `CellMax`, `CellMin`
+  - Temperatures: `Chipt0`, `Cellt0_0`, `Cellt0_1`, `TempMax`, `TempMin`
+  - Control: `balance` status
+- **Unit Conversion**: All voltage displays now show V instead of mV (3 decimal precision)
+- **Individual Cell Monitoring**: All 108 cell voltages (u1-u108) with intelligent batching
+
+#### **Performance Optimizations**
+- **Intelligent Request Batching**: 6 batches of cell voltage requests with staggered timing
+- **Memory Management**: Efficient bar creation with single initialization flag
+- **Update Frequency**: 5s for main parameters, 10s for cell voltages
+- **Visual Feedback**: Real-time balance status with color indicators
+
+### Version 1.2.0 - Dual Page Display Interface
+**Enhanced ESPHome touchscreen interface:**
+- **Two-page Display**: Main overview + detailed battery information
+- **Touch Controls**: Balance on/off buttons with immediate feedback
+- **Real-time Updates**: Live parameter monitoring every 5-10 seconds
+- **Professional UI**: Grid-based layout optimized for 480x320 display
+
+### Version 1.1.0 - ESPHome Integration
+**Added comprehensive ESPHome display interface:**
+- **QSPI Display Support**: JC4832W535 480x320 touchscreen
+- **LVGL Interface**: Modern touch-based UI
+- **Home Assistant Integration**: All BMS parameters as HA entities
+- **OTA Updates**: Over-the-air firmware updates
+- **WiFi Connectivity**: Remote monitoring capabilities
+
+### Version 1.0.0 - Core BMS Interface
+**Initial release with Arduino/PlatformIO implementation:**
+- **Parameter API**: 108+ BMS parameters via serial commands
+- **Dual Serial Interface**: USB + hardware UART (pins 12/13)
+- **AS8510 Integration**: Analog front-end chip support
+- **Balance Control**: Remote cell balancing enable/disable
+- **Real-time Monitoring**: Cell voltages, temperatures, system status
+
 ## Acknowledgments
 
 - **Damien Maguire & Tom de Bree** - Original BATMan BMS software

@@ -94,6 +94,10 @@ globals:
     type: std::string
     restore_value: no
     initial_value: '""'
+  - id: cell_bars_created
+    type: bool
+    restore_value: no
+    initial_value: 'false'
   # Alternative: Parameter request queue for more sophisticated control
   # - id: param_request_queue
   #   type: std::vector<std::string>
@@ -510,15 +514,138 @@ lvgl:
                         text_color: white
                   on_short_click:
                     - lvgl.page.previous:
-              - label:
+              - button:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 7
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
-                  id: label_details_time
+                  id: btn_cells_page
+                  bg_color: 0x336600
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "Cells >"
+                        text_color: white
+                  on_short_click:
+                    - lvgl.page.next:
+
+    # Cell Voltages Graph Page
+    - id: cells_page
+      height: 320
+      width: 480
+      text_font: montserrat_14
+      scrollable: false
+      text_color: white
+      bg_color: 0
+      bg_opa: COVER
+      radius: 0
+      pad_all: 5
+      widgets:
+        # Title and scale labels
+        - label:
+            align: TOP_MID
+            x: 0
+            y: 5
+            text: "Cell Voltages (V)"
+            text_color: 0x00CCFF
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 25
+            text: "4.2"
+            text_color: 0xFF6666
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 85
+            text: "3.8"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 145
+            text: "3.4"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 205
+            text: "3.0"
+            text_color: 0x6666FF
+        # Grid lines for reference
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 35
+            width: 440
+            height: 1
+            bg_color: 0xFF6666
+            bg_opa: 50%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 95
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 155
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 215
+            width: 440
+            height: 1
+            bg_color: 0x6666FF
+            bg_opa: 50%
+        # Cell voltage bars container
+        - obj:
+            id: cells_container
+            align: TOP_LEFT
+            x: 35
+            y: 35
+            width: 440
+            height: 180
+            bg_opa: 0
+            border_width: 0
+            pad_all: 0
+        # Navigation and info
+        - button:
+            align: BOTTOM_LEFT
+            x: 5
+            y: -5
+            width: 100
+            height: 30
+            id: btn_back_to_details
+            bg_color: 0x003366
+            widgets:
+              - label:
                   align: CENTER
-                  text: "00:00:00"
+                  text: "< Details"
                   text_color: white
+            on_short_click:
+              - lvgl.page.previous:
+        - label:
+            align: BOTTOM_MID
+            x: 0
+            y: -5
+            id: label_cells_info
+            text: "Cells: 0-108"
+            text_color: white
+        - label:
+            align: BOTTOM_RIGHT
+            x: -5
+            y: -5
+            id: label_cells_time
+            text: "00:00:00"
+            text_color: white
 
 # Binary sensors for system status
 binary_sensor:
@@ -1282,7 +1409,7 @@ interval:
             snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", 
                      time.hour, time.minute, time.second);
             lv_label_set_text((lv_obj_t*)id(label_time), buffer);
-            lv_label_set_text((lv_obj_t*)id(label_details_time), buffer);
+            lv_label_set_text((lv_obj_t*)id(label_cells_time), buffer);
           }
           
           // Update second page (Battery Details) labels
@@ -1380,6 +1507,83 @@ interval:
             snprintf(buffer, sizeof(buffer), "State: --");
           }
           lv_label_set_text((lv_obj_t*)id(label_system_status), buffer);
+          
+          // Create and update cell voltage bars on cells page
+          if (!id(cell_bars_created)) {
+            // Create 108 cell voltage bars (3px wide, 180px max height, 3V-4.2V scale)
+            lv_obj_t* container = (lv_obj_t*)id(cells_container);
+            if (container) {
+              for (int i = 0; i < 108; i++) {
+                lv_obj_t* bar = lv_obj_create(container);
+                lv_obj_set_size(bar, 3, 2); // Start with minimal height
+                lv_obj_set_pos(bar, i * 4, 178); // Position at bottom (180-2)
+                lv_obj_set_style_bg_color(bar, lv_color_make(100, 100, 100), LV_PART_MAIN);
+                lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_MAIN);
+                lv_obj_set_style_border_width(bar, 0, LV_PART_MAIN);
+                lv_obj_set_style_radius(bar, 0, LV_PART_MAIN);
+                lv_obj_set_style_pad_all(bar, 0, LV_PART_MAIN);
+              }
+              id(cell_bars_created) = true;
+              ESP_LOGI("DISPLAY", "Created 108 cell voltage bars");
+            }
+          }
+          
+          // Update cell voltage bars with current values (first 20 cells for now)
+          lv_obj_t* container = (lv_obj_t*)id(cells_container);
+          if (container && lv_obj_get_child_cnt(container) >= 20) {
+            // Array of cell voltage sensors
+            std::vector<std::pair<int, float>> cell_data;
+            if (id(u1).has_state()) cell_data.push_back({0, id(u1).state});
+            if (id(u2).has_state()) cell_data.push_back({1, id(u2).state});
+            if (id(u3).has_state()) cell_data.push_back({2, id(u3).state});
+            if (id(u4).has_state()) cell_data.push_back({3, id(u4).state});
+            if (id(u5).has_state()) cell_data.push_back({4, id(u5).state});
+            if (id(u6).has_state()) cell_data.push_back({5, id(u6).state});
+            if (id(u7).has_state()) cell_data.push_back({6, id(u7).state});
+            if (id(u8).has_state()) cell_data.push_back({7, id(u8).state});
+            if (id(u9).has_state()) cell_data.push_back({8, id(u9).state});
+            if (id(u10).has_state()) cell_data.push_back({9, id(u10).state});
+            if (id(u11).has_state()) cell_data.push_back({10, id(u11).state});
+            if (id(u12).has_state()) cell_data.push_back({11, id(u12).state});
+            if (id(u13).has_state()) cell_data.push_back({12, id(u13).state});
+            if (id(u14).has_state()) cell_data.push_back({13, id(u14).state});
+            if (id(u15).has_state()) cell_data.push_back({14, id(u15).state});
+            if (id(u16).has_state()) cell_data.push_back({15, id(u16).state});
+            if (id(u17).has_state()) cell_data.push_back({16, id(u17).state});
+            if (id(u18).has_state()) cell_data.push_back({17, id(u18).state});
+            if (id(u19).has_state()) cell_data.push_back({18, id(u19).state});
+            if (id(u20).has_state()) cell_data.push_back({19, id(u20).state});
+            
+            // Update bars for cells with data
+            for (auto& cell : cell_data) {
+              int cell_idx = cell.first;
+              float voltage = cell.second;
+              
+              if (cell_idx < lv_obj_get_child_cnt(container) && voltage > 0.0f) {
+                lv_obj_t* bar = lv_obj_get_child(container, cell_idx);
+                if (bar) {
+                  // Map voltage (3.0-4.2V) to height (2-180px)
+                  voltage = std::max(3.0f, std::min(4.2f, voltage)); // Clamp to range
+                  int height = (int)((voltage - 3.0f) / 1.2f * 178.0f) + 2;
+                  int y_pos = 180 - height;
+                  
+                  lv_obj_set_size(bar, 3, height);
+                  lv_obj_set_pos(bar, cell_idx * 4, y_pos);
+                  
+                  // Color coding: Red (>4.1V), Yellow (3.9-4.1V), Green (3.2-3.9V), Blue (<3.2V)
+                  if (voltage > 4.1f) {
+                    lv_obj_set_style_bg_color(bar, lv_color_make(255, 0, 0), LV_PART_MAIN);
+                  } else if (voltage > 3.9f) {
+                    lv_obj_set_style_bg_color(bar, lv_color_make(255, 255, 0), LV_PART_MAIN);
+                  } else if (voltage > 3.2f) {
+                    lv_obj_set_style_bg_color(bar, lv_color_make(0, 255, 0), LV_PART_MAIN);
+                  } else {
+                    lv_obj_set_style_bg_color(bar, lv_color_make(0, 100, 255), LV_PART_MAIN);
+                  }
+                }
+              }
+            }
+          }
 
 font:
   - file: "gfonts://Montserrat"
