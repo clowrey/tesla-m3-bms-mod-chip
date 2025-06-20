@@ -1,0 +1,365 @@
+esphome:
+  name: tesla_bms_display
+  friendly_name: Tesla BMS Display
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: arduino
+    version: 3.0.0
+
+# Enable logging
+logger:
+  level: INFO
+  logs:
+    uart: DEBUG
+
+# WiFi configuration
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Tesla_BMS_Display_AP"
+    password: "12345678"
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+# Enable OTA updates
+ota:
+  password: !secret ota_password
+
+# Enable web server
+web_server:
+  port: 80
+
+# Time component for timestamps
+time:
+  - platform: sntp
+    id: sntp_time
+
+# UART for communication with Tesla BMS
+uart:
+  - id: tesla_bms_uart
+    tx_pin: GPIO17
+    rx_pin: GPIO16
+    baud_rate: 115200
+    data_bits: 8
+    parity: NONE
+    stop_bits: 1
+
+# I2C for LCD display (JC3248W535C)
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  frequency: 400kHz
+
+# LCD Display (JC3248W535C - typically uses ST7789 or similar)
+display:
+  - platform: st7789
+    id: lcd_display
+    width: 240
+    height: 320
+    rotation: 270
+    data_pins: [GPIO23, GPIO19, GPIO18, GPIO5, GPIO4, GPIO2, GPIO1, GPIO0]
+    dc_pin: GPIO15
+    cs_pin: GPIO14
+    reset_pin: GPIO13
+    backlight_pin: GPIO12
+    reset_duration: 100ms
+    auto_clear_enabled: false
+
+# Font definitions
+font:
+  - file: "fonts/OpenSans-Regular-12.pcf"
+    id: font_small
+    size: 12
+  - file: "fonts/OpenSans-Bold-16.pcf"
+    id: font_medium
+    size: 16
+  - file: "fonts/OpenSans-Bold-20.pcf"
+    id: font_large
+    size: 20
+
+# Binary sensors for system status
+binary_sensor:
+  - platform: status
+    name: "Tesla BMS Display Status"
+    id: display_status
+
+# Sensors for system parameters
+sensor:
+  # System parameters
+  - platform: template
+    name: "Number of BMBs"
+    id: numbmbs
+    unit_of_measurement: "boards"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Loop Counter"
+    id: loopcnt
+    unit_of_measurement: "count"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Loop State"
+    id: loopstate
+    unit_of_measurement: "state"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Cells Present"
+    id: cellspresent
+    unit_of_measurement: "cells"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Cells Balancing"
+    id: cellsbalancing
+    unit_of_measurement: "cells"
+    accuracy_decimals: 0
+
+  # Voltage statistics
+  - platform: template
+    name: "Cell Max Number"
+    id: cellmax
+    unit_of_measurement: "cell"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Cell Min Number"
+    id: cellmin
+    unit_of_measurement: "cell"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Max Voltage"
+    id: umax
+    unit_of_measurement: "mV"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Min Voltage"
+    id: umin
+    unit_of_measurement: "mV"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Voltage Delta"
+    id: deltav
+    unit_of_measurement: "mV"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "DC Voltage"
+    id: udc
+    unit_of_measurement: "mV"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Average Voltage"
+    id: uavg
+    unit_of_measurement: "mV"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Charge Voltage Limit"
+    id: chargevlim
+    unit_of_measurement: "mV"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Discharge Voltage Limit"
+    id: dischargevlim
+    unit_of_measurement: "mV"
+    accuracy_decimals: 0
+
+  # Balance control
+  - platform: template
+    name: "Balance Status"
+    id: balance
+    unit_of_measurement: "status"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Cell V Max"
+    id: cellvmax
+    unit_of_measurement: "mV"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Cell V Min"
+    id: cellvmin
+    unit_of_measurement: "mV"
+    accuracy_decimals: 0
+
+  # Temperature parameters
+  - platform: template
+    name: "Chip Temperature"
+    id: chipt0
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "Cell Temperature 0"
+    id: cellt0_0
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "Cell Temperature 1"
+    id: cellt0_1
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "Max Temperature"
+    id: tempmax
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "Min Temperature"
+    id: tempmin
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+
+  # Chip voltages
+  - platform: template
+    name: "Chip V1"
+    id: chipv1
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip V2"
+    id: chipv2
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip V3"
+    id: chipv3
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip V4"
+    id: chipv4
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip V5"
+    id: chipv5
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip V6"
+    id: chipv6
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip V7"
+    id: chipv7
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip V8"
+    id: chipv8
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+
+  # Chip supplies
+  - platform: template
+    name: "Chip 1 5V"
+    id: chip1_5v
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip 2 5V"
+    id: chip2_5v
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+
+  # Cell counts per chip
+  - platform: template
+    name: "Chip 1 Cells"
+    id: chip1cells
+    unit_of_measurement: "cells"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Chip 2 Cells"
+    id: chip2cells
+    unit_of_measurement: "cells"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Chip 3 Cells"
+    id: chip3cells
+    unit_of_measurement: "cells"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Chip 4 Cells"
+    id: chip4cells
+    unit_of_measurement: "cells"
+    accuracy_decimals: 0
+
+# Cell voltage sensors (u1-u108)
+# Using a more efficient approach with a custom component
+# Individual cell voltage sensors will be created in the custom component
+
+# Switches for control
+switch:
+  - platform: template
+    name: "Balance Control"
+    id: balance_control
+    optimistic: true
+    restore_state: false
+
+# Buttons for manual control
+button:
+  - platform: template
+    name: "Refresh Parameters"
+    id: refresh_params
+    on_press:
+      - uart.write:
+          id: tesla_bms_uart
+          data: "param list\n"
+      
+  - platform: template
+    name: "Enable Balance"
+    id: enable_balance
+    on_press:
+      - uart.write:
+          id: tesla_bms_uart
+          data: "balance on\n"
+      
+  - platform: template
+    name: "Disable Balance"
+    id: disable_balance
+    on_press:
+      - uart.write:
+          id: tesla_bms_uart
+          data: "balance off\n"
+
+# Custom component for Tesla BMS parameter parsing
+external_components:
+  - source: github://esphome/esphome
+    components: [ uart, display, sensor, switch, button ]
+  - source: ./custom_components
+    components: [ tesla_bms_parser ]
+
+# Include the custom component
+tesla_bms_parser:
+  uart_id: tesla_bms_uart
+  update_interval: 5s 
