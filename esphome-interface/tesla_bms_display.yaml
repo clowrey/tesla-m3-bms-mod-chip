@@ -646,6 +646,94 @@ lvgl:
             id: label_cells_time
             text: "00:00:00"
             text_color: white
+        
+        # Color Legend/Index
+        - label:
+            align: BOTTOM_LEFT
+            x: 110
+            y: -25
+            text: "Colors:"
+            text_color: white
+        - obj:
+            align: BOTTOM_LEFT
+            x: 160
+            y: -30
+            width: 8
+            height: 8
+            bg_color: 0xFF0000
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+        - label:
+            align: BOTTOM_LEFT
+            x: 172
+            y: -25
+            text: ">4.1V"
+            text_color: 0xFF6666
+        - obj:
+            align: BOTTOM_LEFT
+            x: 210
+            y: -30
+            width: 8
+            height: 8
+            bg_color: 0xFFFF00
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+        - label:
+            align: BOTTOM_LEFT
+            x: 222
+            y: -25
+            text: "3.9-4.1V"
+            text_color: 0xFFFF66
+        - obj:
+            align: BOTTOM_LEFT
+            x: 275
+            y: -30
+            width: 8
+            height: 8
+            bg_color: 0x00FF00
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+        - label:
+            align: BOTTOM_LEFT
+            x: 287
+            y: -25
+            text: "3.2-3.9V"
+            text_color: 0x66FF66
+        - obj:
+            align: BOTTOM_LEFT
+            x: 340
+            y: -30
+            width: 8
+            height: 8
+            bg_color: 0x0066FF
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+        - label:
+            align: BOTTOM_LEFT
+            x: 352
+            y: -25
+            text: "<3.2V"
+            text_color: 0x6666FF
+        - obj:
+            align: BOTTOM_LEFT
+            x: 390
+            y: -30
+            width: 8
+            height: 8
+            bg_color: 0xFF8C00
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+        - label:
+            align: BOTTOM_LEFT
+            x: 402
+            y: -25
+            text: "Balancing"
+            text_color: 0xFF8C00
 
 # Binary sensors for system status
 binary_sensor:
@@ -1744,8 +1832,8 @@ interval:
                   lv_obj_set_style_border_width(bar, 0, LV_PART_MAIN);
                   
                   if (cell_balancing) {
-                    // For balancing cells, use bright blue to distinguish from voltage status
-                    lv_obj_set_style_bg_color(bar, lv_color_make(100, 150, 255), LV_PART_MAIN);
+                    // For balancing cells, use bright orange to distinguish from voltage status
+                    lv_obj_set_style_bg_color(bar, lv_color_make(255, 140, 0), LV_PART_MAIN);
                   } else {
                     // Standard voltage color coding for non-balancing cells
                     if (voltage > 4.1f) {
