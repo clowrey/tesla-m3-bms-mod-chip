@@ -185,7 +185,7 @@ lvgl:
       border_width: 0
       scrollable: false
     button:
-      text_font: roboto18
+      text_font: montserrat_14
       scroll_on_focus: true
       radius: 10px
       shadow_width: 0
@@ -198,7 +198,7 @@ lvgl:
     - id: main_page
       height: 320
       width: 480
-      text_font: roboto18
+      text_font: montserrat_14
       scrollable: false
       text_color: white
       bg_color: 0
@@ -331,13 +331,191 @@ lvgl:
                     - uart.write:
                         id: tesla_bms_uart_uart
                         data: "balance off\n"
-              - label:
+              - button:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 6
-                  grid_cell_column_span: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_next_page
+                  bg_color: 0x003366
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "Details >"
+                        text_color: white
+                  on_short_click:
+                    - lvgl.page.next:
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 6
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: label_time
+                  align: CENTER
+                  text: "00:00:00"
+                  text_color: white
+
+    # Battery Details Page
+    - id: details_page
+      height: 320
+      width: 480
+      text_font: montserrat_14
+      scrollable: false
+      text_color: white
+      bg_color: 0
+      bg_opa: COVER
+      radius: 0
+      pad_all: 5
+      widgets:
+        - obj:
+            align: LEFT_MID
+            width: 480
+            height: 320
+            pad_all: 5
+            layout:
+              pad_column: 5
+              type: GRID
+              grid_rows: [FR(35), FR(35), FR(35), FR(35), FR(35), FR(35), FR(35), FR(35)]
+              grid_columns: [FR(240), FR(240)]
+            widgets:
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 0
+                  grid_cell_column_span: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_details_title
+                  align: CENTER
+                  text: "Battery Details"
+                  text_color: 0x00CCFF
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 1
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_avg_voltage
+                  align: LEFT_MID
+                  text: "Avg: 0.000V"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 1
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_dc_voltage
+                  align: RIGHT_MID
+                  text: "DC: 0.00V"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_cells_present
+                  align: LEFT_MID
+                  text: "Cells: 0"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_cells_balancing
+                  align: RIGHT_MID
+                  text: "Balancing: 0"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 3
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_chip_temp
+                  align: LEFT_MID
+                  text: "Chip: --°C"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 3
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_cell_temp0
+                  align: RIGHT_MID
+                  text: "Cell0: --°C"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 4
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_cell_temp1
+                  align: LEFT_MID
+                  text: "Cell1: --°C"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 4
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_temp_range
+                  align: RIGHT_MID
+                  text: "Range: --°C"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 5
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_bmb_count
+                  align: LEFT_MID
+                  text: "BMBs: 0"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 5
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_loop_details
+                  align: RIGHT_MID
+                  text: "Loop: 0"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 6
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_balance_status
+                  align: LEFT_MID
+                  text: "Balance: OFF"
+                  text_color: red
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 6
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_system_status
+                  align: RIGHT_MID
+                  text: "State: 0"
+                  text_color: white
+              - button:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 7
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_prev_page
+                  bg_color: 0x003366
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "< Back"
+                        text_color: white
+                  on_short_click:
+                    - lvgl.page.previous:
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 7
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_details_time
                   align: CENTER
                   text: "00:00:00"
                   text_color: white
@@ -1104,11 +1282,106 @@ interval:
             snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", 
                      time.hour, time.minute, time.second);
             lv_label_set_text((lv_obj_t*)id(label_time), buffer);
+            lv_label_set_text((lv_obj_t*)id(label_details_time), buffer);
           }
+          
+          // Update second page (Battery Details) labels
+          // Average voltage
+          if (id(uavg).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Avg: %.3fV", id(uavg).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Avg: --.---V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_avg_voltage), buffer);
+          
+          // DC voltage
+          if (id(udc).has_state()) {
+            snprintf(buffer, sizeof(buffer), "DC: %.2fV", id(udc).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "DC: --.--V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_dc_voltage), buffer);
+          
+          // Cells present and balancing
+          if (id(cellspresent).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Cells: %d", (int)id(cellspresent).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Cells: --");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_cells_present), buffer);
+          
+          if (id(cellsbalancing).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Balancing: %d", (int)id(cellsbalancing).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Balancing: --");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_cells_balancing), buffer);
+          
+          // Temperature sensors
+          if (id(chipt0).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Chip: %.1f°C", id(chipt0).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Chip: --°C");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_chip_temp), buffer);
+          
+          if (id(cellt0_0).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Cell0: %.1f°C", id(cellt0_0).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Cell0: --°C");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_cell_temp0), buffer);
+          
+          if (id(cellt0_1).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Cell1: %.1f°C", id(cellt0_1).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Cell1: --°C");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_cell_temp1), buffer);
+          
+          // Temperature range
+          if (id(tempmax).has_state() && id(tempmin).has_state()) {
+            float temp_delta = id(tempmax).state - id(tempmin).state;
+            snprintf(buffer, sizeof(buffer), "Range: %.1f°C", temp_delta);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Range: --°C");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_temp_range), buffer);
+          
+          // BMB count
+          if (id(numbmbs).has_state()) {
+            snprintf(buffer, sizeof(buffer), "BMBs: %d", (int)id(numbmbs).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "BMBs: --");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_bmb_count), buffer);
+          
+          // Loop details
+          if (id(loopcnt).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Loop: %d", (int)id(loopcnt).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Loop: --");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_loop_details), buffer);
+          
+          // Balance status on details page
+          if (id(balance).has_state() && id(balance).state > 0.5) {
+            lv_label_set_text((lv_obj_t*)id(label_balance_status), "Balance: ON");
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_balance_status), lv_color_make(0, 255, 0), LV_PART_MAIN);
+          } else {
+            lv_label_set_text((lv_obj_t*)id(label_balance_status), "Balance: OFF");
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_balance_status), lv_color_make(255, 0, 0), LV_PART_MAIN);
+          }
+          
+          // System state
+          if (id(loopstate).has_state()) {
+            snprintf(buffer, sizeof(buffer), "State: %d", (int)id(loopstate).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "State: --");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_system_status), buffer);
 
 font:
-  - file: "gfonts://Roboto"
-    id: roboto18
-    size: 18
-
-# (rest of the YAML follows...) 
+  - file: "gfonts://Montserrat"
+    id: montserrat_14
+    size: 14
