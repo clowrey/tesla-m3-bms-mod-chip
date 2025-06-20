@@ -1912,15 +1912,16 @@ interval:
                     continue; // Skip rest of processing for this cell
                   }
                   
-                  // Map voltage (0-4.2V) to height (2-180px), handle 0V and low voltages
+                  // Map voltage to bar height - scale matches visual grid lines exactly
                   voltage = std::max(0.0f, std::min(4.2f, voltage)); // Clamp to range (allow 0V)
                   int base_height;
                   if (voltage < 3.0f) {
                     // For voltages below 3.0V (including 0V), scale from 2-10px height
                     base_height = (int)(voltage / 3.0f * 8.0f) + 2;
                   } else {
-                    // For normal voltages (3.0-4.2V), scale from 10-180px height  
-                    base_height = (int)((voltage - 3.0f) / 1.2f * 170.0f) + 10;
+                    // For normal voltages (3.0-4.2V), map to bar height correctly
+                    // 3.0V = 0px height (at bottom), 4.2V = 180px height (full height)
+                    base_height = (int)((voltage - 3.0f) / 1.2f * 180.0f);
                   }
                   
                   // Check if this cell is in the balancing list
