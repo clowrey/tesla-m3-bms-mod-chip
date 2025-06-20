@@ -13,6 +13,7 @@ public:
         LoopState,
         CellsPresent,
         CellsBalancing,
+        BalanceCellList,  // New: comma-separated list of balancing cell numbers
         
         // Cell voltage parameters (must be consecutive)
         u1, u2, u3, u4, u5, u6, u7, u8, u9, u10,
@@ -75,6 +76,8 @@ public:
     static void SetInt(PARAM_NUM param, int value);
     static float GetFloat(PARAM_NUM param);
     static void SetFloat(PARAM_NUM param, float value);
+    static String GetString(PARAM_NUM param);
+    static void SetString(PARAM_NUM param, const String& value);
     
     // Serial API methods
     static const char* GetParamName(PARAM_NUM param);

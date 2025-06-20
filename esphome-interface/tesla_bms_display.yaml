@@ -767,6 +767,12 @@ sensor:
     unit_of_measurement: "status"
     accuracy_decimals: 0
 
+# Text sensor for balance cell list
+text_sensor:
+  - platform: template
+    name: "Balance Cell List"
+    id: balance_cell_list
+
 # Interval to periodically request parameters and update display
 interval:
   # Fast interval to read and parse UART data
@@ -836,6 +842,14 @@ interval:
                       else if (param == "TempMax") { id(tempmax).publish_state(value); sensor_updated = true; }
                       else if (param == "TempMin") { id(tempmin).publish_state(value); sensor_updated = true; }
                       else if (param == "balance") { id(balance).publish_state(value); sensor_updated = true; }
+                      
+                      // Handle special case for BalanceCellList (string parameter)
+                      if (!sensor_updated && param == "BalanceCellList") {
+                        // For string parameters, use the original value_str without converting to float
+                        id(balance_cell_list).publish_state(value_str.c_str());
+                        ESP_LOGI("BMS", "STRING SENSOR UPDATED: %s = %s", param.c_str(), value_str.c_str());
+                        sensor_updated = true;
+                      }
                       
                       // Individual cell voltages (u1-u108) - convert from mV to V
                       else if (param == "u1") { id(u1).publish_state(value / 1000.0); sensor_updated = true; }
@@ -1074,6 +1088,13 @@ interval:
       - uart.write:
           id: tesla_bms_uart_uart
           data: "param get balance\n"
+      - delay: 100ms
+      
+      # Request balance cell list
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get BalanceCellList");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get BalanceCellList\n"
       - delay: 100ms
 
   # Separate faster interval for individual cell voltage requests (every 10 seconds)
@@ -1555,25 +1576,31 @@ interval:
             if (id(u19).has_state()) cell_data.push_back({18, id(u19).state});
             if (id(u20).has_state()) cell_data.push_back({19, id(u20).state});
             
-            // Get overall balance status and count for visual indication
-            bool balance_active = id(balance).has_state() && id(balance).state > 0.5;
-            int cells_balancing_count = id(cellsbalancing).has_state() ? (int)id(cellsbalancing).state : 0;
-            
-            // Sort cells by voltage to identify which ones are likely balancing
-            std::vector<std::pair<float, int>> voltage_sorted;
-            for (auto& cell : cell_data) {
-              if (cell.second > 0.0f) {
-                voltage_sorted.push_back({cell.second, cell.first});
-              }
-            }
-            std::sort(voltage_sorted.rbegin(), voltage_sorted.rend()); // Sort descending by voltage
-            
-            // Create list of cell indices that should show balance indication
+            // Get balance cell list from the BMS (exact cell numbers being balanced)
             std::vector<int> balancing_cells;
-            if (balance_active && cells_balancing_count > 0) {
-              // Show balance indication for the top N highest voltage cells where N = cells_balancing_count
-              for (int i = 0; i < std::min(cells_balancing_count, (int)voltage_sorted.size()); i++) {
-                balancing_cells.push_back(voltage_sorted[i].second);
+            if (id(balance_cell_list).has_state() && id(balance).has_state() && id(balance).state > 0.5) {
+              std::string balance_list = id(balance_cell_list).state;
+              if (!balance_list.empty()) {
+                // Parse comma-separated list of cell numbers (manual parsing to avoid sstream dependency)
+                size_t start = 0;
+                size_t end = 0;
+                while ((end = balance_list.find(',', start)) != std::string::npos) {
+                  std::string cell_num_str = balance_list.substr(start, end - start);
+                  int cell_num = std::atoi(cell_num_str.c_str());
+                  if (cell_num > 0 && cell_num <= 108) {
+                    balancing_cells.push_back(cell_num - 1); // Convert to 0-based index
+                  }
+                  start = end + 1;
+                }
+                // Handle the last cell number (after the last comma or if no comma)
+                if (start < balance_list.length()) {
+                  std::string cell_num_str = balance_list.substr(start);
+                  int cell_num = std::atoi(cell_num_str.c_str());
+                  if (cell_num > 0 && cell_num <= 108) {
+                    balancing_cells.push_back(cell_num - 1); // Convert to 0-based index
+                  }
+                }
+                ESP_LOGI("DISPLAY", "Balance cells from BMS: %s", balance_list.c_str());
               }
             }
             

@@ -323,10 +323,24 @@ void updateParametersFromBATMan() {
     Param::SetInt(Param::umin, batman.getMinVoltage());
     Param::SetInt(Param::deltaV, batman.getMaxVoltage() - batman.getMinVoltage());
     
-    // Update balance status
+    // Update balance status and balancing cell list
     Param::SetInt(Param::balance, balanceEnabled ? 1 : 0);
     Param::SetInt(Param::CellVmax, batman.getMaxVoltage());
     Param::SetInt(Param::CellVmin, batman.getMinVoltage());
+    
+    // Get balancing information and create comma-separated list
+    BATMan::BalancingInfo balanceInfo = batman.getBalancingInfo();
+    Param::SetInt(Param::CellsBalancing, balanceInfo.balancingCells);
+    
+    // Create comma-separated string of balancing cell numbers
+    String balanceCellList = "";
+    for (int i = 0; i < balanceInfo.balancingCells; i++) {
+        if (i > 0) {
+            balanceCellList += ",";
+        }
+        balanceCellList += String(balanceInfo.balancingCellNumbers[i]);
+    }
+    Param::SetString(Param::BalanceCellList, balanceCellList);
     
     // Update temperature data (if available)
     // Note: This would need to be implemented based on actual temperature data from BATMan

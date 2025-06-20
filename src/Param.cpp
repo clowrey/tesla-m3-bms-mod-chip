@@ -6,11 +6,12 @@
 // Storage for parameters
 static std::map<Param::PARAM_NUM, int> intParams;
 static std::map<Param::PARAM_NUM, float> floatParams;
+static std::map<Param::PARAM_NUM, String> stringParams;
 
 // Parameter name mapping
 static const char* paramNames[] = {
     // System parameters
-    "numbmbs", "LoopCnt", "LoopState", "CellsPresent", "CellsBalancing",
+    "numbmbs", "LoopCnt", "LoopState", "CellsPresent", "CellsBalancing", "BalanceCellList",
     
     // Cell voltage parameters
     "u1", "u2", "u3", "u4", "u5", "u6", "u7", "u8", "u9", "u10",
@@ -52,6 +53,9 @@ static void initParams() {
     intParams[Param::LoopState] = 0;
     intParams[Param::CellsPresent] = 0;
     intParams[Param::CellsBalancing] = 0;
+    
+    // Initialize string parameters
+    stringParams[Param::BalanceCellList] = "";
     
     // Initialize all cell voltages to 0
     for (int i = Param::u1; i <= Param::u108; i++) {
@@ -117,6 +121,14 @@ void Param::SetFloat(PARAM_NUM param, float value) {
     floatParams[param] = value;
 }
 
+String Param::GetString(PARAM_NUM param) {
+    return stringParams[param];
+}
+
+void Param::SetString(PARAM_NUM param, const String& value) {
+    stringParams[param] = value;
+}
+
 const char* Param::GetParamName(PARAM_NUM param) {
     if (param >= 0 && param < sizeof(paramNames) / sizeof(paramNames[0])) {
         return paramNames[param];
@@ -148,8 +160,12 @@ void Param::PrintParam(PARAM_NUM param) {
         return;
     }
     
+    // Check if parameter exists in stringParams
+    if (stringParams.find(param) != stringParams.end()) {
+        Serial.printf("%s: %s\n", name, stringParams[param].c_str());
+    }
     // Check if parameter exists in intParams
-    if (intParams.find(param) != intParams.end()) {
+    else if (intParams.find(param) != intParams.end()) {
         Serial.printf("%s: %d\n", name, intParams[param]);
     }
     // Check if parameter exists in floatParams
@@ -242,8 +258,12 @@ void Param::PrintParam(PARAM_NUM param, HardwareSerial& serialPort) {
         return;
     }
     
+    // Check if parameter exists in stringParams
+    if (stringParams.find(param) != stringParams.end()) {
+        serialPort.printf("%s: %s\n", name, stringParams[param].c_str());
+    }
     // Check if parameter exists in intParams
-    if (intParams.find(param) != intParams.end()) {
+    else if (intParams.find(param) != intParams.end()) {
         serialPort.printf("%s: %d\n", name, intParams[param]);
     }
     // Check if parameter exists in floatParams

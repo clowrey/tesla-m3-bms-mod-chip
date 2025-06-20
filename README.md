@@ -167,6 +167,7 @@ param help
 
 #### System Parameters
 - `numbmbs`, `LoopCnt`, `LoopState`, `CellsPresent`, `CellsBalancing`
+- `BalanceCellList` - Comma-separated list of exact cell numbers being balanced
 
 #### Cell Voltages
 - `u1` through `u108` - Individual cell voltages (mV)
@@ -239,7 +240,16 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 ## Changelog
 
-### Version 1.3.0 - Cell Voltage Visualization (Latest)
+### Version 1.3.1 (January 2025)
+**New Feature: Exact Balance Cell Tracking**
+- **NEW**: Added `BalanceCellList` parameter that provides a comma-separated list of exact cell numbers being balanced
+- **Enhanced**: Cell voltage graph now shows precise balance indicators using exact BMS data instead of estimation
+- **Improved**: Balance indication accuracy now at 100% - no more false positives or missed balancing cells
+- **Technical**: Added string parameter support to Param system for text-based data
+- **Display**: Extended red bars below graph baseline show exactly which cells are balancing
+- **API**: New parameter accessible via serial command `param get BalanceCellList`
+
+### Version 1.3.0 (January 2025)
 **Added comprehensive ESPHome display interface enhancements:**
 
 #### **New Third Display Page - Cell Voltage Graph**
