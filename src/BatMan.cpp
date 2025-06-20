@@ -826,7 +826,7 @@ void BATMan::upDateCellVolts(void)
     }
 
     // -AI- Process all cells across all BMB chips
-    while (h <= 100)
+    while (h <= 108)
     {
         if(Yc < 14) //Check actual measurement present
         {
@@ -887,7 +887,7 @@ void BATMan::upDateCellVolts(void)
             Param::SetFloat(Param::umin,CellVMin);
             Param::SetFloat(Param::deltaV,CellVMax-CellVMin);
             Param::SetInt(Param::CellsPresent,h);
-            h = 100;
+            h = 108;
             break;
         }
     }

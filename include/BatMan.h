@@ -128,7 +128,7 @@ public:
     struct BalancingInfo {
         int totalCells;
         int balancingCells;
-        int balancingCellNumbers[96]; // Array to store cell numbers being balanced
+        int balancingCellNumbers[108]; // Array to store cell numbers being balanced
     };
     
     BalancingInfo getBalancingInfo() const;
