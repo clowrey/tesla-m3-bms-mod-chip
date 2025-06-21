@@ -9,7 +9,7 @@ esphome:
           // Test display with a simple message
           lv_label_set_text((lv_obj_t*)id(label_title), "Display Test - Working!");
           lv_label_set_text((lv_obj_t*)id(label_cells), "Backlight: ON");
-          lv_label_set_text((lv_obj_t*)id(label_balance), "Status: OK");
+          lv_label_set_text((lv_obj_t*)id(label_connected), "Status: OK");
           ESP_LOGI("DISPLAY", "Display labels updated");
 
 esp32:
@@ -208,17 +208,17 @@ lvgl:
       bg_color: 0
       bg_opa: COVER
       radius: 0
-      pad_all: 5
+      pad_all: 2
       widgets:
         - obj:
             align: LEFT_MID
             width: 480
             height: 320
-            pad_all: 5
+            pad_all: 2
             layout:
-              pad_column: 5
+              pad_column: 2
               type: GRID
-              grid_rows: [FR(35), FR(35), FR(35), FR(35), FR(35), FR(35), FR(35), FR(35)]
+              grid_rows: [FR(40), FR(28), FR(28), FR(28), FR(28), FR(28), FR(40), FR(40)]
               grid_columns: [FR(240), FR(240)]
             widgets:
               - label:
@@ -238,17 +238,19 @@ lvgl:
                   grid_cell_y_align: STRETCH
                   id: label_cells
                   align: LEFT_MID
-                  text: "Cells: 0/0"
+                  text: "BMBs: 0 | Balance: OFF"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 1
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
-                  id: label_balance
+                  id: label_connected
                   align: RIGHT_MID
-                  text: "Balance: OFF"
+                  text: "Connected: No"
                   text_color: red
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 2
@@ -281,9 +283,9 @@ lvgl:
                   grid_cell_row_pos: 3
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
-                  id: label_temp
+                  id: label_avg_display
                   align: RIGHT_MID
-                  text: "Temp: 0.0°C"
+                  text: "Avg: 0.000V"
                   text_color: white
               - label:
                   grid_cell_column_pos: 0
@@ -299,9 +301,9 @@ lvgl:
                   grid_cell_row_pos: 4
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
-                  id: label_cell_sum
+                  id: label_chip_voltages
                   align: RIGHT_MID
-                  text: "Sum: 0.00V"
+                  text: "Chips: --.--V"
                   text_color: white
               - label:
                   grid_cell_column_pos: 0
@@ -312,15 +314,17 @@ lvgl:
                   align: LEFT_MID
                   text: "Loop: 0 (State: 0)"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 5
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
-                  id: label_connected
+                  id: label_temp
                   align: RIGHT_MID
-                  text: "Connected: No"
-                  text_color: red
+                  text: "Temp: 0.0°C"
+                  text_color: white
+                  text_font: montserrat_12
               - button:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 6
@@ -387,17 +391,17 @@ lvgl:
       bg_color: 0
       bg_opa: COVER
       radius: 0
-      pad_all: 5
+      pad_all: 2
       widgets:
         - obj:
             align: LEFT_MID
             width: 480
             height: 320
-            pad_all: 5
+            pad_all: 2
             layout:
-              pad_column: 5
+              pad_column: 2
               type: GRID
-              grid_rows: [FR(35), FR(35), FR(35), FR(35), FR(35), FR(35), FR(35), FR(35)]
+              grid_rows: [FR(40), FR(26), FR(26), FR(26), FR(26), FR(26), FR(26), FR(40)]
               grid_columns: [FR(240), FR(240)]
             widgets:
               - label:
@@ -419,6 +423,7 @@ lvgl:
                   align: LEFT_MID
                   text: "Avg: 0.000V"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 1
@@ -428,6 +433,7 @@ lvgl:
                   align: RIGHT_MID
                   text: "DC: 0.00V"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 2
@@ -437,6 +443,7 @@ lvgl:
                   align: LEFT_MID
                   text: "Cells: 0"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 2
@@ -446,6 +453,7 @@ lvgl:
                   align: RIGHT_MID
                   text: "Balancing: 0"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 3
@@ -455,6 +463,7 @@ lvgl:
                   align: LEFT_MID
                   text: "Chip: --°C"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 3
@@ -464,6 +473,7 @@ lvgl:
                   align: RIGHT_MID
                   text: "Cell0: --°C"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 4
@@ -473,6 +483,7 @@ lvgl:
                   align: LEFT_MID
                   text: "Cell1: --°C"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 4
@@ -482,6 +493,7 @@ lvgl:
                   align: RIGHT_MID
                   text: "Range: --°C"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 5
@@ -491,6 +503,7 @@ lvgl:
                   align: LEFT_MID
                   text: "BMBs: 0"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 5
@@ -500,6 +513,7 @@ lvgl:
                   align: RIGHT_MID
                   text: "Loop: 0"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 6
@@ -509,6 +523,7 @@ lvgl:
                   align: LEFT_MID
                   text: "Balance: OFF"
                   text_color: red
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 6
@@ -518,6 +533,7 @@ lvgl:
                   align: RIGHT_MID
                   text: "State: 0"
                   text_color: white
+                  text_font: montserrat_12
               - button:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 7
@@ -911,6 +927,31 @@ sensor:
     unit_of_measurement: "V"
     accuracy_decimals: 2
 
+  # Chip voltages
+  - platform: template
+    name: "Chip 1 Voltage"
+    id: chipv1
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip 2 Voltage"
+    id: chipv2
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip 3 Voltage"
+    id: chipv3
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip 4 Voltage"
+    id: chipv4
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+
   # Temperature sensors
   - platform: template
     name: "Chip Temperature"
@@ -1043,6 +1084,10 @@ interval:
                       else if (param == "TempMax") { id(tempmax).publish_state(value); sensor_updated = true; }
                       else if (param == "TempMin") { id(tempmin).publish_state(value); sensor_updated = true; }
                       else if (param == "balance") { id(balance).publish_state(value); sensor_updated = true; }
+                      else if (param == "ChipV1") { id(chipv1).publish_state(value); sensor_updated = true; }
+                      else if (param == "ChipV2") { id(chipv2).publish_state(value); sensor_updated = true; }
+                      else if (param == "ChipV3") { id(chipv3).publish_state(value); sensor_updated = true; }
+                      else if (param == "ChipV4") { id(chipv4).publish_state(value); sensor_updated = true; }
                       
                       // Handle special case for BalanceCellList (string parameter)
                       if (!sensor_updated && param == "BalanceCellList") {
@@ -1381,6 +1426,28 @@ interval:
           id: tesla_bms_uart_uart
           data: "param get BalanceCellList\n"
       - delay: 100ms
+      
+      # Request chip voltages
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get ChipV1");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get ChipV1\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get ChipV2");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get ChipV2\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get ChipV3");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get ChipV3\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get ChipV4");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get ChipV4\n"
+      - delay: 100ms
 
   # Separate faster interval for individual cell voltage requests (every 10 seconds)
   - interval: 10s
@@ -1638,23 +1705,21 @@ interval:
           // Update display labels with current sensor values
           char buffer[64];
           
-          // Update cells info - show BMB count since individual cell counts aren't available
+          // Update cells info - show BMB count and balance status combined
           if (id(numbmbs).has_state()) {
-            snprintf(buffer, sizeof(buffer), "BMBs: %d (Bal: %s)", 
+            snprintf(buffer, sizeof(buffer), "BMBs: %d | Balance: %s", 
                      (int)id(numbmbs).state, 
                      (id(balance).has_state() && id(balance).state > 0.5) ? "ON" : "OFF");
           } else {
-            snprintf(buffer, sizeof(buffer), "BMBs: -- (Bal: --)");
+            snprintf(buffer, sizeof(buffer), "BMBs: -- | Balance: --");
           }
           lv_label_set_text((lv_obj_t*)id(label_cells), buffer);
           
-          // Update balance status
+          // Set color based on balance status
           if (id(balance).has_state() && id(balance).state > 0.5) {
-            lv_label_set_text((lv_obj_t*)id(label_balance), "Balance: ON");
-            lv_obj_set_style_text_color((lv_obj_t*)id(label_balance), lv_color_make(0, 255, 0), LV_PART_MAIN); // Green
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_cells), lv_color_make(0, 255, 0), LV_PART_MAIN); // Green when balancing
           } else {
-            lv_label_set_text((lv_obj_t*)id(label_balance), "Balance: OFF");
-            lv_obj_set_style_text_color((lv_obj_t*)id(label_balance), lv_color_make(255, 0, 0), LV_PART_MAIN); // Red
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_cells), lv_color_make(255, 255, 255), LV_PART_MAIN); // White when not balancing
           }
           
           // Update voltage info - check for valid data
@@ -1681,6 +1746,14 @@ interval:
             snprintf(buffer, sizeof(buffer), "Delta: --.---V");
           }
           lv_label_set_text((lv_obj_t*)id(label_delta), buffer);
+          
+          // Update average voltage display on main page
+          if (id(uavg).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Avg: %.3fV", id(uavg).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Avg: --.---V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_avg_display), buffer);
           
           // Update temperature - check for valid data
           if (id(chipt0).has_state()) {
@@ -1818,13 +1891,41 @@ interval:
           }
           lv_label_set_text((lv_obj_t*)id(label_pack_voltage), buffer);
           
-          // Update cell sum display
-          if (valid_cells > 0) {
-            snprintf(buffer, sizeof(buffer), "Sum: %.2fV", cell_sum);
-          } else {
-            snprintf(buffer, sizeof(buffer), "Sum: --.--V");
+          // Update chip voltages display (show range or average)
+          float chip_min = 999.0f, chip_max = 0.0f;
+          int valid_chips = 0;
+          
+          if (id(chipv1).has_state() && id(chipv1).state > 0.1f) {
+            chip_min = std::min(chip_min, id(chipv1).state);
+            chip_max = std::max(chip_max, id(chipv1).state);
+            valid_chips++;
           }
-          lv_label_set_text((lv_obj_t*)id(label_cell_sum), buffer);
+          if (id(chipv2).has_state() && id(chipv2).state > 0.1f) {
+            chip_min = std::min(chip_min, id(chipv2).state);
+            chip_max = std::max(chip_max, id(chipv2).state);
+            valid_chips++;
+          }
+          if (id(chipv3).has_state() && id(chipv3).state > 0.1f) {
+            chip_min = std::min(chip_min, id(chipv3).state);
+            chip_max = std::max(chip_max, id(chipv3).state);
+            valid_chips++;
+          }
+          if (id(chipv4).has_state() && id(chipv4).state > 0.1f) {
+            chip_min = std::min(chip_min, id(chipv4).state);
+            chip_max = std::max(chip_max, id(chipv4).state);
+            valid_chips++;
+          }
+          
+          if (valid_chips > 0) {
+            if (valid_chips == 1) {
+              snprintf(buffer, sizeof(buffer), "Chip: %.2fV", chip_max);
+            } else {
+              snprintf(buffer, sizeof(buffer), "Chips: %.1f-%.1fV", chip_min, chip_max);
+            }
+          } else {
+            snprintf(buffer, sizeof(buffer), "Chips: --.--V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_chip_voltages), buffer);
           
           // Update loop info - check for valid data
           if (id(loopcnt).has_state() && id(loopstate).has_state()) {
@@ -1862,9 +1963,13 @@ interval:
           }
           lv_label_set_text((lv_obj_t*)id(label_avg_voltage), buffer);
           
-          // DC voltage
+          // DC voltage (and show cell sum as well)
           if (id(udc).has_state()) {
-            snprintf(buffer, sizeof(buffer), "DC: %.2fV", id(udc).state);
+            if (valid_cells > 0) {
+              snprintf(buffer, sizeof(buffer), "DC: %.2fV (Sum: %.2fV)", id(udc).state, cell_sum);
+            } else {
+              snprintf(buffer, sizeof(buffer), "DC: %.2fV", id(udc).state);
+            }
           } else {
             snprintf(buffer, sizeof(buffer), "DC: --.--V");
           }
@@ -2199,3 +2304,6 @@ font:
   - file: "gfonts://Montserrat"
     id: montserrat_14
     size: 14
+  - file: "gfonts://Montserrat"
+    id: montserrat_12
+    size: 12
