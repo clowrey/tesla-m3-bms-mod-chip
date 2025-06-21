@@ -551,32 +551,62 @@ lvgl:
         - label:
             align: TOP_LEFT
             x: 10
-            y: 25
+            y: 20
             text: "4.2"
             text_color: 0xFF6666
         - label:
             align: TOP_LEFT
             x: 10
-            y: 85
+            y: 50
+            text: "4.0"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 80
             text: "3.8"
             text_color: white
         - label:
             align: TOP_LEFT
             x: 10
-            y: 145
+            y: 110
+            text: "3.6"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 140
             text: "3.4"
             text_color: white
         - label:
             align: TOP_LEFT
             x: 10
-            y: 205
+            y: 170
+            text: "3.2"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 200
             text: "3.0"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 230
+            text: "2.8"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 260
+            text: "2.6"
             text_color: 0x6666FF
         # Grid lines for reference
         - obj:
             align: TOP_LEFT
             x: 35
-            y: 35
+            y: 25
             width: 440
             height: 1
             bg_color: 0xFF6666
@@ -584,7 +614,7 @@ lvgl:
         - obj:
             align: TOP_LEFT
             x: 35
-            y: 95
+            y: 55
             width: 440
             height: 1
             bg_color: white
@@ -592,7 +622,7 @@ lvgl:
         - obj:
             align: TOP_LEFT
             x: 35
-            y: 155
+            y: 85
             width: 440
             height: 1
             bg_color: white
@@ -600,7 +630,47 @@ lvgl:
         - obj:
             align: TOP_LEFT
             x: 35
-            y: 215
+            y: 115
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 145
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 175
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 205
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 235
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 265
             width: 440
             height: 1
             bg_color: 0x6666FF
@@ -610,9 +680,9 @@ lvgl:
             id: cells_container
             align: TOP_LEFT
             x: 35
-            y: 35
+            y: 25
             width: 440
-            height: 180
+            height: 240
             bg_opa: 0
             border_width: 0
             pad_all: 0
@@ -1729,7 +1799,7 @@ interval:
                 // Create voltage bar
                 lv_obj_t* bar = lv_obj_create(container);
                 lv_obj_set_size(bar, 3, 2); // Start with minimal height
-                lv_obj_set_pos(bar, i * 4, 178); // Position at bottom (180-2)
+                lv_obj_set_pos(bar, i * 4, 238); // Position at bottom (240-2)
                 lv_obj_set_style_bg_color(bar, lv_color_make(100, 100, 100), LV_PART_MAIN);
                 lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_MAIN);
                 lv_obj_set_style_border_width(bar, 0, LV_PART_MAIN);
@@ -1906,7 +1976,7 @@ interval:
                   // Handle NaN values (uninitialized sensors) - show minimal bar with gray color
                   if (std::isnan(voltage)) {
                     lv_obj_set_size(bar, 3, 2);
-                    lv_obj_set_pos(bar, cell_idx * 4, 178);
+                    lv_obj_set_pos(bar, cell_idx * 4, 238);
                     lv_obj_set_style_bg_color(bar, lv_color_make(100, 100, 100), LV_PART_MAIN); // Gray for no data
                     lv_obj_set_style_border_width(bar, 0, LV_PART_MAIN);
                     continue; // Skip rest of processing for this cell
@@ -1915,13 +1985,13 @@ interval:
                   // Map voltage to bar height - scale matches visual grid lines exactly
                   voltage = std::max(0.0f, std::min(4.2f, voltage)); // Clamp to range (allow 0V)
                   int base_height;
-                  if (voltage < 3.0f) {
-                    // For voltages below 3.0V (including 0V), scale from 2-10px height
-                    base_height = (int)(voltage / 3.0f * 8.0f) + 2;
+                  if (voltage < 2.6f) {
+                    // For voltages below 2.6V (including 0V), scale from 2-10px height
+                    base_height = (int)(voltage / 2.6f * 8.0f) + 2;
                   } else {
-                    // For normal voltages (3.0-4.2V), map to bar height correctly
-                    // 3.0V = 0px height (at bottom), 4.2V = 180px height (full height)
-                    base_height = (int)((voltage - 3.0f) / 1.2f * 180.0f);
+                    // For normal voltages (2.6-4.2V), map to bar height correctly
+                    // 2.6V = 0px height (at bottom), 4.2V = 240px height (full height)
+                    base_height = (int)((voltage - 2.6f) / 1.6f * 240.0f);
                   }
                   
                   // Check if this cell is in the balancing list
@@ -1931,11 +2001,11 @@ interval:
                   if (cell_balancing) {
                     // Extend bar below graph with blue indicator (extra 8px below)
                     total_height = base_height + 8;
-                    y_pos = 180 - base_height;
+                    y_pos = 240 - base_height;
                   } else {
                     // Normal bar height
                     total_height = base_height;
-                    y_pos = 180 - base_height;
+                    y_pos = 240 - base_height;
                   }
                   
                   lv_obj_set_size(bar, 3, total_height);
