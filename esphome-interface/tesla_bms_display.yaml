@@ -218,7 +218,7 @@ lvgl:
             layout:
               pad_column: 5
               type: GRID
-              grid_rows: [FR(40), FR(40), FR(40), FR(40), FR(40), FR(40), FR(40)]
+              grid_rows: [FR(35), FR(35), FR(35), FR(35), FR(35), FR(35), FR(35), FR(35)]
               grid_columns: [FR(240), FR(240)]
             widgets:
               - label:
@@ -290,13 +290,31 @@ lvgl:
                   grid_cell_row_pos: 4
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
+                  id: label_pack_voltage
+                  align: LEFT_MID
+                  text: "Pack: 0.00V"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 4
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_cell_sum
+                  align: RIGHT_MID
+                  text: "Sum: 0.00V"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 5
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
                   id: label_loop
                   align: LEFT_MID
                   text: "Loop: 0 (State: 0)"
                   text_color: white
               - label:
                   grid_cell_column_pos: 1
-                  grid_cell_row_pos: 4
+                  grid_cell_row_pos: 5
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: label_connected
@@ -305,7 +323,7 @@ lvgl:
                   text_color: red
               - button:
                   grid_cell_column_pos: 0
-                  grid_cell_row_pos: 5
+                  grid_cell_row_pos: 6
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: btn_balance_on
@@ -321,7 +339,7 @@ lvgl:
                         data: "balance on\n"
               - button:
                   grid_cell_column_pos: 1
-                  grid_cell_row_pos: 5
+                  grid_cell_row_pos: 6
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: btn_balance_off
@@ -337,7 +355,7 @@ lvgl:
                         data: "balance off\n"
               - button:
                   grid_cell_column_pos: 0
-                  grid_cell_row_pos: 6
+                  grid_cell_row_pos: 7
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: btn_next_page
@@ -351,7 +369,7 @@ lvgl:
                     - lvgl.page.next:
               - label:
                   grid_cell_column_pos: 1
-                  grid_cell_row_pos: 6
+                  grid_cell_row_pos: 7
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: label_time
@@ -884,6 +902,12 @@ sensor:
   - platform: template
     name: "DC Voltage"
     id: udc
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+
+  - platform: template
+    name: "Cell Sum Voltage"
+    id: cell_sum_voltage
     unit_of_measurement: "V"
     accuracy_decimals: 2
 
@@ -1666,6 +1690,141 @@ interval:
             snprintf(buffer, sizeof(buffer), "Temp: --.--°C");
           }
           lv_label_set_text((lv_obj_t*)id(label_temp), buffer);
+          
+          // Calculate and update cell sum voltage
+          float cell_sum = 0.0f;
+          int valid_cells = 0;
+          
+          // Sum all 108 individual cell voltages (only valid readings)
+          if (id(u1).has_state() && id(u1).state > 0.1f) { cell_sum += id(u1).state; valid_cells++; }
+          if (id(u2).has_state() && id(u2).state > 0.1f) { cell_sum += id(u2).state; valid_cells++; }
+          if (id(u3).has_state() && id(u3).state > 0.1f) { cell_sum += id(u3).state; valid_cells++; }
+          if (id(u4).has_state() && id(u4).state > 0.1f) { cell_sum += id(u4).state; valid_cells++; }
+          if (id(u5).has_state() && id(u5).state > 0.1f) { cell_sum += id(u5).state; valid_cells++; }
+          if (id(u6).has_state() && id(u6).state > 0.1f) { cell_sum += id(u6).state; valid_cells++; }
+          if (id(u7).has_state() && id(u7).state > 0.1f) { cell_sum += id(u7).state; valid_cells++; }
+          if (id(u8).has_state() && id(u8).state > 0.1f) { cell_sum += id(u8).state; valid_cells++; }
+          if (id(u9).has_state() && id(u9).state > 0.1f) { cell_sum += id(u9).state; valid_cells++; }
+          if (id(u10).has_state() && id(u10).state > 0.1f) { cell_sum += id(u10).state; valid_cells++; }
+          if (id(u11).has_state() && id(u11).state > 0.1f) { cell_sum += id(u11).state; valid_cells++; }
+          if (id(u12).has_state() && id(u12).state > 0.1f) { cell_sum += id(u12).state; valid_cells++; }
+          if (id(u13).has_state() && id(u13).state > 0.1f) { cell_sum += id(u13).state; valid_cells++; }
+          if (id(u14).has_state() && id(u14).state > 0.1f) { cell_sum += id(u14).state; valid_cells++; }
+          if (id(u15).has_state() && id(u15).state > 0.1f) { cell_sum += id(u15).state; valid_cells++; }
+          if (id(u16).has_state() && id(u16).state > 0.1f) { cell_sum += id(u16).state; valid_cells++; }
+          if (id(u17).has_state() && id(u17).state > 0.1f) { cell_sum += id(u17).state; valid_cells++; }
+          if (id(u18).has_state() && id(u18).state > 0.1f) { cell_sum += id(u18).state; valid_cells++; }
+          if (id(u19).has_state() && id(u19).state > 0.1f) { cell_sum += id(u19).state; valid_cells++; }
+          if (id(u20).has_state() && id(u20).state > 0.1f) { cell_sum += id(u20).state; valid_cells++; }
+          if (id(u21).has_state() && id(u21).state > 0.1f) { cell_sum += id(u21).state; valid_cells++; }
+          if (id(u22).has_state() && id(u22).state > 0.1f) { cell_sum += id(u22).state; valid_cells++; }
+          if (id(u23).has_state() && id(u23).state > 0.1f) { cell_sum += id(u23).state; valid_cells++; }
+          if (id(u24).has_state() && id(u24).state > 0.1f) { cell_sum += id(u24).state; valid_cells++; }
+          if (id(u25).has_state() && id(u25).state > 0.1f) { cell_sum += id(u25).state; valid_cells++; }
+          if (id(u26).has_state() && id(u26).state > 0.1f) { cell_sum += id(u26).state; valid_cells++; }
+          if (id(u27).has_state() && id(u27).state > 0.1f) { cell_sum += id(u27).state; valid_cells++; }
+          if (id(u28).has_state() && id(u28).state > 0.1f) { cell_sum += id(u28).state; valid_cells++; }
+          if (id(u29).has_state() && id(u29).state > 0.1f) { cell_sum += id(u29).state; valid_cells++; }
+          if (id(u30).has_state() && id(u30).state > 0.1f) { cell_sum += id(u30).state; valid_cells++; }
+          if (id(u31).has_state() && id(u31).state > 0.1f) { cell_sum += id(u31).state; valid_cells++; }
+          if (id(u32).has_state() && id(u32).state > 0.1f) { cell_sum += id(u32).state; valid_cells++; }
+          if (id(u33).has_state() && id(u33).state > 0.1f) { cell_sum += id(u33).state; valid_cells++; }
+          if (id(u34).has_state() && id(u34).state > 0.1f) { cell_sum += id(u34).state; valid_cells++; }
+          if (id(u35).has_state() && id(u35).state > 0.1f) { cell_sum += id(u35).state; valid_cells++; }
+          if (id(u36).has_state() && id(u36).state > 0.1f) { cell_sum += id(u36).state; valid_cells++; }
+          if (id(u37).has_state() && id(u37).state > 0.1f) { cell_sum += id(u37).state; valid_cells++; }
+          if (id(u38).has_state() && id(u38).state > 0.1f) { cell_sum += id(u38).state; valid_cells++; }
+          if (id(u39).has_state() && id(u39).state > 0.1f) { cell_sum += id(u39).state; valid_cells++; }
+          if (id(u40).has_state() && id(u40).state > 0.1f) { cell_sum += id(u40).state; valid_cells++; }
+          if (id(u41).has_state() && id(u41).state > 0.1f) { cell_sum += id(u41).state; valid_cells++; }
+          if (id(u42).has_state() && id(u42).state > 0.1f) { cell_sum += id(u42).state; valid_cells++; }
+          if (id(u43).has_state() && id(u43).state > 0.1f) { cell_sum += id(u43).state; valid_cells++; }
+          if (id(u44).has_state() && id(u44).state > 0.1f) { cell_sum += id(u44).state; valid_cells++; }
+          if (id(u45).has_state() && id(u45).state > 0.1f) { cell_sum += id(u45).state; valid_cells++; }
+          if (id(u46).has_state() && id(u46).state > 0.1f) { cell_sum += id(u46).state; valid_cells++; }
+          if (id(u47).has_state() && id(u47).state > 0.1f) { cell_sum += id(u47).state; valid_cells++; }
+          if (id(u48).has_state() && id(u48).state > 0.1f) { cell_sum += id(u48).state; valid_cells++; }
+          if (id(u49).has_state() && id(u49).state > 0.1f) { cell_sum += id(u49).state; valid_cells++; }
+          if (id(u50).has_state() && id(u50).state > 0.1f) { cell_sum += id(u50).state; valid_cells++; }
+          if (id(u51).has_state() && id(u51).state > 0.1f) { cell_sum += id(u51).state; valid_cells++; }
+          if (id(u52).has_state() && id(u52).state > 0.1f) { cell_sum += id(u52).state; valid_cells++; }
+          if (id(u53).has_state() && id(u53).state > 0.1f) { cell_sum += id(u53).state; valid_cells++; }
+          if (id(u54).has_state() && id(u54).state > 0.1f) { cell_sum += id(u54).state; valid_cells++; }
+          if (id(u55).has_state() && id(u55).state > 0.1f) { cell_sum += id(u55).state; valid_cells++; }
+          if (id(u56).has_state() && id(u56).state > 0.1f) { cell_sum += id(u56).state; valid_cells++; }
+          if (id(u57).has_state() && id(u57).state > 0.1f) { cell_sum += id(u57).state; valid_cells++; }
+          if (id(u58).has_state() && id(u58).state > 0.1f) { cell_sum += id(u58).state; valid_cells++; }
+          if (id(u59).has_state() && id(u59).state > 0.1f) { cell_sum += id(u59).state; valid_cells++; }
+          if (id(u60).has_state() && id(u60).state > 0.1f) { cell_sum += id(u60).state; valid_cells++; }
+          if (id(u61).has_state() && id(u61).state > 0.1f) { cell_sum += id(u61).state; valid_cells++; }
+          if (id(u62).has_state() && id(u62).state > 0.1f) { cell_sum += id(u62).state; valid_cells++; }
+          if (id(u63).has_state() && id(u63).state > 0.1f) { cell_sum += id(u63).state; valid_cells++; }
+          if (id(u64).has_state() && id(u64).state > 0.1f) { cell_sum += id(u64).state; valid_cells++; }
+          if (id(u65).has_state() && id(u65).state > 0.1f) { cell_sum += id(u65).state; valid_cells++; }
+          if (id(u66).has_state() && id(u66).state > 0.1f) { cell_sum += id(u66).state; valid_cells++; }
+          if (id(u67).has_state() && id(u67).state > 0.1f) { cell_sum += id(u67).state; valid_cells++; }
+          if (id(u68).has_state() && id(u68).state > 0.1f) { cell_sum += id(u68).state; valid_cells++; }
+          if (id(u69).has_state() && id(u69).state > 0.1f) { cell_sum += id(u69).state; valid_cells++; }
+          if (id(u70).has_state() && id(u70).state > 0.1f) { cell_sum += id(u70).state; valid_cells++; }
+          if (id(u71).has_state() && id(u71).state > 0.1f) { cell_sum += id(u71).state; valid_cells++; }
+          if (id(u72).has_state() && id(u72).state > 0.1f) { cell_sum += id(u72).state; valid_cells++; }
+          if (id(u73).has_state() && id(u73).state > 0.1f) { cell_sum += id(u73).state; valid_cells++; }
+          if (id(u74).has_state() && id(u74).state > 0.1f) { cell_sum += id(u74).state; valid_cells++; }
+          if (id(u75).has_state() && id(u75).state > 0.1f) { cell_sum += id(u75).state; valid_cells++; }
+          if (id(u76).has_state() && id(u76).state > 0.1f) { cell_sum += id(u76).state; valid_cells++; }
+          if (id(u77).has_state() && id(u77).state > 0.1f) { cell_sum += id(u77).state; valid_cells++; }
+          if (id(u78).has_state() && id(u78).state > 0.1f) { cell_sum += id(u78).state; valid_cells++; }
+          if (id(u79).has_state() && id(u79).state > 0.1f) { cell_sum += id(u79).state; valid_cells++; }
+          if (id(u80).has_state() && id(u80).state > 0.1f) { cell_sum += id(u80).state; valid_cells++; }
+          if (id(u81).has_state() && id(u81).state > 0.1f) { cell_sum += id(u81).state; valid_cells++; }
+          if (id(u82).has_state() && id(u82).state > 0.1f) { cell_sum += id(u82).state; valid_cells++; }
+          if (id(u83).has_state() && id(u83).state > 0.1f) { cell_sum += id(u83).state; valid_cells++; }
+          if (id(u84).has_state() && id(u84).state > 0.1f) { cell_sum += id(u84).state; valid_cells++; }
+          if (id(u85).has_state() && id(u85).state > 0.1f) { cell_sum += id(u85).state; valid_cells++; }
+          if (id(u86).has_state() && id(u86).state > 0.1f) { cell_sum += id(u86).state; valid_cells++; }
+          if (id(u87).has_state() && id(u87).state > 0.1f) { cell_sum += id(u87).state; valid_cells++; }
+          if (id(u88).has_state() && id(u88).state > 0.1f) { cell_sum += id(u88).state; valid_cells++; }
+          if (id(u89).has_state() && id(u89).state > 0.1f) { cell_sum += id(u89).state; valid_cells++; }
+          if (id(u90).has_state() && id(u90).state > 0.1f) { cell_sum += id(u90).state; valid_cells++; }
+          if (id(u91).has_state() && id(u91).state > 0.1f) { cell_sum += id(u91).state; valid_cells++; }
+          if (id(u92).has_state() && id(u92).state > 0.1f) { cell_sum += id(u92).state; valid_cells++; }
+          if (id(u93).has_state() && id(u93).state > 0.1f) { cell_sum += id(u93).state; valid_cells++; }
+          if (id(u94).has_state() && id(u94).state > 0.1f) { cell_sum += id(u94).state; valid_cells++; }
+          if (id(u95).has_state() && id(u95).state > 0.1f) { cell_sum += id(u95).state; valid_cells++; }
+          if (id(u96).has_state() && id(u96).state > 0.1f) { cell_sum += id(u96).state; valid_cells++; }
+          if (id(u97).has_state() && id(u97).state > 0.1f) { cell_sum += id(u97).state; valid_cells++; }
+          if (id(u98).has_state() && id(u98).state > 0.1f) { cell_sum += id(u98).state; valid_cells++; }
+          if (id(u99).has_state() && id(u99).state > 0.1f) { cell_sum += id(u99).state; valid_cells++; }
+          if (id(u100).has_state() && id(u100).state > 0.1f) { cell_sum += id(u100).state; valid_cells++; }
+          if (id(u101).has_state() && id(u101).state > 0.1f) { cell_sum += id(u101).state; valid_cells++; }
+          if (id(u102).has_state() && id(u102).state > 0.1f) { cell_sum += id(u102).state; valid_cells++; }
+          if (id(u103).has_state() && id(u103).state > 0.1f) { cell_sum += id(u103).state; valid_cells++; }
+          if (id(u104).has_state() && id(u104).state > 0.1f) { cell_sum += id(u104).state; valid_cells++; }
+          if (id(u105).has_state() && id(u105).state > 0.1f) { cell_sum += id(u105).state; valid_cells++; }
+          if (id(u106).has_state() && id(u106).state > 0.1f) { cell_sum += id(u106).state; valid_cells++; }
+          if (id(u107).has_state() && id(u107).state > 0.1f) { cell_sum += id(u107).state; valid_cells++; }
+          if (id(u108).has_state() && id(u108).state > 0.1f) { cell_sum += id(u108).state; valid_cells++; }
+          
+          // Publish the cell sum voltage to the sensor
+          if (valid_cells > 0) {
+            id(cell_sum_voltage).publish_state(cell_sum);
+          }
+          
+          // Update pack voltage display (from BMS DC voltage)
+          if (id(udc).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Pack: %.2fV", id(udc).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Pack: --.--V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_pack_voltage), buffer);
+          
+          // Update cell sum display
+          if (valid_cells > 0) {
+            snprintf(buffer, sizeof(buffer), "Sum: %.2fV", cell_sum);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Sum: --.--V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_cell_sum), buffer);
           
           // Update loop info - check for valid data
           if (id(loopcnt).has_state() && id(loopstate).has_state()) {
