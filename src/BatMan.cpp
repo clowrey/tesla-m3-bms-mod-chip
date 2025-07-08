@@ -34,7 +34,7 @@ Tom de Bree - Volt Influx
 Damien Mcguire - EV Bmw
 */
 
-#define cycletime 20
+#define cycletime 10  // 10 * 100ms = 1000ms = 1 second cell read rate
 float BalHys = 20; //mV balance limit
 
 uint16_t WakeUp[2] = {0x2ad4, 0x0000};
