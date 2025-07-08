@@ -453,10 +453,10 @@ void setup() {
     // Initialize second serial interface
     Serial2.begin(SERIAL2_BAUD_RATE, SERIAL_8N1, SERIAL2_RX_PIN, SERIAL2_TX_PIN); // RX=12, TX=13
     
-    // Initialize the display - DISABLED to prevent SPI conflicts with BMB + AS8510
-    // tft.init();
-    // tft.setRotation(0);
-    // tft.fillScreen(TFT_BLACK);
+    // Initialize the display - Re-enabled on separate SPI controller
+    tft.init();
+    tft.setRotation(0);
+    tft.fillScreen(TFT_BLACK);
     
     // Initialize PWM for economizer using new ESP32 Arduino core 3.0 API
     ledcAttach(ECONOMIZER_PWM_PIN, PWM_FREQ, PWM_RESOLUTION);
@@ -485,10 +485,10 @@ void setup() {
     
     // Print SPI bus configuration
     Serial.println("SPI Bus Configuration:");
-    Serial.println("  - TFT display: DISABLED (VSPI pins 18,19,23,5 now free)");
-    Serial.println("  - Tesla BMS: ESP-IDF SPI on VSPI/SPI3_HOST (pins 2,17,15,22)");
-    Serial.println("  - AS8510: 1MHz on HSPI (pins 32,25,33,26) - DEDICATED BUS");
-    Serial.println("BMB moved to VSPI controller (same pins) to avoid conflicts with AS8510");
+    Serial.println("  - TFT display: 40MHz on VSPI/SPI3_HOST (pins 18,19,23,5) - CS=5");
+    Serial.println("  - Tesla BMS: 1MHz on VSPI/SPI3_HOST (pins 2,17,15,22) - CS=22");
+    Serial.println("  - AS8510: 1MHz on HSPI/SPI2_HOST (pins 32,25,33,26) - DEDICATED BUS");
+    Serial.println("BMB and LCD share VSPI bus with different CS pins - AS8510 isolated on HSPI");
     
     // Initialize the BATMan interface first
     batman.BatStart();
@@ -508,7 +508,7 @@ void setup() {
     currentSensor.setVerboseLogging(false);
     
     Serial.println("System ready. Commands available on both Serial and Serial2 (pins 12/13)");
-    Serial.println("BMB moved to VSPI controller (same pins) - AS8510 on HSPI - LCD DISABLED - No rewiring needed");
+    Serial.println("BMB + LCD share VSPI bus - AS8510 on HSPI - All systems enabled - No rewiring needed");
     Serial.println("============ Setup Complete - Starting Main Loop =============");
 }
 
@@ -622,11 +622,11 @@ void loop() {
     //     Serial.println("└─────────────────────┘");
     // }
     
-    // Check if it's time to update the display - DISABLED to prevent SPI conflicts
-    // if (currentMillis - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
-    //     updateDisplay(currentDutyCycle);
-    //     lastDisplayUpdate = currentMillis;
-    // }
+    // Check if it's time to update the display
+    if (currentMillis - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
+        updateDisplay(currentDutyCycle);
+        lastDisplayUpdate = currentMillis;
+    }
     
     // Read button state with debouncing
     bool reading = digitalRead(BUTTON_PIN);
