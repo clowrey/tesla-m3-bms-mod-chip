@@ -486,9 +486,9 @@ void setup() {
     // Print SPI bus configuration
     Serial.println("SPI Bus Configuration:");
     Serial.println("  - TFT display: 40MHz on VSPI/SPI3_HOST (pins 18,19,23,5) - CS=5");
-    Serial.println("  - Tesla BMS: 1MHz on VSPI/SPI3_HOST (pins 2,17,15,22) - CS=22");
-    Serial.println("  - AS8510: 1MHz on HSPI/SPI2_HOST (pins 32,25,33,26) - DEDICATED BUS");
-    Serial.println("BMB and LCD share VSPI bus with different CS pins - AS8510 isolated on HSPI");
+    Serial.println("  - AS8510: 1MHz on VSPI/SPI3_HOST (pins 32,25,33,26) - CS=26");
+    Serial.println("  - Tesla BMS: 1MHz on HSPI/SPI2_HOST (pins 2,17,15,22) - DEDICATED BUS");
+    Serial.println("LCD and AS8510 share VSPI bus with different CS pins - BMB isolated on HSPI");
     
     // Initialize the BATMan interface first
     batman.BatStart();
@@ -508,7 +508,7 @@ void setup() {
     currentSensor.setVerboseLogging(false);
     
     Serial.println("System ready. Commands available on both Serial and Serial2 (pins 12/13)");
-    Serial.println("BMB + LCD share VSPI bus - AS8510 on HSPI - All systems enabled - No rewiring needed");
+    Serial.println("LCD + AS8510 share VSPI bus - BMB on HSPI - All systems enabled - No rewiring needed");
     Serial.println("============ Setup Complete - Starting Main Loop =============");
 }
 

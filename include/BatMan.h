@@ -8,7 +8,7 @@
 
 // ESP32 SPI Configuration
 // Adjust these pins based on your wiring
-#define BMB_SPI_HOST    SPI3_HOST    // Use VSPI controller instead of SPI2_HOST
+#define BMB_SPI_HOST    SPI2_HOST    // Use HSPI controller - LCD uses VSPI
 #define BMB_ENABLE      GPIO_NUM_21
 #define BMB_MISO        GPIO_NUM_17  // Keep original BMB pins
 #define BMB_MOSI        GPIO_NUM_2   // Keep original BMB pins
