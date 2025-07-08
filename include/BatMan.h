@@ -8,12 +8,12 @@
 
 // ESP32 SPI Configuration
 // Adjust these pins based on your wiring
-#define BMB_SPI_HOST    SPI2_HOST
+#define BMB_SPI_HOST    SPI3_HOST    // Use VSPI controller instead of SPI2_HOST
 #define BMB_ENABLE      GPIO_NUM_21
-#define BMB_MISO        GPIO_NUM_17 
-#define BMB_MOSI        GPIO_NUM_2
-#define BMB_SCK         GPIO_NUM_15
-#define BMB_CS          GPIO_NUM_22
+#define BMB_MISO        GPIO_NUM_17  // Keep original BMB pins
+#define BMB_MOSI        GPIO_NUM_2   // Keep original BMB pins
+#define BMB_SCK         GPIO_NUM_15  // Keep original BMB pins
+#define BMB_CS          GPIO_NUM_22  // Keep original BMB pins
 
 
 /* Tesla HVC Batman Debug Header Pinout
