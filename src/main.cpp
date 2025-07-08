@@ -4,6 +4,7 @@
 #include <SPI.h>
 #include "../AS8510-library/as8510.h"
 #include <HardwareSerial.h>
+#include <cstdint>
 
 /*> 
 balance on
@@ -37,12 +38,12 @@ TFT_eSPI tft = TFT_eSPI();
 #6 - GND
 */
 
-// AS8510 Current Sensor Configuration
+// AS8510 Current Sensor Configuration (dedicated HSPI bus at 1MHz)
 #define AS8510_CS_PIN 26        // GPIO pin for AS8510 chip select
-#define AS8510_MOSI_PIN 33      // GPIO pin for AS8510 MOSI
-#define AS8510_MISO_PIN 25     // GPIO pin for AS8510 MISO  
-#define AS8510_SCK_PIN 32       // GPIO pin for AS8510 SCK
-#define SHUNT_RESISTANCE 0.0001 // 100µΩ shunt resistance
+#define AS8510_MOSI_PIN 33      // GPIO pin for AS8510 MOSI (HSPI)
+#define AS8510_MISO_PIN 25      // GPIO pin for AS8510 MISO (HSPI)
+#define AS8510_SCK_PIN 32       // GPIO pin for AS8510 SCK (HSPI)
+#define SHUNT_RESISTANCE 0.000025296 // 25296nΩ shunt resistance
 
 // Serial Interface Configuration
 #define SERIAL2_RX_PIN 39       // GPIO pin for Serial2 RX
@@ -60,7 +61,8 @@ TFT_eSPI tft = TFT_eSPI();
 #define BUTTON_PIN 35        // GPIO pin for push button
 #define DEBOUNCE_TIME 50     // Debounce time in milliseconds
 
-AS8510 currentSensor(AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, SHUNT_RESISTANCE);
+// Current sensor instance - Updated for new Rust-based AS8510 library
+AS8510 currentSensor(26, 33, 25, 32, Gain::Gain100, Gain::Gain25);
 
 // Variables to store previous values for comparison
 float prevMinVoltage = 0;
@@ -96,6 +98,9 @@ const unsigned long DISPLAY_UPDATE_INTERVAL = 1000; // Update display every 1000
 String serialCommand = "";
 String serial2Command = "";
 
+// Function declarations
+void diagnoseCurrentSensor();
+
 // Function to process serial commands (now takes a HardwareSerial reference)
 void processSerialCommand(String command, HardwareSerial& serialPort) {
     command.trim(); // Remove whitespace
@@ -119,6 +124,33 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
     }
     else if (lowerCommand == "mapping" || lowerCommand == "debug") {
         batman.printHardwareMapping();
+    }
+    else if (lowerCommand == "current diag" || lowerCommand == "diag current") {
+        diagnoseCurrentSensor();
+    }
+    else if (lowerCommand == "start as8510" || lowerCommand == "as8510 start") {
+        serialPort.println("Explicitly starting AS8510 device...");
+        currentSensor.startDevice();
+        delay(100);
+        uint8_t modCtl = currentSensor.readRegister(0x0A);
+        serialPort.printf("Mode Control after start: 0x%02X\n", modCtl);
+        if (modCtl & 0x01) {
+            serialPort.println("START bit is SET - device should be running");
+        } else {
+            serialPort.println("START bit is NOT SET - device is not running");
+        }
+    }
+    else if (lowerCommand == "as8510 errors" || lowerCommand == "errors") {
+        serialPort.println("Reading AS8510 error codes...");
+        currentSensor.printErrorCodes();
+    }
+    else if (lowerCommand == "as8510 saturation" || lowerCommand == "saturation") {
+        serialPort.println("Reading AS8510 saturation flags...");
+        currentSensor.printSaturationFlags();
+    }
+    else if (lowerCommand == "as8510 diagnostics" || lowerCommand == "diagnostics") {
+        serialPort.println("Running complete AS8510 diagnostics...");
+        currentSensor.printAllDiagnostics();
     }
     // Parameter API commands
     else if (lowerCommand.startsWith("param ")) {
@@ -161,6 +193,11 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
         serialPort.println("  balance off / balance disable - Disable cell balancing");
         serialPort.println("  balance status / balance     - Show current balance status");
         serialPort.println("  mapping / debug              - Show hardware register mapping");
+        serialPort.println("  current diag                 - Run current sensor diagnostics");
+        serialPort.println("  start as8510                 - Explicitly start AS8510 device");
+        serialPort.println("  as8510 errors / errors       - Show AS8510 error codes");
+        serialPort.println("  as8510 saturation / saturation - Show AS8510 saturation flags");
+        serialPort.println("  as8510 diagnostics / diagnostics - Complete AS8510 diagnostics");
         serialPort.println("  param list                   - List all parameters");
         serialPort.println("  param get <name>             - Get parameter value");
         serialPort.println("  param set <name> <value>     - Set parameter value");
@@ -171,6 +208,66 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
         serialPort.printf("Unknown command: '%s'\n", command.c_str());
         serialPort.println("Type 'help' for available commands");
     }
+}
+
+// Diagnostic function for AS8510 current sensor
+void diagnoseCurrentSensor() {
+    Serial.println("\n=== AS8510 Current Sensor Diagnostics (Rust-based) ===");
+    Serial.println();
+    
+    if (!currentSensor.isInitialized()) {
+        Serial.println("ERROR: AS8510 not initialized!");
+        Serial.println("Attempting to initialize...");
+        if (currentSensor.begin()) {
+            Serial.println("AS8510 initialized successfully!");
+        } else {
+            Serial.println("AS8510 initialization failed!");
+            return;
+        }
+    }
+    
+    // Print current configuration
+    Serial.printf("Shunt Resistance: %.9f ohms\n", currentSensor.getShuntResistance());
+    
+    // Print device status
+    Serial.printf("Device Present: %s\n", currentSensor.isDevicePresent() ? "YES" : "NO");
+    Serial.printf("Device Awake: %s\n", currentSensor.isAwake() ? "YES" : "NO");
+    Serial.printf("Data Ready: %s\n", currentSensor.isDataReady() ? "YES" : "NO");
+    
+    // Read and display key registers
+    Serial.println("\n--- Key Registers ---");
+    Serial.println();
+    Serial.printf("Mode Control (0x0A): 0x%02X\n", currentSensor.readRegister(0x0A));
+    Serial.printf("Status (0x04): 0x%02X\n", currentSensor.readRegister(0x04));
+    Serial.printf("PGA Control (0x13): 0x%02X\n", currentSensor.readRegister(0x13));
+    Serial.printf("Power Control 1 (0x14): 0x%02X\n", currentSensor.readRegister(0x14));
+    Serial.printf("Power Control 2 (0x15): 0x%02X\n", currentSensor.readRegister(0x15));
+    Serial.printf("Clock Control (0x08): 0x%02X\n", currentSensor.readRegister(0x08));
+    
+    // Show current data registers
+    Serial.println("\n--- Data Registers ---");
+    Serial.println();
+    Serial.printf("Current Data 1 (0x00): 0x%02X\n", currentSensor.readRegister(0x00));
+    Serial.printf("Current Data 2 (0x01): 0x%02X\n", currentSensor.readRegister(0x01));
+    
+    // Test measurements with both old and new interface
+    Serial.println("\n--- Current Measurement Test ---");
+    Serial.println();
+    for (int i = 0; i < 5; i++) {
+        int16_t rawADC = currentSensor.readRawADC(1);
+        float current = currentSensor.readCurrent(1);
+        
+        Serial.printf("Measurement %d: Raw ADC = %d, Current = %.6f A\n", 
+                          i + 1, rawADC, current);
+        delay(500);
+    }
+    
+    // Show detailed status
+    Serial.println("\n--- Status Information ---");
+    Serial.println();
+    currentSensor.printStatus();
+    
+    Serial.println("=== End AS8510 Diagnostics ===");
 }
 
 // Function to set economizer PWM duty cycle (0-100%)
@@ -356,10 +453,10 @@ void setup() {
     // Initialize second serial interface
     Serial2.begin(SERIAL2_BAUD_RATE, SERIAL_8N1, SERIAL2_RX_PIN, SERIAL2_TX_PIN); // RX=12, TX=13
     
-    // Initialize the display
-    tft.init();
-    tft.setRotation(0);
-    tft.fillScreen(TFT_BLACK);
+    // Initialize the display - DISABLED to prevent SPI interference with AS8510
+    // tft.init();
+    // tft.setRotation(0);
+    // tft.fillScreen(TFT_BLACK);
     
     // Initialize PWM for economizer using new ESP32 Arduino core 3.0 API
     ledcAttach(ECONOMIZER_PWM_PIN, PWM_FREQ, PWM_RESOLUTION);
@@ -370,78 +467,181 @@ void setup() {
     
     // Initialize AS8510 current sensor
     Serial.println("Initializing AS8510 current sensor...");
+    Serial.printf("Pin Configuration - CS: %d, MOSI: %d, MISO: %d, SCK: %d\n", 
+        AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN);
+    Serial.printf("SPI Speed: 1MHz, Shunt Resistance: %.9fΩ (%.0f nΩ)\n", 
+        SHUNT_RESISTANCE, SHUNT_RESISTANCE * 1e9);
+    
+    // Test pin connectivity before initialization
+    Serial.println("Testing pin states...");
+    pinMode(AS8510_CS_PIN, OUTPUT);
+    digitalWrite(AS8510_CS_PIN, HIGH);
+    delay(10);
+    Serial.printf("CS pin %d set HIGH\n", AS8510_CS_PIN);
+    
+    // Ensure TFT display SPI doesn't interfere - add delay
+    Serial.println("Waiting for SPI bus to settle...");
+    delay(100);
+    
+    // Print SPI bus configuration
+    Serial.println("SPI Bus Configuration:");
+    Serial.println("  - TFT display: 40MHz on VSPI (pins 18,19,23,5)");
+    Serial.println("  - Tesla BMS: ESP-IDF SPI on SPI2_HOST");
+    Serial.println("  - AS8510: 1MHz on HSPI (pins 32,25,33,26) - DEDICATED BUS");
+    Serial.println("AS8510 uses dedicated HSPI bus to avoid conflicts");
+    
+    // Initialize current sensor with new Rust-based library
+    Serial.println("Initializing AS8510 current sensor with Rust-based library...");
     if (currentSensor.begin()) {
-        currentSensorInitialized = true;
-        Serial.println("AS8510 current sensor initialized successfully");
-        
-        // Verify device is awake
-        if (currentSensor.isAwake()) {
-            Serial.println("AS8510: Device is awake and ready for measurements");
-        } else {
-            Serial.println("AS8510: Warning - Device may still be in sleep mode");
-            // Try to wake up again
-            currentSensor.wakeUp();
-            delay(10);
-        }
-        
-        // Configure AS8510 settings
-        currentSensor.setPGAGain(1, PGA_GAIN_4X);  // Channel 1: 4x gain for current measurement
-        currentSensor.setSampleRate(RATE_1000_SPS); // 1000 samples per second
-        currentSensor.enableContinuousMode(true);   // Enable continuous mode
-        
-        Serial.printf("AS8510 configured - CS: %d, MOSI: %d, MISO: %d, SCK: %d, Shunt: %.6fΩ\n", 
-            AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, SHUNT_RESISTANCE);
+        Serial.println("AS8510 initialized successfully!");
     } else {
-        Serial.println("Failed to initialize AS8510 current sensor");
-        currentSensorInitialized = false;
+        Serial.println("AS8510 initialization failed!");
     }
     
     // Initialize the BATMan interface
-    batman.BatStart();
+    // batman.BatStart();  // TEMPORARILY DISABLED - Testing AS8510 only
     
     Serial.println("System ready. Commands available on both Serial and Serial2 (pins 12/13)");
+    Serial.println("BMB/Tesla BMS DISABLED - Testing AS8510 shunt IC only");
 }
 
 void loop() {
     // Run the BATMan state machine
-    batman.loop();
+    // batman.loop();  // TEMPORARILY DISABLED - Testing AS8510 only
     
     // Update parameters from BATMan system data
-    updateParametersFromBATMan();
+    // updateParametersFromBATMan();  // TEMPORARILY DISABLED - Testing AS8510 only
     
     // Get current time for all timing operations
     unsigned long currentMillis = millis();
     
-    // Read current from AS8510 sensor
-    if (currentSensorInitialized && currentSensor.isDataReady()) {
-        currentReading = currentSensor.readCurrent(1); // Read current from channel 1
+    // REMOVED: PERIODIC AS8510 RE-INITIALIZATION - This was causing SPI bus conflicts
+    // Only initialize once at startup to avoid SPI pin reconfiguration
+    
+    // SAFE SPI COMMUNICATION - Commented out for ultra-clean output
+    // static unsigned long lastForcedRead = 0;
+    // if (currentMillis - lastForcedRead >= 5000) { // Every 5 seconds - ALWAYS run for debugging
+    //     Serial.printf("SAFE SPI TEST - Time: %lu ms\n", currentMillis);
+    //     
+    //     // Try ONE simple SPI transaction at a time to prevent crash
+    //     static int testStep = 0;
+    //     
+    //     // Declare variables outside switch to avoid linter errors
+    //     uint8_t status;
+    //     int16_t rawADC;
+    //     float voltage;
+    //     
+    //     switch(testStep) {
+    //         case 0:
+    //             Serial.println("Step 0: Reading status register...");
+    //             status = currentSensor.getStatus();
+    //             Serial.printf("Status: 0x%02X\n", status);
+    //             Serial.println("Step 0: COMPLETED");
+    //             break;
+    //         case 1:
+    //             Serial.println("Step 1: Reading raw ADC...");
+    //             Serial.println("Step 1: Starting ADC read (this previously hung)...");
+    //             rawADC = currentSensor.readRawADC(1);
+    //             Serial.printf("Raw ADC: %d\n", rawADC);
+    //             Serial.println("Step 1: COMPLETED");
+    //             break;
+    //         case 2:
+    //             Serial.println("Step 2: Skip voltage test");
+    //             Serial.println("Step 2: COMPLETED");
+    //             break;
+    //         case 3:
+    //             Serial.println("Step 3: Reading current...");
+    //             currentReading = currentSensor.readCurrent(1);
+    //             Serial.printf("Current: %.6fA\n", currentReading);
+    //             Serial.println("Step 3: COMPLETED");
+    //             break;
+    //         default:
+    //             testStep = -1; // Will wrap to 0
+    //             break;
+    //     }
+    //     testStep++;
+    //     
+    //     // Add delay between operations to prevent overwhelming
+    //     delay(50);
+    //     
+    //     lastForcedRead = currentMillis;
+    // }
+    
+    // RUST-BASED AS8510 CURRENT MEASUREMENT - Every 1 second
+    static unsigned long lastCurrentRead = 0;
+    if (currentMillis - lastCurrentRead >= 1000) {
+        lastCurrentRead = currentMillis;
         
-        // Print current reading to serial (only when it changes significantly)
-        if (abs(currentReading - prevCurrentReading) > 0.001) { // 1mA threshold
-            Serial.printf("Current: %.3fA\n", currentReading);
+        Serial.println("╔══════════════════════════════════════╗");
+        Serial.println("║        AS8510 Current Measurement     ║");
+        Serial.println("╚══════════════════════════════════════╝");
+        Serial.println();
+        
+        if (currentSensor.isInitialized()) {
+            // Get current measurement
+            float current = currentSensor.getCurrent();
+            
+            // Get battery voltage measurement (using voltage channel with current gain)
+            float batteryVoltage = currentSensor.getBatteryVoltage();
+            
+            // Get temperature measurements
+            float externalTemp = currentSensor.getExternalTemperature();
+            float internalTemp = currentSensor.getInternalTemperature();
+            
+            // Display temperature readings
+            Serial.println("├─── Temperature Readings ─────");
+            if (externalTemp > -900.0) {
+                Serial.printf("│ NTC Therm: %6.2f °C\n", externalTemp);
+            } else {
+                Serial.printf("│ NTC Therm:   NOT CONNECTED\n");
+                Serial.printf("│ Note: External NTC thermistor not detected\n");
+                Serial.printf("│ This is normal if no external sensor is wired\n");
+            }
+            Serial.printf("│ IC Temp:   %6.2f °C\n", internalTemp);
+            
+            // Display results (commented out for ultra-clean output)
+            // Serial.printf("Current: %.6f A\n", current);
+            
+            // Print status (commented out for cleaner output)
+            // currentSensor.printStatus();
+            
+            // For debugging - show key registers (commented out for cleaner output)
+            // Serial.printf("Mode Control Reg: 0x%02X\n", currentSensor.readRegister(0x0A));
+            // Serial.printf("Status Reg: 0x%02X\n", currentSensor.readRegister(0x04));
+            
+        } else {
+            Serial.println("AS8510 not initialized - attempting restart...");
+            currentSensor.startDevice();
         }
-    }
-    
-    // Print periodic status update to serial
-    static unsigned long lastSerialUpdate = 0;
-    if (currentMillis - lastSerialUpdate >= 5000) { // Every 5 seconds
-        Serial.println("\n=== BMS Status Update ===");
-        Serial.printf("Min Voltage: %.3fV (Cell %d)\n", batman.getMinVoltage()/1000.0, batman.getMinCell());
-        Serial.printf("Max Voltage: %.3fV (Cell %d)\n", batman.getMaxVoltage()/1000.0, batman.getMaxCell());
-        Serial.printf("Voltage Delta: %.3fV\n", (batman.getMaxVoltage() - batman.getMinVoltage())/1000.0);
-        Serial.printf("Current: %.3fA\n", currentReading);
-        Serial.printf("Balance: %s\n", balanceEnabled ? "ON" : "OFF");
-        Serial.printf("Economizer: %d%%\n", currentDutyCycle);
-        Serial.println("========================\n");
         
-        lastSerialUpdate = currentMillis;
+        Serial.println("═══════════════════════════════════════");
     }
     
-    // Check if it's time to update the display
-    if (currentMillis - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
-        updateDisplay(currentDutyCycle);
-        lastDisplayUpdate = currentMillis;
-    }
+    // Remove redundant legacy testing section to clean up output
+    
+    // Current sensor status display - Commented out for ultra-clean output
+    // static unsigned long lastStatusDisplay = 0;
+    // if (currentMillis - lastStatusDisplay >= 10000) {
+    //     lastStatusDisplay = currentMillis;
+    //     
+    //     Serial.println("┌─── AS8510 Status ───┐");
+    //     Serial.println();
+    //     Serial.printf("Initialized: %s\n", currentSensor.isInitialized() ? "YES" : "NO");
+    //     Serial.printf("Data Ready: %s\n", currentSensor.isInitialized() ? (currentSensor.isDataReady() ? "YES" : "NO") : "N/A");
+    //     Serial.printf("Device Awake: %s\n", currentSensor.isInitialized() ? (currentSensor.isAwake() ? "YES" : "NO") : "N/A");
+    //     
+    //     // Quick test read
+    //     int16_t rawADC = currentSensor.readRawADC(1);
+    //     Serial.printf("Quick test: Raw ADC = %d\n", rawADC);
+    //     
+    //     Serial.println("└─────────────────────┘");
+    // }
+    
+    // Check if it's time to update the display - DISABLED to prevent SPI interference
+    // if (currentMillis - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
+    //     updateDisplay(currentDutyCycle);
+    //     lastDisplayUpdate = currentMillis;
+    // }
     
     // Read button state with debouncing
     bool reading = digitalRead(BUTTON_PIN);
