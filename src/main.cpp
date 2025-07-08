@@ -453,10 +453,10 @@ void setup() {
     // Initialize second serial interface
     Serial2.begin(SERIAL2_BAUD_RATE, SERIAL_8N1, SERIAL2_RX_PIN, SERIAL2_TX_PIN); // RX=12, TX=13
     
-    // Initialize the display - DISABLED to prevent SPI interference with AS8510
-    // tft.init();
-    // tft.setRotation(0);
-    // tft.fillScreen(TFT_BLACK);
+    // Initialize the display
+    tft.init();
+    tft.setRotation(0);
+    tft.fillScreen(TFT_BLACK);
     
     // Initialize PWM for economizer using new ESP32 Arduino core 3.0 API
     ledcAttach(ECONOMIZER_PWM_PIN, PWM_FREQ, PWM_RESOLUTION);
@@ -497,6 +497,9 @@ void setup() {
     } else {
         Serial.println("AS8510 initialization failed!");
     }
+    
+    // Set verbose logging to false to disable detailed debug output
+    currentSensor.setVerboseLogging(false);
     
     // Initialize the BATMan interface
     // batman.BatStart();  // TEMPORARILY DISABLED - Testing AS8510 only
@@ -572,49 +575,20 @@ void loop() {
     if (currentMillis - lastCurrentRead >= 1000) {
         lastCurrentRead = currentMillis;
         
-        Serial.println("╔══════════════════════════════════════╗");
-        Serial.println("║        AS8510 Current Measurement     ║");
-        Serial.println("╚══════════════════════════════════════╝");
-        Serial.println();
-        
         if (currentSensor.isInitialized()) {
-            // Get current measurement
-            float current = currentSensor.getCurrent();
+            // Get current measurement and update global variable for LCD display
+            currentReading = currentSensor.getCurrent();
             
-            // Get battery voltage measurement (using voltage channel with current gain)
-            float batteryVoltage = currentSensor.getBatteryVoltage();
-            
-            // Get temperature measurements
-            float externalTemp = currentSensor.getExternalTemperature();
+            // Get internal temperature measurement
             float internalTemp = currentSensor.getInternalTemperature();
             
-            // Display temperature readings
-            Serial.println("├─── Temperature Readings ─────");
-            if (externalTemp > -900.0) {
-                Serial.printf("│ NTC Therm: %6.2f °C\n", externalTemp);
-            } else {
-                Serial.printf("│ NTC Therm:   NOT CONNECTED\n");
-                Serial.printf("│ Note: External NTC thermistor not detected\n");
-                Serial.printf("│ This is normal if no external sensor is wired\n");
-            }
-            Serial.printf("│ IC Temp:   %6.2f °C\n", internalTemp);
-            
-            // Display results (commented out for ultra-clean output)
-            // Serial.printf("Current: %.6f A\n", current);
-            
-            // Print status (commented out for cleaner output)
-            // currentSensor.printStatus();
-            
-            // For debugging - show key registers (commented out for cleaner output)
-            // Serial.printf("Mode Control Reg: 0x%02X\n", currentSensor.readRegister(0x0A));
-            // Serial.printf("Status Reg: 0x%02X\n", currentSensor.readRegister(0x04));
+            // Display current and internal temperature on one line
+            Serial.printf("AS8510: %.3fA    %.1f°C\n", currentReading, internalTemp);
             
         } else {
             Serial.println("AS8510 not initialized - attempting restart...");
             currentSensor.startDevice();
         }
-        
-        Serial.println("═══════════════════════════════════════");
     }
     
     // Remove redundant legacy testing section to clean up output
@@ -637,11 +611,11 @@ void loop() {
     //     Serial.println("└─────────────────────┘");
     // }
     
-    // Check if it's time to update the display - DISABLED to prevent SPI interference
-    // if (currentMillis - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
-    //     updateDisplay(currentDutyCycle);
-    //     lastDisplayUpdate = currentMillis;
-    // }
+    // Check if it's time to update the display
+    if (currentMillis - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
+        updateDisplay(currentDutyCycle);
+        lastDisplayUpdate = currentMillis;
+    }
     
     // Read button state with debouncing
     bool reading = digitalRead(BUTTON_PIN);
