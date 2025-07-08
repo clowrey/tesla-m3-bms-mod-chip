@@ -104,6 +104,74 @@ The system automatically maps Tesla BMS parameters to ESPHome sensors:
 
 ## Usage
 
+Plotly graph code:
+
+type: custom:plotly-graph
+raw_plotly_config: true
+title: Battery 0
+fn: |-
+  $ex {
+    vars.x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    vars.y = [1, 2, 3, 4, 5, 6, 7, 8];
+    vars.z = [];
+      
+
+    for (let j = 0; j < 108; j++) {
+      vars.z[j] = [];
+      // Calculate the index in the 1D array corresponding to the 2D matrix element
+      let index = j;
+
+      // Populate the matrix with values from the 1D array
+      vars.z[j][j] = hass.states["sensor.tesla_bms_display_u" + (index).toString()].state
+    }
+    //console.log(vars.x);
+    //console.log(vars.y);
+    //console.log(vars.z);
+    
+
+    for (let j = 0; j < 108; j++) {
+      // Calculate the index in the 1D array corresponding to the 2D matrix element
+      let index = j;
+      vars.x[index] = index;
+      // Populate the matrix with values from the 1D array
+      console.log(index);
+      vars.y[index] = hass.states["sensor.tesla_bms_display_u" + (index).toString()].state
+    }
+
+    
+    vars.ymin = Math.min(...vars.y) - (50.0 / 1000);
+    vars.ymax = Math.max(...vars.y) + (50.0 / 1000);
+    console.log(vars.x);
+    console.log(vars.y);
+    
+  }
+entities:
+  - entity: ""
+    color: "#ff0000"
+    type: bar
+    x: $ex vars.x
+    "y": $ex vars.y
+    z: $ex vars.z
+    texttemplate: "%{y}"
+    refresh_interval: 2
+layout:
+  xaxis:
+    showgrid: false
+    zeroline: false
+    showticklabels: false
+    ticks: false
+    nticks: 1
+    visible: false
+    height: 410
+  yaxis:
+    range:
+      - $ex vars.ymin
+      - $ex vars.ymax
+config:
+  displayModeBar: false
+  scrollZoom: false
+
+
 ### Display Interface
 The touchscreen LCD shows:
 - **System Status**: BMB count, connection status, loop information

@@ -1,0 +1,2066 @@
+
+
+--- PAGE 1 ---
+
+Published by ams-OSRAM AG
+Tobelbader Strasse 30, 
+8141 Premstaetten Austria
+Phone +43 3136 500-0ams-osram.com  AS8510
+Datasheet
+
+--- PAGE 2 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 2 / 63AS8510
+Table of contents
+Table of contents
+1    General description ................. ................ .............. ............... .............. .........  3
+1.1    Key benefits & features ................. .............. .............. .............. ............. 3
+1.2    Applications .. ................. ................ .............. .............. .............. ............. 4
+1.3    Block diagram .. ................ .............. .............. .............. .............. ............. 5
+2    Ordering information ........ ................ ................. ................ ................. .........  5
+3    Pin assignments ... ................. ................ ................ ............... .............. .........  6
+3.1    Pin descriptions ................. .............. .............. ............... .............. .......... 6
+4    Absolute maximum ratings... ................ ................ ............... .............. .........  8
+5    Electrical characteristics... ............... ................. ................ ................. .........  9
+5.1    Operating conditions ... ................. ................ .............. .............. ............. 9
+5.2    DC/AC characteristi cs for digital inputs and outputs  .............. ............... 9
+5.3    Detailed system  and block specifications ...... ............... .............. ........ 11
+5.4    Current measur ement ranges (across 100 μOhm shunt resistor) ....... 12
+5.5    System specifications ............... ................. ................ .............. ........... 21
+6    Detailed description........ ................ ................ ................. ................ ..........  24
+6.1    Current measurement ch annel ............... ................. ................ ........... 24
+6.2    Voltage/temperature  measurement channel ........ ................. ............. 25
+6.3    Digital implementati on of measurement path ....... ................. ............. 26
+6.4    Modes of operat ion ................. ................ ................. ................ ........... 26
+6.5    Reference voltage ...... ................. ................ .............. .............. ........... 32
+6.6    Oscillators .... ............... ................. ................ .............. .............. ........... 32
+6.7    Power-on reset .. .............. .............. .............. .............. .............. ........... 32
+6.8    4-wire serial port interface ............. .............. .............. .............. ........... 33
+6.9    Control register ....... ................ ................ ................. ................ ........... 39
+6.10    Low side current measurement application ...... ............ ............ ........ 59
+7    Package drawings & mark ings ............. .............. .............. .............. ..........  60
+7.1    Recommended PCB footpr int ................. ................. ................ ........... 61
+8    Revision information ........ ................ ................. ................ .............. ..........  62
+9    Legal information. ............... ................. ................ .............. .............. ..........  63
+
+--- PAGE 3 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 3 / 63AS8510
+General description
+AS8510 Data acquisition device for battery 
+sensors
+1 General description
+The AS8510 is a virtually offset free, low noise,  two channel measurement device. It is tailored 
+to accurately measure battery current from mA  range up to kA range in conjunction with a 
+100 µΩ shunt resistor in series with the battery  rail. Through the second measurement channel 
+it enables capture of, either battery voltage synchronous with the current measurement, or, 
+measure the analog output of an internal or external temperature sensor. Both channels are 
+matched and can either measur e small signals up to ±160 mV versus ground, through 
+programmable gain amplifier or larger signals in the 0 to 1V range without the amplifier. 
+After analog to digital conversion and digital filtering, the resulting 16-bit digital words are 
+accessible through 4-wire standard serial inte rface.The device includes a number of additional 
+features explained in the next section.
+1.1 Key benefits & features
+The benefits and features of AS8510 are listed below:
+Table 1: Added value of using AS8510 
+•    Precision, low noise, programmable gain amplifiers for both channels with gains 5, 25, 40, 100 to support wide 
+dynamic ranges.
+•    Option for multiplexing either one differential input, or  two single ended inputs or the internal temperature 
+sensor on one channel.
+•    Programmable current source for external temperat ure sensor connectable to any of the inputs.
+•    High precision and high stability 1. 2V reference voltage source.Benefits Features
+• Low supply voltage • 3.3V supply voltage
+• Redundant measurement possibility • Two high resolution 16-bit Σ−Δ A/D converters
+• Flexible configuration • Programmable sampling to enable data throughputs 
+from less than 1Hz to 8kHz
+• Unique measurement principle • Zero offset for both channels• Wide measurement range • Independent c ontrol of data rate on both channels
+
+--- PAGE 4 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 4 / 63AS8510
+General description
+•    Digital signal processing with filter options for both 
+channels.
+•    Four operating modes providing
+- Continuous data acquisition (or)
+- Periodic single-shot acquisition, (or)- Continuous acquisition on threshold crossing of programmed current levels (or)
+- A combination of the above
+•    On chip high-precision 4MHz RC oscillator or option for external clock.
+•    -40ºC to 125ºC ambient operation.
+•    AEC - Q100 automotive qualified.
+•    Internal chip ID fo r full traceability.
+•    SSOP-20 pin package.
+1.2 Applications
+The AS8510 is ideal for shunt based batteries sensor. For high-side current sensing, the input 
+signal may be conditioned using ams OSRAM device AS8525 before applying to this device.
+
+--- PAGE 5 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 5 / 63AS8510
+Ordering information
+1.3 Block diagram
+Figure 1: AS8510 block diagram
+2 Ordering information
+Ordering code Description Delivery form Package
+AS8510-ASSPData acquisition device for 
+battery sensorsTape and reel (2000 pcs) 20-pin SSOP
+AS8510-ASSMData acquisition device for 
+battery sensorsTape and reel (500 pcs) 20-pin SSOPVBAT_INDVDD
+SDO SDI SCLK CSAVDD
+INT
+CLK
+DVSSRSHH
+RSHLETR
+VCMETS
+CHOP_CLKMEN
+VBAT_GNDInternal Temperature Sensor
+PGAPGA 16-bit Sigma-Delta ADC
+16-bit Sigma-Delta ADC
+Serial InterfaceOscillators
+FIR / MA
+Analog Common ModeChopperMUX and 
+ChopperBandgap Reference
+AVSSREF
+AS8510Prog-Cur
+Source
+
+--- PAGE 6 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 6 / 63AS8510
+Pin assignments
+3 Pin assignments
+Figure 2: Pin assignment of AS8510 (Top View) 
+3.1 Pin descriptions
+Table 2: Pin description of AS8510 
+Pin number Pin name Pin type Description
+1R S H H
+Analog inputPositive differential input for current channel
+2 RSHL Negative differential input for current channel
+3R E F
+Analog outputInternal reference voltage to sigma-delta ADC; 
+connect 100nF to AVSS from this pin.
+4V C MCommon mode voltage to the internal 
+measurement path; connec t 100nF to AVSS from 
+this pin.
+5A V D D
+Supply pad+3.3V analog power-supply 
+6 AVSS 0V power-supply analogVBAT_INDVDD
+SDOSDI
+SCLK
+CSAVDDINT
+CLK
+DVSSRSHH
+RSHL
+ETRVCM
+ETSCHOP_CLKMEN
+AVSSREF
+AS8510
+VBAT_GND6
+83
+9
+101
+2
+754
+121620
+19
+1417
+131518
+11
+
+--- PAGE 7 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 7 / 63AS8510
+Pin assignments
+7E T R
+Analog inputVoltage channel single ended input
+8E T S
+9 VBAT_IN Battery voltage (high) input
+10 VBAT_GND Battery voltage (low) input
+11 CS Digital input with pull-upChip select with an internal pull-up resistor (SPI 
+Interface)
+12 SCLK Digital input Clock signal (SPI Interface)13 SDO Digital output Serial data input (SPI Interface)14 DVSS
+Supply pad0V digital ground
+15 DVDD +3.3V digital supply 
+16 CHOP_CLK
+Digital outputChop clock used in High side measurements to 
+synchronize external chopper.(As an example, when AS8525 is used to condition 
+the input signal to the input range of AS8510, the 
+chop clock is used by AS8525.)
+17 MENDigital output issued during the Standby Mode 
+(SBM) to signal the short duration of data 
+sampling. This signal is useful in the case of a High 
+Side Measurement application. (For example: This signal is used by AS8525 
+device to wake-up and enable the measurement 
+path.)
+18 SDI Digital input Data signal (SPI Interface)
+19 CLK Digital I/OBy default this pin is the internal clock output which 
+can be used by a microcontroller. The internal 
+clock may also be disabled as an output by 
+programming Register 08. To use an external 
+Clock, Register 08 has to be programmed. 
+20 INT Digital output Active high Interrupt to indicate data is readyPin number Pin name Pin type Description
+
+--- PAGE 8 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 8 / 63AS8510
+Absolute maximum ratings
+4 Absolute maximum ratings
+Stresses beyond those listed in Table 3 may cause permanent damage to the device. 
+These are stress ratings only. Functional operation of the device at these or any other 
+conditions beyond those indicated in Electrical characteristics is not implied. Exposure to absolute maximum rating conditions for extended periods may affect device reliability.
+Table 3: Absolute  maximum ratings 
+(1) The reflow peak soldering temperature (body temperature) is specified according IPC/JE DEC J-STD-020 “Moisture/Reflow 
+Sensitivity Classification for Non-hermeti c Solid State Surface Mount Devices”.Parameter Min Max Units Notes
+Electrical parameters
+DC supply voltage (AVDD and 
+DVDD)-0.3 5 V
+Input voltage (VIN) -0.3AVDD + 0.3
+DVDD + 0.3V
+ Input current (latchup immunity)
+(ISCR)-100 100 mA AEC - Q100 - 004
+Electrostatic discharge
+Electrostatic discharge (ESD) all 
+pins±2 kV  AEC - Q100 - 002
+Continuous power dissipation
+Total power dissipation
+(all supplies and outputs) (Pt) 50 mWSSOP20 in still air, soldered on 
+JEDEC standard board @ 125º 
+ambient, static operation with 
+no time limit
+Temperature ranges and storage conditionsStorage temperature (T
+STRG ) -50  125 ºC
+Junction temperature (TJ) 130 ºC
+Thermal resistance (RthJC) 80 K/WJEDEC standard test board, 0 
+air velocity
+Package body temperature (TBODY ) 260 ºC IPC/JEDEC J-STD-020(1)
+Moisture Sensitivity level (MSL) 3
+Humidity non-condensing 5 85 %
+
+--- PAGE 9 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 9 / 63AS8510
+Electrical characteristics
+5 Electrical characteristics
+5.1 Operating conditions
+Table 4: Operating conditions 
+(1) Nominal clock frequency from ex ternal or internal oscillator.
+5.2 DC/AC characteristics for digital inputs and outputs
+All pull-up and pull-down have been implemented wi th active devices. SDO has been measured 
+with 10pF load.
+Table 5: INT Symbol Parameter Conditions Min Max Units
+AVDD Positive analog supply voltage 3.0 3.6 V
+AVSS 0V ground 00 V
+A - D Difference in analog and digital supplies  0.1 V
+DVDD Positive digital supply 2.97 3.63 VDVSS 0V digital ground 0 0 VT
+AMB Ambient temperature -40 125  ºC
+ISUPP Supply current 5.5 mA
+fCLK System clock frequency(1) 4.096 MHz
+Symbol Parameter Conditions Min Typ Max Units
+ILEAK Tri-state leakage current -1 +1 μA
+VOH High level output voltage 2.5 V
+VOL Low level output voltage 0.4 V
+IO Output current 4m A
+
+--- PAGE 10 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 10 / 63AS8510
+Electrical characteristics
+Table 6: CS input 
+Table 7: SDI 
+Table 8: SDO output 
+Table 9: CHOP_CLK output 
+Table 10: CLK I/O with input schm itt trigger and output buffer Symbol Parameter Condi tions Min Typ Max Units
+V
+IH High level input voltage 2.0 V
+VIL Low level input voltage 0.8 V
+ILEAK Input leakage current -1 +1 μA
+Ipu Pull up current CS pulled to DVDD = 3.3V -150 -15 μA
+Symbol Parameter Conditions Min Typ Max Units
+VIH High level input voltage 2.0 V
+VIL Low level input voltage 0.8 V
+ILEAK Input leakage current -1 +1 μA
+Symbol Parameter Conditions Min Typ Max Units
+VOH High level output voltage Isource = 8mA 2.5 V
+VOL Low level output voltage Isink = 8mA 0.4 V
+IO Output current 8 mA
+Symbol Parameter Conditions Min Typ Max Units
+VOH High level output voltage 2.5 V
+VOL Low level output voltage 0.4 V
+IO Output current 4 mA
+Symbol Parameter Conditions Min Typ Max Units
+VIH High level input voltage DVDD = 3.3V 2.4 V
+VIL Low level input voltage DVDD = 3.3V 1.0 V
+
+--- PAGE 11 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 11 / 63AS8510
+Electrical characteristics
+Table 11: SCLK with input schmitt trigger 
+Table 12: MEN output 
+5.3 Detailed system and block specifications
+5.3.1 Electrical system specifications
+Table 13: Electrical system specifications ILEAK Input leakage current -1 +1 μA
+IPD Pull down currentCLK pulled to 
+DVSS10 100 μA
+IO Output current 4 mA
+VOH High level output voltage 2.5 V
+VOL Low level output voltage 0.4 V
+Symbol Parameter Conditions Min Typ Max Units
+VIH High level input voltage DVDD = 3.3V 2.4 V
+VIL Low level input voltage DVDD = 3.3V 1.0 V
+ILEAK Input leakage current -1 +1 μA
+Symbol Parameter Conditions Min Typ Max Units
+VOH High level output voltage 2.5 V
+VOL Low level output voltage 0.4 V
+IO Output current 2 mA
+Symbol Parameter Min Typ Max Units Conditions
+IDDNOMCurrent consumption 
+normal mode35 . 5 m ASymbol Parameter Conditions Min Typ Max Units
+
+--- PAGE 12 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 12 / 63AS8510
+Electrical characteristics
+5.4 Current measurement ranges (across 100 μOhm shunt resistor)
+Table 14: Current measurement ranges 
+(1) VINADC  = Vsh * Gain, gain deviations to be consi dered according to Table 15 and Table 16.
+(2) AVDD, DVDD of 3.3V with ±5% variation.
+The maximum current range can be calculated by the equation:
+Imax = (VREFmin – VOSDRIFT *Gn*e)/(Gn *e*RSHUNT )
+Where,
+VREFmin is minimum ADC reference voltage for the anticipated temperature range e.g.1220mV
+VOSDRIFT  is the maximum input referred PGA offset (e.g. 3 mV)
+Gn is the nominal gain as selected (G1 to G4)
+e is maximum gain tolerance (1,1)R
+SHUNT  is the maximum shunt resistance
+Exceeding this maximum current range will lead first to non-linearity and finally to clamping.IDDSBMCurrent consumption 
+standby mode40 μAAverage of NORMAL Mode 
+Power consumption over a period 
+of 10s when the device is in STANDBY Mode
+Symbol ParameterI
+max
+[A]Vsh
+[mV]PGA
+gain
+nominal Data 
+rate
+(fOUT)VINADC(1)
+[mV]PSR(2)
+[dB]
+I70Input current range of 
+70A in NOM ±77  ±8.1 100 @ 1 kHz 890 60
+I200Input current range of 
+200A in NOM ±235 ±24.7 40 @ 1 kHz 1088 60
+I400Input current range of 
+400A in NOM±400 ±42 25 @ 1 kHz 1137 60
+I1500Input current range of 
+1500A in NOM+2076/
+-1523+218/-160 5 @ 1 kHz 1204 60Symbol Parameter Min Typ Max Units Conditions
+
+--- PAGE 13 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 13 / 63AS8510
+Electrical characteristics
+Note: The Data Rate at the output can be calculated according to the formula:
+fsout=2*fchop /R2 (R2 is down sampling ratio taking values 1, 2, 4 up to 32768 as powers of 2)
+Table 15: Valid combinations of the chopper clock, oversampling clock and decimation ratios 
+Table 16: Differentia l input amplifier for current channel Over sampling frequency Chopper frequency Decimation ratio
+1.024MHz 2kHz 64
+2.048MHz 2kHz 642.048MHz 2kHz 1282.048MHz 4kHz 64
+Symbol Parameter Conditions Min Typ Max Units
+V
+IN_AMP  Input voltage range RSHH and RSHL  -160  +160 mV
+IIN_AMP  Input current (1)(11)RSHH and RSHL@ 
++160mV input voltage 
+at 125ºC with PGA-50 2 50 nA
+ICMAbsolute input voltage 
+range(2)-160
++300mV
+G = G1 Gain1(3)(4)(9)  I10 100
+G = G2 Gain2(3)(4)(9) I200 40
+G = G3 Gain3(3)(4)(9) I400 25
+G = G4 Gain4(3)(4)(9) I1500 5
+e Gain deviation i=1,2,3,4 0.9*Gi 1.1*Gi
+fp_AMP Pole frequency(4)(5) 15 kHz
+εT1 Gain drift with temperature(6)-20ºC to 65ºC
+Gain 5, 25, referenced 
+to room temperature±0.3 %
+Vos Input referred offset(7)(10)@65ºC 350 2700 μV
+After trim at -20ºC 420 μV
+Vos_chMeasurement path off-
+set(7)(10)Chopping enabled 0 LSB
+VNdin Noise density(4)(8) 25nV/
+√Hz
+THD Total harmonic distortion For 150 Hz input signal 70 dB
+
+--- PAGE 14 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 14 / 63AS8510
+Electrical characteristics
+(1) Leakage test accuracy is limited by tester resource accuracy and tester hardware.
+(2) For gain 100 PGA input common mode is  0V and the minimum supply is 3.15V.
+(3) The measurement ranges are referred only by the gain of input amplifier, while other parameters such as bandwidth 
+etc. are programmed independently.
+(4)  This parameter is not measured direct ly in production. It is measured indirect ly via gain measurements of the whole 
+path. It is guaranteed by design.
+(5) Pole frequency of input amplifier changes with GAIN. The num ber is valid for the gain at G1, while the bandwidth will 
+be higher for other ranges. This parameter is not measured in production.
+(6) Based on device evaluation. Not tested.(7) These offsets are cancelled if chopping enabled (default).(8) Noise density calculated by ta king system bandwidth as 150Hz.
+(9) Refer to Measurement Ranges shown in Table 14.(10) No impact on the measurement path. If the chopping is  enabled, both the offset and offset drift will be eliminated.
+(11) For negative input voltages up to -160mV below ground, Input leakage is typically -20nA @ 65ºC due to forward 
+conductance of protection diode.
+5.4.1 Differential input amplifier for voltage channel
+Table 17: Differentia l input amplifier for voltage channel 
+Symbol Parameter Conditions Min Typ Max Units
+VIN_AMP  Input voltage range(1)(10)  -160  +160 mV
+IIN_AMP  Input current(2)(10)VBAT_IN, ETR, ETS @ 
++160mV input voltage at 
+125ºC with PGA-50 2 50 nA
+ICMAbsolute input voltage 
+range(3)-160
++300mV
+G = G1 Gain1(4)(5) 100
+G = G2 Gain2(4)(5) 40
+G = G3 Gain3(4)(5) 25
+G = G4 Gain4(4)(5) 5
+e Gain deviation i=1,2,3,4 0.9*Gi 1.1*Gi
+fp_AMP Pole frequency(5)(6) 15 kHz
+VNDIN Noise density(5)(7) 25nV/
+√Hz
+THD Total harmonic distortion For 150 Hz input signal 70 dB
+εT1Gain drift with tempera-
+ture(8)-20ºC to 65ºC
+Gain 5, 25, referenced to 
+room temperature±0.3 %
+Vos Input referred offset(9)After trim at -20ºC 420 μV
+@65ºC 350 2700 μV
+
+--- PAGE 15 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 15 / 63AS8510
+Electrical characteristics
+(1) Input for the voltage channel can be as high as 1220mV, in this high input case PGA will be bypassed.
+(2) Leakage test accuracy is limited by tester resource accura cy and tester hardware, especi ally at low temperatures due 
+to condensing moisture.
+(3) For gain 100 PGA input common mode is  0V and the minimum supply is 3.15V.
+(4) The measurement ranges are referred only by the gain of input amplifier, while other parameters such as bandwidth 
+etc. are programmed independently.
+(5) This parameter is not measured directly  in production. It is measured indirect ly via gain measurements of the whole 
+path. It is guaranteed by design.
+(6) Pole frequency of input amplifier chang es with changing the GAIN. The number is valid for the gain at G1, while the 
+bandwidth will be higher for other ranges. This  parameter is not measured in production.
+(7) Noise density calculated by ta king system bandwidth as 150Hz.
+(8) Based on device evaluation. Not tested.(9) No impact on the measurement path. If the chopping is enabled, both the offset and offset drift will be eliminated.
+(10) For negative input voltages up to -160mV below ground, Input leakage is typically -20nA @ 65ºC due to forward 
+conductance of protection diode.
+5.4.2 Sigma delta analog to digital converter
+Table 18: Sigma delta analog to digital converter Vos_ch Measurement path offset(9) Chopping enabled 0 LSB
+Symbol Parameter Conditions Min Typ Max Units
+VREF Reference voltage(6) 1.225 V
+VINADC Input range(1) At Vref = 1.22V 0 ±1.22 V
+R1Oversampling ratio/Deci-
+mation ratio(2)64 128 128
+fovs Oversampling frequency(3)1024/
+2048kHz
+RES Number of bits 16 bits
+BW Bandwidth(4) 1 500 Hz
+S/N Signal to noise ratio(5) 90 dBSymbol Parameter Conditions Min Typ Max Units
+
+--- PAGE 16 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 16 / 63AS8510
+Electrical characteristics
+(1) Production test at ±800mV. Maximum VIN can be 1.22V with VREF=1.225V.
+(2) Programmable. It is defined with respect to the first decimator in the ΣΔ ADC.
+(3)  Programmable: Internal clock is 1024/ 2048 kHz; external clock max is 8192 kHz.
+(4) Dependent on fovs, R1 and R2. The bandwidth is calculated according to the formula:
+BW=fovs/(2*R1*R2); the sampling frequency at the output of the A/D converter is 2*BW.
+(5) Defined at maximum input signal, BW =500 Hz (1Hz to 500 Hz), fovs=1024 kHz, R1=64, fchop=2 kHz and R2=2.
+(6) Reference voltage might be forced from external.
+5.4.3 Bandgap reference voltage
+Table 19: Bandgap reference voltage 
+(1) Accuracy at 65ºC.(2) No DC current is allowed from this pin.(3) This is a design parameter and not production tested.Symbol Parameter Conditions Min Typ Max Units
+VREF TRIM Reference voltage after trim (1)(2) Trim at 65ºC 1.225 V
+VREF ACC Reference voltage initial accuracy (1)(2) At 65ºC ±3.5 mV
+VREF DRIFT Reference voltage temperature driftTemperature range
+ -20ºC to 65ºC ±0.4 %
+Temperature range
+ -40ºC to 125ºC+0.4/
+-0.6%
+PSRRREF PSR @ dc 80 dB
+SUTAVDD Start up time with supply ramp (3) 5m s
+SUTPD Start up time from power down (3) 1m s
+RNDVREF Output resistance of band gap 500 1000 Ω
+VNDVREFBandgap reference thermal noise 
+density (3)300 nV/√Hz
+CLVREF
+Output capacitor (ceramic)100 nF
+ESRVREF 0.02 1 Ω
+
+--- PAGE 17 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 17 / 63AS8510
+Electrical characteristics
+5.4.4 Internal (programmable) current source for external temperature measurement
+Table 20: External temperature measurement 
+(1) Current value can be programmed in steps of 8 μA from 0 to 256 μA with a process error of 30%.
+(2) Temperature coefficient is not import ant since external temperature measurem ent is a 2 step measurement. The value 
+specified is guaranteed by design and wi ll not be tested in production.
+(3) Maximum voltage on pin ETR (reference) can be calculated  by given formula, where G is the gain of PGA (G=100).
+(4) Maximum voltage on pin ET R, if PGA is bypassed.
+(5) Maximum voltage on pin ETS, if PGA is bypassed.
+5.4.5 CMREF circuit (VCM) 
+Table 21: CMREF circuit Symbol Parameter Conditions Min Typ Max Units
+ICURON 5-bit current source 
+enabled(1)5-bit programmable 
+current source0 270 320 µA
+ICUROFF 5-bit current source dis-
+abledLimited by leakage 10 nA
+TK_CSTemperature coefficient of 
+current source(2)1000ppm 
+/ ºK
+VMAXETR Voltage on pin ETR(3) 1000/
+GmV
+VMAXETRMODMax. voltage on pin ETR 
+when PGA is bypassed(4)1.22 V
+VMAXETSVoltage on pin ETS for 
+resistor sensor(3)1000/
+GV
+VMAXETSMODMax. voltage on pin ETS 
+when PGA is bypassed(5)1.22 V
+Symbol Parameter Min Typ Max Units
+VVCM Output voltage 1.6 1.7 1.8 V
+CL Load capacitance 100 nF
+
+--- PAGE 18 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 18 / 63AS8510
+Electrical characteristics
+5.4.6 Internal AVDD power-on reset
+Table 22: Internal AVDD power-on reset 
+(1) POR pulse is always longer than tPORA whatever the slope of the supply.
+(2) IPORA can not be switched off.
+5.4.7 Internal DVDD power-on reset
+Table 23: Internal DVDD power-on reset 
+(1) VPORLO  = VPORHI  - VHYST  where VPORLO  is the lower threshold of POR.
+(2) IPORD  can not be switched off.
+5.4.8 Low speed oscillator
+Table 24: Low speed oscillator  Symbol Parameter Min Typ Max Units
+VPORHIA Power On reset threshold 2.2 2.4 2.6 V
+tPORAPOR time - The duration from power ON till the 
+time, internal Power On reset signal goes 
+HIGH(1)1µ s
+IPORA Current consumption in POR block(2) 1.5 µ A
+Symbol Parameter Min Typ Max Units
+VPORHID Power On reset threshold 2.2 2.4 2.7 V
+VHYST Hysteresis(1) 0.2 0.25 0.4 V
+tPORDPOR time - The duration from 
+power ON till the time, internal power On reset signal goes HIGH1µ s
+I
+PORD Current(2) 1.5 µ A
+Symbol Parameter Min Typ Max Units
+fLS Frequency 262.144 kHz
+fLS_ACC Accuracy ± 7 %
+ILS Supply current 5 µA
+
+--- PAGE 19 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 19 / 63AS8510
+Electrical characteristics
+5.4.9 High speed oscillator
+Table 25: High speed oscillator 
+(1) Accuracy after trimming.
+(2) Accuracy for limited temperature range of -20ºC to 65ºC.
+5.4.10 External clock
+Table 26: External clock Symbol Parameter Min Typ Max Units
+fHS Frequency 4.096 MHz
+fHSACC Accuracy (1)(2) ±4 %
+IHS Supply current 300 µA
+Symbol Parameter Conditions Min Typ Max Units
+fCLKEXT Clock frequency2048/
+4096/
+8192kHz
+DIVCLKEXT Clock division factorTo be programmed in Register 
+08 CLK_REG through the serial bus SPI.2/4/8
+DC
+CLKEXTDuty cycle of exter-
+nal clock40 60 %
+
+--- PAGE 20 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 20 / 63AS8510
+Electrical characteristics
+5.4.11 Internal temperature sensor
+Table 27: Internal temperature sensor 
+Symbol Parameter Conditions Min Typ Max Units
+TINTRNGTemperature sensor 
+range-40 125 ºC
+ΔTINTemperature measure-
+ment accuracy3º C
+TINTSLPTemperature sensor 
+slopeGuaranteed by design; 
+at PGA gain 5 which is 
+the recommended gain for internal temperature 
+measurement. 27 Digits/ºC
+T
+INT65G5Temperature sensor out-
+put at gain 540660 41807 43012 Digits
+
+--- PAGE 21 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 21 / 63AS8510
+Electrical characteristics
+5.5 System specifications
+Table 28: System specifications 
+(1) These specifications are defined by taking one channel as reference and measured on the other channel.
+(2) Guaranteed by design.
+System measurement error budget for voltage and current channel
+Temperature Range: -20ºC to 65ºC; Output dat a rate is 1kHz, VCC = 3.3V, chopping enabled.
+Table 29: System measurement error budget for gains 5 and 25 
+(1) These specifications are defined by taking one channel as reference and measured on the other channel.
+(2) Guaranteed by design.(3) System measurement error due to noise , individual block parameter drifts and  non linearity. Based on evaluation, not 
+tested.
+(4) System error due to offset is negl ected because of chopper architecture.
+(5) PGA is by-passed.
+System error compensation function:  For battery voltage measurement it is recommended 
+to by-pass the PGA. This elimin ates PGA gain drift as an error source, thus error for the VBAT/
+VBAT_GND differential signal path is determined by VREF drift with temperature. The typical Symbol Parameter Min Typ Max Units
+IS Channel to channel isolation(1) -90 dB
+AtDifference in channel to channel atten-
+uation @600Hz(1)(2)3d B
+PhDifference in phase shift between the 
+two channels @600Hz(1)(2)5 deg
+Symbol Parameter Condi tion Min Typ Max Units
+ErrSystem measurement error 
+(3)(4)±0.5 ±0.8
+%
+Voltage channel signal path 
+measurement error (5)±0.5
+Measurement error due to 
+PGA gain driftFrom device evaluation ±0.3 %
+Measurement error due to 
+VREF drift±0.4 %
+Measurement error due to 
+non-linearity of PGATested by distortion 
+measurements±0.025 %
+
+--- PAGE 22 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 22 / 63AS8510
+Electrical characteristics
+characteristic of VREF versus temperature ex tracted from 3 production lots is shown in Figure 3  
+This function could be used to improve accura cy by an error correction method utilizing the 
+internal temperature sensor. In this case ADC raw data readings need to be corrected with a 
+temperature dependent factor by the software in the external micro controller. This factor is 
+given by a generic compensati on function and can be applied to  all IC’s because VREF is 
+production trimmed to minimize linear c oefficient of VREF over temperature.
+Figure 3: Reference error compensation function 
+Generic compensation factor the ADC output need to be multiplied with:
+Fcomp = (A*T^2 + B*T + C)
+Where:
+Fcomp is the compensation factor for VREF drift over temperature normalized to 1 at 25°C
+T is Temperature reading from calibrated internal temperature sensor in [°C]A: -4E-7
+B: 2E-5
+C: 0.9997The compensated ADC value = raw ADC value * F
+comp−20 −10 0 10 20 30 40 50 60 700.99910.99920.99930.99940.99950.99960.99970.99980.999911.0001
+Temperature [°C]Compensation factorFComp = −3.9658e−007 T2 + 2.0407e−005 T + 0.99974Polynom Fit
+Measured points
+
+--- PAGE 23 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 23 / 63AS8510
+Electrical characteristics
+If PGA is by-passed and an external precis ion reference is applied, the signal path 
+measurement error is basically determined by the drift due to temperature and ageing of the 
+external reference.
+Current channel error contributions for a single temperature end of line calibrated system are 
+shunt resistance, PGA gain and VREF changes with  temperature. The drift of a shunt resistor 
+made from Manganin alloy and VREF drift wi th temperature are non-linear and show 2nd order 
+curvature in same direction and similar relative magnitude. Thus shunt error is already reduced 
+by the generic VREF(T) curvature (see Figure 3 ) if thermally coupled to the AS8510. Over all 
+error can be further reduced by an error correctio n method in external micro controller by 
+matching typical VREF(T) curvature to Rshunt (T) curvature with the help of the internal 
+temperature sensor.
+Temperature sensor system considerations:  Internal temperature sensor can be used to 
+measure the ambient temperature because there is  just 13 mW of AS8510 power dissipation in 
+normal mode. This results in internal self-heating of less than 1°C.
+
+--- PAGE 24 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 24 / 63AS8510
+Detailed description
+6 Detailed description
+The AS8510 consists of two independent high resolu tion 16-bit SD analog to digital conversion 
+channels. The measurement path of these two channels integrates a programmable gain 
+amplifier, chopper and de-chopper, sigma-delta m odulator, decimator and a digital filter for 
+simultaneous measurement of Current and Voltage/Temperature.
+The two measurement channels, namely the Current and Voltage/Temperature measurement 
+channels have identical data path.
+The input signal is amplified in the Programmable Gain Amplifier (PGA) with any of the selected 
+gains of 1, 5, 25, 40 and 100 facilitating measurement of a wide range of Current, voltage and 
+temperature levels. Gain Settings for different in put ranges and any associated restrictions are 
+explained in the Table 14 .
+Offset in the measurement path is minimized with the use of a chopper and a de-chopper at 
+appropriate stages in the data path. By default the chopper/de-chopper is ON in the measurement path. It may be disabled by programming the appropriate register.
+The amplified input signal is converted into a si ngle-bit pulse-density modulated stream by the 
+Σ-Δ Modulator. A decimator acting as a low-pass fi lter filters out the quantization noise and 
+generates 16-bit data corresponding to the input signal. The decimation ratios of 64, 128 may 
+be selected in the first filter stage. For reducing data rate further, the second stage decimation can be used.
+An optional FIR Filter is provided to offer matc hed low pass filter response typically required in 
+lead acid battery sensor systems.
+6.1 Current measurement channel
+The voltage across a Shunt Resistor, connected in series with the Battery negative terminal, 
+forms the input signal to the Current Measurement channel. RSHH and RSHL are the Current 
+measurement input pins. Offset in  the input signal is nullified wi th the use of a chopper and a 
+de-chopper at appropriate stages in the data path. The programmable gain amplifier in the data path with programmable settings of 1, 5, 25, 40 and 100 enables measurement of current 
+ranges from ±1A to ±1500A. The sampled input signal is converted into a single-bit pulse-
+density modulated stream by the Σ-Δ Modulator. A decimator acting as a low-pass filter filters 
+out the quantization noise and generates 16-bit data equivalent to the input current signal. The 
+programmable input sampling rate and the decimation ratio determine the output data rates. 
+The data path can be programmed to provide 1Hz to 2 kHz rates in the various modes available. An optional FIR filter is provided to  offer matched low pass filter response typically 
+required in lead acid battery sensor systems.
+After enabling the current measurement channel, the delay for the availability of the first sample 
+is two  conversion cycles.
+
+--- PAGE 25 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 25 / 63AS8510
+Detailed description
+6.2 Voltage/temperature measurement channel
+The other two parameters of the Battery for measurement are Voltage and its Temperature. The 
+second channel accepts signals from four independent sources through a Multiplexer as listed 
+below:
+•    An attenuated battery voltage obtained through appropriate external resistor divider, (or)
+•    A signal from the external temperature sensor, (or)
+•    A signal from external reference, (or)
+•    A signal from the internal temperature sensor.
+Apart from this difference in the multiplexing of four input signals, the rest of the data path is 
+identical to the Current measurement channel. RSHH and RSHL are the Current measurement 
+input pins.
+The Battery Voltage which can go up to 18V is attenuated through a Resistor Divider externally 
+and is applied to the Voltage Channel. For Automotive Battery measurement, the Gain of the PGA should be restricted to 5 and 25. The latency for the first result from the voltage 
+measurement channel is two conversion cycles.
+A second option on this measurem ent channel is to measure Temperature. Internally generated 
+constant current is pumped through the Temper ature Sensor with positive temperature 
+coefficient, and, a high- precision resistor. The voltages across the sensor and the resistor form the inputs to the measurement channel one at a time. The difference between the two voltages 
+which is independent of the magnitude of the current is used to determine the temperature 
+accurately. The Voltage across the sensor is  applied between the ETS and VSS pins and, the 
+voltage across the high-precision resistor  is applied between ETR and VSS. External 
+Temperature measurement involves the acquisition of two signals one after the other using the 
+same constant current source. The latency for the first result from the temperature measurement channel is two conversion cycles.
+A third option on the measurement channel is to measure the internal temperature. Hence, one 
+of the three options for measurement of Battery Voltage, External Temperature and, internal 
+temperature may be carried out by selection of appropriate inputs through the internal 
+multiplexer selection.
+
+--- PAGE 26 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 26 / 63AS8510
+Detailed description
+6.3 Digital implementati on of measurement path
+Figure 4: Block diagram of digital implementation 
+Figure 4  shows the digital implementation of the decimator and filter to process the 1-bit output 
+of the Modulator. This block receives a 1-bit pul se density modulated output (MOD_IN) from the 
+second order sigma delta modulat or along with the oversampli ng frequency clock (MOD_CLK). 
+The MOD_CLK directly goes to a clock divi sion block, which generates chopper clock 
+(CHOP_CLK). The CHOP_CLK can be one of 2kHz or 4kHz selected by Register CLK_REG in Table 33 . The MOD_CLK can be either 1MHz or 2MHz. The Decimation is a two phase 
+process. In the first phase, the R1 down sampling rate can be obtained by selecting either 64 or 
+128 in Registers DECREG_R1_I, DECREG_R1_V in Table 33 . The 16-bit CIC1 output is 
+dechopped with respect to CHOP_CLK. The output of Dechopper is passed through the CIC2 
+filter with a decimation ratio of 1to 32768 in steps of power of 2. This output is then processed 
+through a FIR or Moving Average (MA) filter. FIR Filter is provided to offer matched low pass filter response typically required in lead acid batte ry sensor systems. MA filter is used to provide 
+averaged output and the number of samples for averaging can be any integer value from 1, 3, 7 
+or 15.
+6.4 Modes of operation
+The device operates in four different modes, namely,
+•    Normal Mode 1 (NOM1),
+•    Normal Mode 2 (NOM2),CIC1
+64 / 128
+CLK DIVISION 
+BLOCKDechopper FIR/MAMOD_IN
+MOD_CLKDATAOUTR1
+R1 = First decimation ratio (64 or 128)
+R2 = Second decimation ratio (1 to 32768)
+MOD_CLKR1CIC2R2FIR_MA_SEL
+CHP_CLKfmod/ R1fchop* 2fchop* 2 / R2
+fchopfmodfchop* 2 / R2
+
+--- PAGE 27 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 27 / 63AS8510
+Detailed description
+•    Standby Mode 1 (SBY1), and,
+•    Standby Mode 2 (SBY2)
+The Normal Modes are full-power modes with the ex ception that in Normal Mode 2, sampling is 
+normally at a programmed lower frequency and is increased to a higher rate only when a 
+measured input signal level crosses the prog rammed threshold in the current measurement 
+channel.
+The Standby Modes are lower power modes. Sampling is normally at a very low frequency 
+interval. In Standby Mode 2, data sampling can be carried out only when the internal 
+comparator detects the input current to be greater than the programmed threshold and it generates interrupt on the INT pin.
+The device enters into the “Stop” state on Power On. This is a state where in the data path is 
+inactive and can be entered into from any of the four Modes. The State transition Diagram 
+involving the state of Stop and the four Modes is illustrated in the Figure 5 .
+
+--- PAGE 28 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 28 / 63AS8510
+Detailed description
+Figure 5: State tr ansition diagram 
+(1) Device soft reset can be written in any of the following states  STOP, A_STB, SBM_ON, SBM_OFF by writing “0” into D[7] of the  
+RESET_REG (Address 0X09).
+(2) Measurement path of soft reset should be written in any the states, STOP, SBM_OFF by writing “0” into D[6] of the 
+RESET _REG (Address 0X09).
+(3) When soft reset is used for the measurement path or for the device, external clock needs to  be disabled if the system 
+clock is external cloc k in the application.STOPOTP_INTRESET
+NORM A_STB
+por_avddotp_loadstop
+SBM_ON SBM_OFFstop
+start
+stopNORM 
+or
+stopAnalog Stablization 
+period
+Wait for 1.5msec
+1.5msec & 
+SBM1.5msec & 
+NORM
+NORM
+SBM Wait for TT1 
+timeoutTT1_timeout
+Wait for x 
+number of 
+conversionsWait for otp_load
+Completes in 32 cycles 
+of lp_clk!por_avdd
+SBM
+!por_dvdd
+
+--- PAGE 29 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 29 / 63AS8510
+Detailed description
+6.4.1 Normal mode 1 (NOM1)
+On Power-on-reset of the device, AS8510 goes into STOP State.
+Transition to Normal mode1 (NOM1) occurs when the “START BIT” D0 of Mode Control 
+Register MOD_CTL_REG in Table 33 is set to “1” through the serial port SPI. Data Rate of 
+voltage and current channels can be independently programmed and both the channels 
+generate interrupts for every output available from ADC. The interrupt signal is generated on the INT pin. The width of the interrupt pulse is eight cycles of lp_clk. The data is stable up to the 
+next interrupt. If the data rate is different for the two channels, the interrupt rate would follow the 
+higher rate among the two channels. Data update can be known by reading the status register. The functionality is explained in the waveform shown in Figure 6 . When the device is configured 
+to NORMAL Mode1 from any mode the confi guration should be through the STOP state only.
+Figure 6: Normal mode 1 
+6.4.2 Normal mode 2 (NOM2)
+NOM2 differs from NOM1 in such a way that it allows for a relaxed data rate at a period of TMC 
+by programming the corresponding register as long as the amplitude of current is less than a 
+programmed threshold ITHC. However, when, the measured input signal exceeds the 
+programmed threshold, the data rate is changed to the rate of NOM1 mode.
+Transition to NOM2 occurs when the “START BIT” D0 of Mode Control register 
+MOD_CTL_REG in Table 33  is set to 1 and mode control bits to 01 through SPI. In this mode 
+the data rate should be programmed with the time of TMC. An interrupt signal is generated on 
+INT at the rate of TMC seconds with a pulse width of eight cy cles of lp_clk. The data is stable up Sampling with f1
+INT at f1 rate from 
+current channelCurrent Channel
+DATA RegistertI
+START STOPtV,T
+Sampling with f2
+Voltage Channel
+DATA Register
+Interrupt from the current  channel is at f1 rate which is integer multiple of f2 rate from voltage channelIDATA
+V,TDATA
+TINT
+
+--- PAGE 30 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 30 / 63AS8510
+Detailed description
+to the next interrupt. The data sample is compared against the programmed threshold and 
+when it is exceeded, the data sampling rate is changed to provide data at the data rate of 
+NOM1 mode. However, as soon as the data sample amplitude falls below the programmed 
+threshold, the sampling rate is restored to provide data at the rate of TMC. The functionality is 
+illustrated in the waveform Figure 5 .
+Figure 7: Normal mode 2 
+6.4.3 Standby mode1 (SBM1)
+The low-power Standby Mode can be entered only through the STOP state. Transition to SBM1 
+mode occurs when the “START BIT” D0 of Mode Control register MOD_CTL_REG in Table 33 is set to “1” and Mode Control Bits to “10” through SPI. In this mode the date rate is 
+programmable with the time of Ta. An interrupt signal is generated on INT at the rate of Ta 
+seconds., and with a pulse width of  eight cycles of lp_clk. The data is stable up to the next 
+interrupt. The functionality is illustrated in Figure. During the period of Ta, only one data sample 
+is made available and, during the rest of the period, the device is maintained in STOP state to 
+reduce power consumption. The microcontroller which receives the data on the Interrupt, is also expected to be processing the data for a short time as shown clearly in the Figure 8  to ensure 
+the overall low-power consumption of th e data acquisition and processing system.IDD
+tTMC TMC
+Sampling with fITHSI
+V,I,T V,I,T V,I,T
+I > I THSV,I,T V,I,TI  <   I THS
+INT
+TINT
+
+--- PAGE 31 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 31 / 63AS8510
+Detailed description
+Figure 8: Standby mode 1 
+6.4.4 Standby mode2 (SBM2)
+Standby Mode 2 is an extension of the Standby Mode1 to achieve even a lower power in the 
+data acquisition system by providing interrupt to the microcontroller only when the data sample 
+exceeds the set current threshold. The Standby Mode can be entered only through the STOP state. Transition to SBM2 mode occurs when the “START BIT” D0 of Mode Control register 
+MOD_CTL_REG in Table 33  is set to “1” and Mode Control Bits D7,D6 to “1,1” through SPI. In 
+this mode the date rate is programmable with the time of Ta in the Ta control registers B, C. The 
+data sample is made available and an interrupt signal is generated on INT pin only when the input signal exceeds the threshold set in Current Threshold Registers D,E. It should be noted 
+here that the data is stable for Ta seconds. The functionality is illustrated in Figure 9 .MCU
+ADC
+t
+T Start SBM1Ta sec. Ta sec. Ta sec.IDD
+V, I, T
+T TV, I, TMCU
+conv conv convMCU
+INTChannel
+DATA RegisterDATA – A1 DATA – A0 DATA – A2 DATA – A3
+TINT
+
+--- PAGE 32 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 32 / 63AS8510
+Detailed description
+Figure 9: Standby mode2 
+6.5 Reference voltage
+Band gap-reference voltage is used for the ADC as a reference and for the generation of the 
+current for external temperature measurement.
+6.6 Oscillators
+A High-speed oscillator (HS) generates the oversampling clock. For internal state machine and 
+Interrupt generation, a low-speed Os cillator (LS) is also available.
+6.7 Power-on reset
+The AS8510 has PORs, APOR and DPOR on analog and digital power supplies respectively. 
+On PORs of both supplies, initialization sequ ence happens and the system status is shown in 
+state diagram (see Figure 5 ).
+As shown in the state diagram, the system is in RESET state until DPOR output goes to logic 
+HIGH and subsequently until APOR output goes to logic HIGH. Once analog power supply is 
+available, the system goes into OTP_INT state and loads the default values into the control and 
+data registers and goes into STOP state. If analog POR, APOR goes low at any time, the system goes into RESET state. In the STOP  state, the AS8510 can be programmed and by ADC
+t
+Tconv Start SBM2Ta sec. Ta sec. Ta sec.IDD
+I
+Tconv TconvIMCU
+|I| > I Threshold
+INTChannel
+DATA RegisterDATA – A1 DATA – A0 DATA – A2 DATA – A3
+TINT
+
+--- PAGE 33 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 33 / 63AS8510
+Detailed description
+giving start command it starts working following the state machine.
+6.8 4-wire serial port interface
+The SPI interface is used as interface between the AS8510 and an external micro-controller to 
+configure the device and access the status information. The micro-controller begins 
+communication with the SPI which is configured as a slave. The SPI protocol is simple and the 
+length of each frame is an integer multiple of bytes except when a transmission is started. Each 
+frame has 1 command bit, 7 address/configuration bits, and one or more data bytes. The edge 
+of CS and the level of SCLK during the start of a SPI transaction, determine the edge on which the data is transferred from the SPI and the edge on which the data is sampled by the slave. 
+Table 29 describes the setting of the transfer and sampling edges of SCLK. Figure 10  shows 
+the falling edge and rising edge for data transfe r and data sampling respectively, when SCLK is 
+HIGH on the falling edge of CS.
+Table 30: CS and SCLK  
+CS SCLK Description
+FALL LOW Serial data transferred on rising edge of SPI clock. Sampled 
+at falling edge of SPI clock.
+FALL HIGHSerial data transferred on falling edge of SPI clock. Sam-
+pled at rising edge of SPI clock.
+ANY ANY Serial data transfer edge is unchanged.
+
+--- PAGE 34 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 34 / 63AS8510
+Detailed description
+Figure 10: Protocol for serial data write with length = 1 
+6.8.1 SPI frame
+A frame is formed by a first byte for comman d and address/configuration and a following bit 
+stream that can be formed by an integer number of bytes. Command is coded on the 1 first bit, 
+while address is given on LSB 7 bits (see Table 31 ).
+Table 31: Command bits 
+If the command is read or write, one or more bytes follow. When the micro-controller sends 
+more bytes (keeping CS LOW and SCLK toggling), the SPI interface increments the address of 
+the previous data byte and writes/r eads data to/from consecutive addresses.Command bits Register address or transmission configuration
+C0 A6 A5 A4 A3 A2 A1 A0
+C0 Command <A6:A0> Description
+0 WRITE ADDRESS Writes data byte on the given starting address.
+1 READ ADDRESS Read data byte from the given starting address.CS
+SCLK
+SDI
+SDO0 A6 A5 A4 A0 A1 A2 A3 D0 D1 D2 D3 D4 D5 D7 D6
+Transfer edge Sampling edgeData D7 – D0 is moved 
+to Address A4..A0 here
+
+--- PAGE 35 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 35 / 63AS8510
+Detailed description
+6.8.2 Write command
+For write command, C0=0. After the command code C0 is transferred, the address of register to 
+be written is provided from MSB to LSB.
+Subsequently one or more data bytes can be transferred from MSB to LSB. For each data byte 
+following the first one, used address is the increm ented value of the prev iously written address. 
+Each bit of the frame has to be driven by the SPI master on the SPI clock transfer edge. The SPI slave samples it on the next clock edge. These edges are determined by the level of SCLK 
+as shown in Table 30 . Figure 11  and Figure 12  are examples of write command without and with 
+address self-increment.
+Figure 11: Protocol for serial data write with length = 1 
+CS
+SCLK
+SDI
+SDO0 A6 A5 A4 A0 A1 A2 A3 D0 D1 D2 D3 D4 D5 D7 D6
+Data D7 – D0 is moved 
+to Address A4..A0 here
+
+--- PAGE 36 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 36 / 63AS8510
+Detailed description
+Figure 12: Protocol for serial data write with length = 4 
+6.8.3 Read command
+For Read command C0=1. After the command code C0, the address of register to be read is 
+provided from MSB to LSB. Then one or more dat a bytes can be transferred from the SPI slave 
+to the master, always from MSB to LSB. To tr ansfer more bytes from consecutive addresses, 
+SPI master keeps CS signal LOW and SPI clock ac tive as long as it desires to read data from 
+the slave. Each bit of the command and address of the frame is to be driven by the SPI master 
+on the SPI clock transfer edge where SPI slave samples it on the next SPI clock edge.
+Each bit of the data section of the frame is driven by the SPI slave on the SPI clock transfer 
+edge and SPI master samples it on the next SPI clock edge. These edges are determined as 
+per Table 30  and examples of read command without and with address self-increment.CS
+SCLK
+SDI
+SDO0A
+6A
+1A
+4A
+2A
+3D
+0D
+1D
+2D
+3D
+4D
+5D
+7D
+6
+Data D7-D0 is
+moved to Address
+A4-A0 hereData D7-D0 is
+moved to Address
+A4-A0 +1 hereData D7-D0 is
+moved to Address
+A4-A0 +2 hereData D7-D0 is
+moved to Address
+A4-A0 +3 hereData D7-D0 is
+moved to Address
+A4-A0 +4 hereA
+0A
+5D
+1D
+2D
+3D
+4D
+5D
+7D
+6D
+0D
+1D
+2D
+3D
+4D
+5D
+7D
+6D
+0D
+1D
+2D
+3D
+4D
+5D
+7D
+6D
+0D
+1D
+2D
+3D
+4D
+5D
+7D
+6D
+0
+
+--- PAGE 37 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 37 / 63AS8510
+Detailed description
+Figure 13: Protocol for serial data read with length = 1 
+Figure 14: Protocol for serial data read with length = 4 CS
+SCLK
+SDI
+SDO1 A6 A5 A4 A0 A1 A2 A3
+D0 D1 D2 D3 D4 D5 D7 D6
+Data D7 – D0 at 
+Address A4..A0 is 
+read here
+CS
+SCLK
+SDI
+SDO1A
+6A
+5A
+4A
+0A
+1A
+2A
+3
+D
+0D
+1D
+2D
+3D
+4D
+5D
+7D
+6D
+0D
+1D
+2D
+3D
+4D
+5D
+6D
+0D
+1D
+2D
+3D
+4D
+5D
+6D
+7D
+7D
+0D
+1D
+2D
+3D
+4D
+5D
+6D
+7D
+0D
+1D
+2D
+3D
+4D
+5D
+6D
+7
+Data D7-D0 at
+Address A4-A0
+is read hereData D7-D0 at
+Address A4-A0 +1
+is read hereData D7-D0 at
+Address A4-A0 +2
+is read hereData D7-D0 at
+Address A4-A0 +3
+is read hereData D7-D0 at
+Address A4-A0 +4
+is read here
+
+--- PAGE 38 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 38 / 63AS8510
+Detailed description
+6.8.4 Timings
+In the following timing waveforms and parameters are exposed.
+Figure 15: Write timing for writing 
+Figure 16: Read timing for reading  CS
+SDI
+SDOSCLK...
+...
+...tCPStCPHD
+tDIStDIHCLK
+polarity
+DATAI DATAI DATAI...
+tCSHtSCLKH tSCLKL
+CS
+SCLK
+SDI
+SDOtDOHZtDODDATAI DATAI
+DATAO (D7 ) DATAO (D0 )tSCLKHtSCLKL
+
+--- PAGE 39 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 39 / 63AS8510
+Detailed description
+6.8.5 SPI interface timing
+Table 32: SPI interface timing 
+6.9 Control register
+This section describes the control registers used  in AS8510. Registers can be broadly classified 
+into the following categories.
+•    Data access registers
+•    Status registers
+•    Digital signal path control registers
+•    Digital control registers
+•    Analog control registersSymbol Parameter Conditions Min Typ Max Units
+General
+BRSPI Bit rate 1 Mbps
+TSCLKH Clock high time 400 ns
+TSCLKL Clock low time 400 ns
+Write timing
+tDIS Data in setup time 20 ns
+tDIH Data in hold time 20 ns
+TCSH CS hold time 20 ns
+Read timing
+ tDOD Data out delay 80 ns
+tDOHZData out to high 
+impedance delayTime for the SPI 
+to release the 
+SDO bus80 ns
+Timing parameters when entering 4-wire SPI  mode (for determinat ion of CLK polarity)
+tCPSClock setup time
+(CLK polarity)Setup time of 
+SCLK with 
+respect to CS
+falling edge20 ns
+tCPHDClock hold time
+(CLK polarity)Hold time of 
+SCLK with 
+respect to CS
+falling edge20 ns
+
+--- PAGE 40 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 40 / 63AS8510
+Detailed description
+Table 33: Control registers 
+Addr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+Data access registers
+00DREG_I1
+(ADC data register for current)0000_0000 R D[7:0]Denotes the current ADC MSB Byte 
+(ADC_I[15:8])
+01DREG_I2
+(ADC data register for current)0000_0000 R D[7:0]Denotes the current ADC LSB Byte 
+(ADC_I[7:0])
+02DREG_V1
+(ADC data register for voltage)0000_0000 R D[7:0]Denotes the voltage ADC MSB 
+Byte (ADC_V[15:8])
+03DREG_V2
+(ADC data register for voltage)0000_0000 R D[7:0]Denotes the voltage ADC LSB Byte 
+(ADC_V[7:0])
+Status registers
+04 STATUS_REG 0000_0000 RD[7] NOM1/NOM2 data ready
+D[6] NOM2 threshold crossoverD[5] SBM1 data readyD[4] SBM2 threshold crossoverD[3] APOR statusD[2] Data from current channel updatedD[1] Data from voltage channel updatedD[0] Reserved
+Digital signal path control registers for current channel
+05 DEC_REG_R1_I 0100_ 0101 R/WD[7]This bit selects decimation rate is 
+used for current channel. Default is 0 (Down Sampling Rate is 64)
+0 Down sampling rate is 64
+1Down sampling rate is 
+128
+D[6:5]These two bits select division ratio 
+of oversampling frequency clock 
+MOD_CLK to be used as chopper 
+clock, CHOP_CLK. Default is “10” (divide by 512)
+00Chopper clock always 
+high
+01 Divide by 25610 Divide by 512
+11 Divide by 1024
+
+--- PAGE 41 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 41 / 63AS8510
+Detailed description
+05 DEC_REG_R1_I 0100_ 0101 R/WD[4:1]These four bits select the decima-
+tion ratio of second CIC stage. Default is “0010” (equal to 4)
+0000 10001 20010 4
+0011 8
+0100 160101 32
+0110 64
+0111 128
+1000 2561001 5121010 1024
+1011 20481100 40961101 8192
+1110 16384
+1111 32768
+D[0]CIC1 saturation interrupt mask con-
+trol. Default is 1
+0 Unmask1M a s kAddr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 42 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 42 / 63AS8510
+Detailed description
+06 DEC_REG_R2_I 1100_0101 R/WD[7] I-Channel enable, Default 1=Enable
+D[6]V-Channel enable, Default 
+1=Enable
+D[5] Interrupt polarity
+0 Active high1 Active low
+D[4]Interrupt mask control for current 
+channel data ready interrupt on INT 
+pin (Default is 0)
+0 Unmasked1 Masked
+D[3:2]These two bits select the source of 
+output 16-bit data in normal mode 
+from current channel. Default is 01
+00 FIR / MA output01 CIC2 output10 Dechop/Demod output
+11 CIC1 output
+D[1:0]These two bits select the source of 
+output 16-bit data in SBM mode 
+from current channel. Default is 01
+00 FIR / MA output01 CIC2 output10 Dechop/Demod output
+11 CIC1 outputAddr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 43 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 43 / 63AS8510
+Detailed description
+07 FIR CTL_REG_I 0000_0100 R/WD[7]This bit selects FIR / MA filter in cur-
+rent channel. Default is 0 (FIR)
+0F I R1M A  f i l t e r
+D[6:3]These bits select the number of 
+data samples for averaging in MA 
+filter in current channel. Default is 
+0000 (bypass)
+0000 Bypass 0001 1
+0011 3
+0111 7
+1111 15
+D[2:1] These two bits select the measure-
+ment path architecture in both cur-
+rent and voltage channels. Default 
+is 10 (dechopper after CIC)
+00 Demodulator after CIC101 Demodulator before CIC1
+10Dechopper after CIC1
+(preferred and suggested)
+11Demodulator before CIC1 
+with settled sample
+D[0] Reserved. Default 0. Do not changeAddr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 44 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 44 / 63AS8510
+Detailed description
+Digital control registers
+08CLK_REG
+(Clock control register)0010_0000 R/WD[7:6]Oversampling frequency clock 
+selection. Default is 00 (high speed (HS) internal clock)
+00Internal HS clock with no 
+clock output
+01Internal HS clock with 
+clock output
+10 External clock
+D[5:4]These two bits select the division 
+ratio for HS clock/ external clock. 
+Default is 10 (division by 4)
+00 No division01 Divide by 2 10 Divide by 4
+11 Divide by 8
+D[3:2] These two bits select the division 
+ratio of HS clock, by which it should be divided before providing it on 
+CLK pin. Default is 00 (no division)
+00 No division 01 Divide by 210 Divide by 4
+11 Divide by 8
+D[1]This bit selects the division ratio of 
+LS clock
+0 LS _CLK undivided (Low 
+Speed clock)
+1 LS _CLK divide by 2
+D[0] Reserved
+09RESET_REG
+(Reset control register)1100_0000 R/WD[7]Entire device can be soft reset by 
+writing “0” into this register bit. This bit will take a default 1 value on 
+coming out of reset 
+D[6]Measurement path can be soft 
+reset by writing “0” into this register bit. This bit will take a default 1 
+value after measurement path is 
+reset.
+D[5:0] ReservedAddr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 45 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 45 / 63AS8510
+Detailed description
+0AMOD_CTL_REG
+(Mode control registers)0000_0000 R/WD[7:6]These two bits select the operating 
+mode of the device. Default is 00 (normal mode 1)
+00 Normal mode 101 Normal mode 210 Standby mode 1
+11 Standby mode 2
+D[5:3] These three bits select the number 
+of cycles to be ignored before com-
+parison with the set threshold in standby mode. Default is 000 (3 
+cycles of data)
+000 3 cycles of data001 4 cycles of data 010 5 cycles of data 
+011 6 cycles of data
+100 7 cycles of data101 8 cycles of data
+110 9 cycles of data
+111 10 cycles of data
+D[2]This bit controls the CHOP_CLK 
+availability on CHOP_CLK pin. Default is 0.
+0 Disabled
+1 Enabled
+D[2]Enabling the MEN pin to indicate 
+transition from standby to normal mode.
+0 Disabled1 Enabled
+D[0]This bit is used to take the device 
+from STOP state to any of the 
+Modes based on D[7:6] selection of this register.
+0 Retain in STOP state
+1Enables transition to nor-
+mal or standby modes.Addr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 46 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 46 / 63AS8510
+Detailed description
+0BMOD_Ta_REG1 
+(Ta control register)1000_0000D[7]Unit of Ta in SBM1/SBM2. Default 
+is 1
+0 Unit is in milliseconds1 Unit is in seconds
+D[6:0] MSB value of Ta
+0CMOD_Ta_REG2
+(Ta control register)0000_0000 R/W D[7:0]Unit of Ta in SBM1/SBM2
+LSB value of Ta
+0DMOD_I
+TH_REG1
+(Current threshold register)0000_0000 R/W D[7:0]MSB bits of 16 bits SBM2 threshold 
+register
+0EMOD_ITH_REG2
+(Current threshold register)0000_0000 R/W D[7:0]LSB bits of 16 bits SBM2 threshold 
+register
+0FMOD_TMC_REG1 
+(TMC control registers)0000_0000 R/W D[7:0]MSB value of number of data sam-
+ples to be dropped from ADC 
+before sending In terrupt in NOM2
+10MOD_TMC_REG2
+(TMC control register)0000_0000 R/W D[7:0]LSB value of number of data sam-
+ples to be dropped from ADC before sending In terrupt in NOM2
+11 NOM_I
+TH_REG1 0000_0000 R/W D[7:0]Eight MSB bits of NOM2 current 
+threshold register
+12 NOM_ITH_REG2 0000_0000 R/W D[7:0]Eight LSB bits of NOM2 current 
+threshold register
+Analog control registers
+13PGA_CTL_REG
+(PGA control registers)0101_0000 R/WD[7:6]Setting of gain G of current channel 
+PGA. Default is 01 (G = 25)
+00 5
+01 25
+10 40
+11 100
+D[5:4]Setting of gain G in voltage chan-
+nel. Default is 01 (G =25)
+00 501 2510 40
+11 100
+D[3:0] ReservedAddr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 47 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 47 / 63AS8510
+Detailed description
+14PD_CTL_REG_1
+(Power Down Control Register)1100_1111 R/WD[7]0Disable chopper clock to 
+current channel
+1Enable chopper clock to 
+Current channel
+D[6]0Disable Chopper clock to 
+voltage channel
+1Enable chopper clock to 
+voltage channel
+D[5] ReservedD[4] Reserved
+D[3]0Disable current channel 
+PGA
+1Enable current channel 
+PGA
+D[2]0Disable current channel 
+ΣΔ modulator
+1Enable current channel 
+ΣΔ modulator
+D[1]0Disable voltage channel 
+PGA
+1Enable voltage channel 
+PGA
+D[0]0Disable voltage channel 
+ΣΔ modulator
+1Enable voltage channel 
+ΣΔ modulatorAddr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 48 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 48 / 63AS8510
+Detailed description
+15PD_CTL_REG_2
+(Power down control register)1111_0011 R/WD[7]0Disable CIC1 of both 
+channels
+1Enable CIC1 of both 
+channels
+D[6]0Disable CIC2 of both 
+channels
+1Enable CIC2 of both 
+channels
+D[5]0Disable dechopper in both 
+channels
+1Enable dechopper in both 
+channels
+D[4]0Disable FIR in both chan-
+nels
+1Enable FIR in both chan-
+nels
+D[3]0Do not bypass PGA in 
+current channel. Default 0
+1Bypass PGA in current 
+channel
+D[2]0Do not bypass PGA in 
+voltage channel. Default 0
+1Bypass PGA in voltage 
+channel
+D[1]0Disable current channel 
+chopper
+1Enable current channel 
+chopper
+D[0]0Disable voltage channel 
+chopper
+1 Enable voltage channel 
+chopperAddr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 49 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 49 / 63AS8510
+Detailed description
+16PD_CTL_REG_3
+(Power down control register)1111_1000D[7]0Disable common mode 
+reference
+1Enable common mode 
+reference
+D[6]0Disable internal current 
+source
+1Enable internal current 
+source
+D[5]0Disable Internal tempera-
+ture sensor
+1Enable Internal tempera-
+ture sensor
+D[4]Reserved (Default 1). Do not 
+change
+D[3]Reserved (Default 1). Do not 
+change
+D[2]0Data output in binary 
+numbering system
+1Data output in 2’s comple-
+ment numbering system
+D[1]Reserved (Default 0). Do not 
+change
+D[0] ReservedAddr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 50 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 50 / 63AS8510
+Detailed description
+17ACH_CTL_REG
+(Analog channel selection
+register)0000_0000 R/WD[7:6]These bits specify the selection of 
+voltage/temperature in voltage channel. Default is 00 (voltage 
+channel).
+00 Voltage channel
+01External temperature 
+channel ETR
+10External temperature 
+channel ETS
+11Internal temperature 
+channel
+D[5]Reserved (Default 0). Do not 
+change
+D[4]Internal current source switch 
+enable. Default is 0.
+Note: D4 bit is used for enabling 
+current source to the channel selected by bits D[7,6] of this regis-
+ter.
+0 Disabled1 Enabled
+D[3]Enable/disable Internal current 
+source to RSHH pin of current channel
+0 Disabled1 Enabled
+D[2}Enable/disable current source 
+switch to RSHL pin of current chan-nel
+0 Disabled1 Enabled
+D[1:0] ReservedAddr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 51 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 51 / 63AS8510
+Detailed description
+18ISC_CTL_REG
+(Current source setting register)0000_0000 R/WD[7:3]These three bits specify the selec-
+tion of magnitude of current from the Internal current source. Default 
+is 00000 (0 μA).
+00000 0 μA
+00001 8.5 μA
+00010 17 μA
+00100 34.5 μA
+01000 68 μA
+10000 135 μA
+11111 270 μA
+D[2:0] Reserved
+19 OTP_EN_REG 0000_0000 R/WD[7] 1Reserved (default = 1). 
+Do not change
+D[6:0] Reserved 
+44 STATUS_REG_2 0000_0000 RD[7]Status indicating data saturation in 
+current channel
+D[6]Status indicating data saturation in 
+voltage channel
+D[5:0] ReservedAddr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 52 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 52 / 63AS8510
+Detailed description
+Digital signal path control registers for voltage channel
+45 DEC_REG_R1_V 0100_ 0101 R/WD[7]Selection of decimation ratio for 
+voltage/temperature channel.
+Default is 0 (down sampling rate is 
+64)
+0 Down sampling rate is 64
+1Down sampling rate is 
+128
+D[6:5] Division of oversampling clock, 
+which is used as chopper clock. 
+Default is 10 (divide by 512)
+00Chopper clock always 
+high
+01 Divide by 25610 Divide by 512
+11 Divide by 1024
+D[4:1] Decimation ratio of CIC2. Default is 
+0010 (4)
+0000 10001 20010 4
+0011 8
+0100 160101 32
+0110 64
+0111 128
+1000 2561001 5121010 1024
+1011 2048Addr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 53 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 53 / 63AS8510
+Detailed description
+45 DEC_REG_R1_V 0100_ 0101 R/W D[4:1]1100 4096
+1101 8192
+1110 16384
+1111 32768
+D[0]CIC1 saturation interrupt mask con-
+trol. Default is 1
+0 Unmasked1 Masked
+46 DEC_REG_R2_V 0000_0100 R/WD[7:5] Reserved
+D[4]Interrupt mask control for voltage 
+channel data ready. Interrupt on INT 
+pin (Default is 0)
+0 Unmaske1 Masked
+D[3:2]These two bits select the source of 
+output 16-bit data in normal mode from voltage channel. Default is 01
+00 FIR / MA output01 CIC2 output10 Dechop/Demod output
+11 CIC output
+D[1:0] Reserved
+47 FIR CTL_REG_V 0000_0000 R/WD[7]This bit selects FIR / MA filter in 
+voltage channel. Default is 0 (FIR).
+0F I R1M A  f i l t e r
+D[6:3]These bits select the number of 
+data samples for averaging in MA 
+filter in voltage channel. Default is 
+0000 (bypass)
+0000 Bypass0001 1
+0011 3
+0111 7
+1111 15
+D[2:0] ReservedAddr 
+in HEXRegister namePOR value 
+in BINR/W 8-bit control/status data 
+
+--- PAGE 54 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 54 / 63AS8510
+Detailed description
+(1) All the registers from address 0x19 to 0x2C are read-only.
+There is an OTP test lock bit set by factory which locks the write access to all the test registers 
+from 0x1A to 0x2C.
+6.9.1 Standby mode - power consumption
+In standby mode 1 there is a timer based accura te measurement every Ta seconds. The device 
+itself stays in idle-mode as long as it does not get a different command from the SPI interface. Internal oscillator frequency is typically fosc int=262 kHz to reduce power consumption as long 
+as the timer runs. After every time out of Ta seconds, it performs accurate measurement of 
+current, voltage/ temperature. Data ready is signaled to microcontroller through an interrupt signal on INT and goes into STOP state.
+In the SBM the following equations hold:
+•    T
+sbm1 = Ta= 10s (default value is 10s); the power co nsumption is valid for this setting. This 
+is the period of the repetition rate in SBM 1 and SBM2.
+•    Tsett ≈ 2ms (depending on external capacitors). This  is the time required by the analog part 
+to settle when the new measuring period is started. Any measurements performed during 
+Tsett produce invalid results.
+•    T1 = 3ms (by default setting, every third measurem ent is sent to microcontroller in the SBM 
+mode 1) is the time needed to perform the first measurement.
+•    Tmeas =Tsett +T1 is the total active time needed to get a valid result.
+•    DRSBM = Tmeas/Tsbm ≈ 5ms/10s. This is the ratio of repeti tion time versus the active time 
+(Device in NOM mode).
+Power consumption = (DRSBM*NOM mode power consumption)  + ((10s-5ms)/10s)*Stop mode 
+power consumption)
+
+--- PAGE 55 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 55 / 63AS8510
+Detailed description
+6.9.2 Initialization sequence at power ON
+Figure 17: AS8510 device initiali zation sequence at power ON 
+Device initialization starts if the DVDD and AVDD supplies are switched ON and DVDD > 
+VPORHID . The duration period of initialization is 500 μs and during this period, INT pin toggles at 
+the rate of internal low power oscillator. Toggli ng on INT during the period of initialization should 
+be ignored in the system. Device configuration and activation should be carried out only after 
+the initialization period.
+On ADC start, device enters into analog stabili zation state and takes 1.5ms for oscillator and 
+reference to settle. After this 1.5ms period, the first interrupt will occur after a time period of 
+TADC.
+TDATA_STATUS_RD  is the time period during which the micro-controller should complete reading 
+of data and status from the device. If reading is  carried out beyond this time period, then, ADC 
+performance will degrade for next sample generation. Status register gets cleared automatically 
+only when micro-controller reads this register. Data in the channel registers is changed after 
+TDATA_VALID  duration. Ensure that data channel registers and status registers are not read 
+during the TDATA_INVALID  duration.
+Example:
+Configuration registers are set as follows:
+CLK_REG = 8’b0010_0000DEC_REG_R1_I = 0100_0101
+DEC_REG_R2_I = 1100_0101Configure 
+DeviceStart 
+ADCDVDD/AVDD
+POR_N
+INT
+CHOP_CLK
+Channel Data 
+Register0x0000 DATA1 DATA2D1 D2 D3 D4 D1 D2 D3 D4 D1 D2 D3 D4 500µS1.5mS
+TDATA_STATUS_RDTDATA_VALIDTDATA_INVALIDVPORHID /VPORHIA
+TADC
+
+--- PAGE 56 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 56 / 63AS8510
+Detailed description
+FIR_CTL_REG_I = 0000_0100
+ADC is configured to a data rate of 1KHz, CHO P_CLK to 2KHz, and modulator clock to 1MHz, 
+decimation ratio of CIC1 = 64, and decimation ratio of CIC2 = 4. With these settings the various time periods as shown in the Figure 17  are as follows:
+T
+DATA_STATUS_RD  = 100μs
+(TDATA_STATUS_RD  = (1/mod_clk) * R1 * [((mod_clk/(2*chop_clk))*(1/R1)) - 2.5)]
+TDATA_INVALID = 8μs
+TADC = 1ms
+TDATA_VALID  = TADC - TDATA_INVALID  = 1ms - 8 μs
+CHOP_CLK and POR_N are internal signals of the device.
+Table 34  provides valid combinations of modulator clock, chopper clock and decimation R1 and 
+the corresponding values of TDATA_STATUS_RD and TADC.
+Table 34: Valid combinations of modulator clock, chopper clock and decimation ratio R1 
+6.9.3  Soft-reset of device using bit D[7] of reset register 0x09
+It is possible to soft-reset the device by writing “0” into D[7] bit of reset register at 0x09. On 
+applying soft-reset, the device enters into initia lization state and D[6] bit changes back to “1”. 
+The duration period of Initialization is 500 μs, and, during this period, INT pin toggles at the rate 
+of internal low power oscillator. Toggling on INT during the period of initialization should be 
+ignored in the system. Device configuration and activation should be carried out only after the initialization period. See Figure 18  for the timing details of the sequence of device initialization 
+on soft-reset.Modulator 
+clockChopper 
+frequency 
+CHOP_CLKDecimation 
+ratio R1TDATA_STATUS_RDTADC
+R2/(2*CHOP_CLK) 
+for R2=4
+1.024MHz 2KHz 64 1 μs * 64 * [4 - 2.5] = 96 μs1 m s
+2.048MHz 2KHz 64 0.5 μs * 64 * [8 - 2.5] = 176 μs 1ms
+2.048MHz 2KHz 128 0.5 μs * 128 * [4 - 2.5] = 96 μs1 m s
+2.048MHz 4KHz 64 0.5 μs * 64 * [4 - 2.5] = 48 μs0 . 5 m s
+
+--- PAGE 57 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 57 / 63AS8510
+Detailed description
+Figure 18: AS85 10 device initiali zation sequence at soft-reset 
+DATA-N DATA-N+1D4 D1 D2 D3 D4 D1
+TDATA_STATUS_RD
+TDATA_VALIDTDATA_INVALIDRe-Configure 
+DeviceStart ADC
+INT
+CHOP_CLK
+Channel Data 
+Register0x0000 DATA1 DATA2D1 D2 D
+3D4 D1 D2 D3 D4 D1 D2 D3 D4500µS1.5mS
+TDATA_STATUS_RD
+TDATA_VALIDTDATA_INVALIDSoft Reset 
+Using D7
+
+--- PAGE 58 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 58 / 63AS8510
+Detailed description
+6.9.4 Reconfiguring gain setting of PGA
+Only PGA gain settings can be c hanged dynamically while ADC c onversions are in progress. 
+When PGA gain settings are changed, the first sample  from the ADC is invalid. Ignore the first 
+interrupt after the gain re-configuration. Valid data starts from the second interrupt onwards.
+Figure 19: AS8510 - Re-configuration of gain setting of PGA 
+6.9.5 Configuring the device during normal mode
+Following registers can be programmed dynamica lly when the device is in operational mode 
+(normal mode).
+•    ACH_CTL_REG address is 0x17 for channel se lection on the voltage measurement path.
+•    PGA_CTL_REG address is 0x13 for gain setting.
+•    PD_CTL_REG2 address is 0x15 for PGA bypass.
+•    ISC_CTL_REG address is 0x18 for cu rrent source programmability.
+During the operation (normal mode) of the device, if any of the registers need to be 
+programmed or changed other than the above menti oned registers, then it is required to STOP 
+the device by writing into MOD_CTL_REG “STO P” bit and configure the device as per the 
+requirements and start the device.DATA-N DATA-N+1D4 D1 D2 D3 D4
+TDATA_STATUS_RD
+TDATA_VALIDTDATA_INVALIDINT
+CHOP_CLK
+Channel Data 
+RegisterDATA1 DATA2D2 D3 D4 D1 D2 D3 D4 D1 D2 D3 D4
+TDATA_STATUS_RD
+TDATA_VALIDTDATA_INVALIDD1TDATA_STATUS_RDGain Re-Configuration can be 
+carried out in this slot, skip next 
+interrupt and Channel Data.Read Channel 
+data in this slotVALID 
+DATA
+
+--- PAGE 59 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 59 / 63AS8510
+Detailed description
+6.10 Low side current measurement application
+Figure 20: Application diagram 
+AS8510
+20 pin
+(SSOP20)
+VBAT _GNDVBAT _INETSETRAVSSAVDDVCMREFRSHLRSHH INT
+CLK
+SDI
+MEN
+CHOP_CLK
+DVDD
+DVSS
+SDO
+SCLK
+CS100nF
+100nF
++12V481 R
+R
+12V 
+Battery+-100 µohm
+Load1µF1µF
+µC
+Note : On ETR connect constant resistor (temp co = 0)
+On ETS connect Temperature sensor (use sensor resistor more than 10K)3.3V
+3.3V
+
+--- PAGE 60 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 60 / 63AS8510
+Package drawings & markings
+7 Package drawings & markings 
+The product is available in a 20-pin SSOP package.
+Figure 21: Drawings and dimensions 
+(1) Dimensions & tolerancing conform to ASME Y14.5M-1994.
+(2) All dimensions are in mill imeters. Angles are in degrees.
+Symbol Min Nom Max
+A- - 2 . 0 0
+A1 0.05 - -A2 1.65 1.75 1.85
+b 0.22 - 0.38
+c 0.09 - 0.25
+D 6.90 7.20 7.50
+E 7.40 7.80 8.20
+E1 5.00 5.30 5.60
+e - 0.65 BSC -
+L 0.55 0.75 0.95
+L1 - 1.25 REF -L2 - 0.25 BSC -
+R0 . 0 9 - -
+θ 0º 4º 8º
+N2 0YYWWMZZ
+18320AS8510   @
+
+--- PAGE 61 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 61 / 63AS8510
+Package drawings & markings
+Table 35: Marking: @YYWWMZZ 
+7.1 Recommended PCB footprint
+Figure 22: PCB footprint   @Y Y W W M Z Z
+Sublot identifier Last two digits of the current yearManufacturing 
+week Assembly plant 
+identifierLetters of 
+free choice
+Recommended footprint data
+Symbol mm
+A9 . 0 2
+B6 . 1 6
+C0 . 4 6D0 . 6 5
+E6 . 3 1
+
+
+--- PAGE 62 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 62 / 63AS8510
+Revision information
+8 Revision information
+Other definitions
+Draft / Preliminary:
+The draft / preliminary status of a document indicates that t he content is still under internal review and subject to change wi thout notice. ams-OSRAM 
+AG does not give any warranties as to the accuracy or completeness of information included in a draft / preliminary version of a document and shall 
+have no liability for the consequences of use of such information.
+Short Datasheet:
+A short datasheet is intended for quick reference only, it is an  extract from a full datasheet with the same product number(s) and title. For detailed and 
+full information always see the relevant full datasheet. In case of any inconsistency or conflict with the short datasheet, the  full datasheet shall prevail.
+•Page and figure numbers for the previous version may di ffer from page and figure numbers in the current revision.
+•Correction of typographical errors  is not explicitly mentioned.Document status Product status Definition
+Product Preview Pre-Development Information in this data sheet is based on product i deas in the planning phase of 
+development. All specifications are des ign goals without any warranty and are 
+subject to change without notice
+Preliminary Datasheet Pre-Production Information in this data sheet is based on products in the design, validation or 
+qualification phase of development. The performance and parameters shown in this document are preliminary without any warranty and are subject to change without notice
+Datasheet Production Information in this datasheet is based on products in ramp-up to full production or 
+full production which conform to specifications in accordance with the terms of ams-OSRAM AG standard warranty as given in the General Terms of Trade
+Changes from previous version v3.8 to current revision v4-00 Page
+Update to new ams OSRAM datasheet template
+Updated column name to “POR value in BIN” in control registers  40
+
+--- PAGE 63 ---
+
+Datasheet ● PUBLIC ● Document Feedback
+v4-00 ● 2023-Oct-23 63 / 63AS8510
+Legal information
+9 Legal information
+Copyright & disclaimer
+Copyright ams-OSRAM AG, Tobelbader Strasse 30, 8141 Premstaetten, Austria-Europe. Trademarks Registered. All rights reserved. T he material 
+herein may not be reproduced, adapted, merged, translated, stored , or used without the prior written consent of the copyright o wner.
+Devices sold by ams-OSRAM AG are covered by the warranty and pat ent indemnification provisions a ppearing in its General Terms o f Trade. 
+ams-OSRAM AG makes no warranty, express, statutory, implied, or by description regarding the information set forth herein. ams- OSRAM AG 
+reserves the right to change specifications and prices at any time and without notice. Therefore, prior to designing this produ ct into a system, it is 
+necessary to check with ams-OSRAM AG for current information. This product is intended for use in commercial applications. Appl ications requiring 
+extended temperature range, unusual environmental requirements, or high reliability applications, such as military, medical lif e-support or 
+life-sustaining equipment are specifically not recommended without  additional processing by ams-OSRAM AG for each application. This product is 
+provided by ams-OSRAM AG “AS IS” and any express or implied warranties, including, but not limited to the implied warranties of  merchantability and 
+fitness for a particular purpose are disclaimed.
+ams-OSRAM AG shall not be liable to recipient or any third part y for any damages, including but not limited to personal injury,  property damage, loss of 
+profits, loss of use, interruption of business or indirect, spec ial, incidental or consequential damages, of any kind, in conne ction with or arising out of the 
+furnishing, performance or use of the techni cal data herein. No obligation or liability to recipient or any third party shall a rise or flow out of 
+ams-OSRAM AG rendering of technical or other services.
+Product and functional safety devices/applications or medical devices/applications:
+ams-OSRAM AG components are not developed, constructed or tested for the application as safety relevant component or for the ap plication in 
+medical devices. ams-OSRAM AG products are not qualified at module and system level for such application.
+In case buyer – or customer supplied by buyer – considers using ams-OSRAM AG components in product safety devices/applications or medical 
+devices/applications, buyer and/or customer has to inform the loca l sales partner of ams-OSRAM AG immediately and ams-OSRAM AG and buyer and 
+/or customer will analyze and coordinate the customer-specific request between ams-OSRAM AG and buyer and/or customer.
+ams OSRAM semiconductor RoHS compliance statement
+RoHS compliant:  The term RoHS compliant means that ams-OSRAM AG semiconduct or products fully comply with current RoHS directives. Our 
+semiconductor products do not contain any c hemicals for all 6 substance categories plus additional 4 substance categories (per amendment EU 2015/
+863), including the requirement that lead not exceed 0.1% by weight in homogeneous materials.
+Important information:  The information provided in this statement represents ams-OSRAM AG knowledge and belief as of the date that it is provided. 
+ams-OSRAM AG bases its knowledge and belief on information prov ided by third parties, and makes no representation or warranty a s to the accuracy 
+of such information. Efforts are underway to better integrate information from third parties. ams-OSRAM AG has taken and contin ues to take 
+reasonable steps to provide representative and accurate informati on but may not have conducted destr uctive testing or chemical analysis on incoming 
+materials and chemicals. ams-OSRAM AG and ams-OSRAM AG suppliers consider certain information to be proprietary, and thus CAS n umbers and 
+other limited information may not be available for release.
+                                                                                                 Headquarters Please visit our website at  ams-osram.com
+ams-OSRAM AG For information about our products go to Products
+Tobelbader Strasse 30 For technical support use our Technical Support Form
+8141 Premstaetten   For feedback about this document use Document Feedback
+Austria, Europe For sales offices and branches go to Sales Offices / Branches
+Tel: +43 (0) 3136 500 0 For distributors and sales representatives go to Channel Partners
+
+--- PAGE 64 ---
+
+Mouser Electronics
+  
+Authorized Distributor
+ 
+  
+Click to View Pricing, Inventory, Delivery & Lifecycle Information:
+ 
+ 
+ 
+ 
+ams OSRAM:
+  
+ 
+  AS8510-ASSM  AS8510-ASSP
