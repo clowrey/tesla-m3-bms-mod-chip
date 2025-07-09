@@ -7,7 +7,7 @@ esphome:
     then:
       - lambda: |-
           // Test display with a simple message
-          lv_label_set_text((lv_obj_t*)id(label_title), "Display Test - Working!");
+          lv_label_set_text((lv_obj_t*)id(label_title), "System Overview");
           lv_label_set_text((lv_obj_t*)id(label_cells), "Backlight: ON");
           lv_label_set_text((lv_obj_t*)id(label_connected), "Status: OK");
           ESP_LOGI("DISPLAY", "Display labels updated");
@@ -45,7 +45,7 @@ psram:
 
 # Enable logging
 logger:
-  level: INFO
+  level: ERROR
   hardware_uart: USB_SERIAL_JTAG
 
 # WiFi configuration
@@ -218,19 +218,28 @@ lvgl:
             layout:
               pad_column: 2
               type: GRID
-              grid_rows: [FR(40), FR(28), FR(28), FR(28), FR(28), FR(28), FR(40), FR(40)]
+              grid_rows: [FR(35), FR(25), FR(25), FR(25), FR(25), FR(25), FR(25), FR(25), FR(35)]
               grid_columns: [FR(240), FR(240)]
             widgets:
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 0
-                  grid_cell_column_span: 2
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: label_title
-                  align: CENTER
+                  align: LEFT_MID
                   text: "M3Y BMS MOD Interface"
                   text_color: white
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 0
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_time
+                  align: RIGHT_MID
+                  text: "00:00:00"
+                  text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 1
@@ -301,13 +310,23 @@ lvgl:
                   grid_cell_row_pos: 4
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
-                  id: label_chip_voltages
+                  id: label_current
                   align: RIGHT_MID
-                  text: "Chips: --.--V"
+                  text: "Current: 0.00A"
+                  text_color: white
+
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 5
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_as8510_temp
+                  align: RIGHT_MID
+                  text: "AS8510: 0.0°C"
                   text_color: white
               - label:
                   grid_cell_column_pos: 0
-                  grid_cell_row_pos: 5
+                  grid_cell_row_pos: 6
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: label_loop
@@ -317,7 +336,7 @@ lvgl:
                   text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 1
-                  grid_cell_row_pos: 5
+                  grid_cell_row_pos: 6
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: label_temp
@@ -327,7 +346,7 @@ lvgl:
                   text_font: montserrat_12
               - button:
                   grid_cell_column_pos: 0
-                  grid_cell_row_pos: 6
+                  grid_cell_row_pos: 7
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: btn_balance_on
@@ -343,7 +362,7 @@ lvgl:
                         data: "balance on\n"
               - button:
                   grid_cell_column_pos: 1
-                  grid_cell_row_pos: 6
+                  grid_cell_row_pos: 7
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: btn_balance_off
@@ -357,9 +376,11 @@ lvgl:
                     - uart.write:
                         id: tesla_bms_uart_uart
                         data: "balance off\n"
+
               - button:
                   grid_cell_column_pos: 0
-                  grid_cell_row_pos: 7
+                  grid_cell_row_pos: 8
+                  grid_cell_column_span: 2
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: btn_next_page
@@ -371,15 +392,6 @@ lvgl:
                         text_color: white
                   on_short_click:
                     - lvgl.page.next:
-              - label:
-                  grid_cell_column_pos: 1
-                  grid_cell_row_pos: 7
-                  grid_cell_x_align: STRETCH
-                  grid_cell_y_align: STRETCH
-                  id: label_time
-                  align: CENTER
-                  text: "00:00:00"
-                  text_color: white
 
     # Battery Details Page
     - id: details_page
@@ -407,13 +419,22 @@ lvgl:
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 0
-                  grid_cell_column_span: 2
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: label_details_title
-                  align: CENTER
+                  align: LEFT_MID
                   text: "Battery Details"
                   text_color: 0x00CCFF
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 0
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_details_time
+                  align: RIGHT_MID
+                  text: "00:00:00"
+                  text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 1
@@ -577,11 +598,19 @@ lvgl:
       widgets:
         # Title and scale labels
         - label:
-            align: TOP_MID
-            x: 0
+            align: TOP_LEFT
+            x: 10
             y: 5
             text: "Cell Voltages (V)"
             text_color: 0x00CCFF
+        - label:
+            align: TOP_RIGHT
+            x: -10
+            y: 5
+            id: label_cells_time
+            text: "00:00:00"
+            text_color: white
+            text_font: montserrat_12
         - label:
             align: TOP_LEFT
             x: 10
@@ -743,13 +772,7 @@ lvgl:
             id: label_cells_info
             text: "All 108 Cells (Real BMS Data)"
             text_color: white
-        - label:
-            align: BOTTOM_RIGHT
-            x: -5
-            y: -5
-            id: label_cells_time
-            text: "00:00:00"
-            text_color: white
+
         
         # Color Legend/Index
         - label:
@@ -990,6 +1013,20 @@ sensor:
     unit_of_measurement: "status"
     accuracy_decimals: 0
 
+  # Current sensor (AS8510)
+  - platform: template
+    name: "BMS Current"
+    id: bms_current
+    unit_of_measurement: "A"
+    accuracy_decimals: 2
+
+  # AS8510 IC temperature sensor
+  - platform: template
+    name: "AS8510 Temperature"
+    id: as8510_temp
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+
 # Text sensor for balance cell list
 text_sensor:
   - platform: template
@@ -1022,11 +1059,11 @@ interval:
                     buffer.find_first_not_of("= -+*") == std::string::npos) {
                   ESP_LOGV("BMS", "Skipping non-parameter line: %s", buffer.c_str());
                 } else {
-                  // Parse the line in format "param: value" (BMS uses colon format)
-                  size_t pos = buffer.find(": ");
+                  // Parse the line in format "param=value" (BMS uses equals format)
+                  size_t pos = buffer.find("=");
                   if (pos != std::string::npos) {
                     std::string param = buffer.substr(0, pos);
-                    std::string value_str = buffer.substr(pos + 2); // Skip ": "
+                    std::string value_str = buffer.substr(pos + 1); // Skip "="
                     
                     // Trim whitespace
                     param.erase(0, param.find_first_not_of(" \t\r\n"));
@@ -1038,17 +1075,21 @@ interval:
                     if (!param.empty()) {
                   
                                       // Debug: Show what we're trying to parse
-                    ESP_LOGI("BMS", "PARSING: param='%s' value_str='%s' (from line: %s)", param.c_str(), value_str.c_str(), buffer.c_str());
+                    ESP_LOGI("BMS", "DEBUG: PARSING: param='%s' value_str='%s' (from line: %s)", param.c_str(), value_str.c_str(), buffer.c_str());
                     
                     // Validate that value_str is not empty and looks like a number
                     if (!value_str.empty() && (isdigit(value_str[0]) || value_str[0] == '.' || value_str[0] == '-')) {
                       float value = atof(value_str.c_str());
-                      ESP_LOGI("BMS", "PARSED VALUE: %s = %f", param.c_str(), value);
+                      ESP_LOGI("BMS", "DEBUG: PARSED VALUE: %s = %f", param.c_str(), value);
                   
                                         // Update corresponding sensors - All parameter names now match BMS exactly
                       // Note: Skip 5V (5000mV) initialization values to prevent sending misleading data to Home Assistant
                       bool sensor_updated = false;
-                      if (param == "numbmbs") { id(numbmbs).publish_state(value); sensor_updated = true; }
+                      if (param == "numbmbs") { 
+                        ESP_LOGI("BMS", "DEBUG: UPDATING numbmbs = %f", value);
+                        id(numbmbs).publish_state(value); 
+                        sensor_updated = true; 
+                      }
                       else if (param == "LoopCnt") { id(loopcnt).publish_state(value); sensor_updated = true; }
                       else if (param == "LoopState") { id(loopstate).publish_state(value); sensor_updated = true; }
                       else if (param == "CellsPresent") { id(cellspresent).publish_state(value); sensor_updated = true; }
@@ -1076,7 +1117,11 @@ interval:
                         sensor_updated = true; 
                       }
                       else if (param == "deltaV") { id(deltav).publish_state(value / 1000.0); sensor_updated = true; }
-                      else if (param == "uavg") { id(uavg).publish_state(value / 1000.0); sensor_updated = true; }
+                      else if (param == "uavg") { 
+                        ESP_LOGI("BMS", "DEBUG: UPDATING uavg = %f V", value / 1000.0);
+                        id(uavg).publish_state(value / 1000.0); 
+                        sensor_updated = true; 
+                      }
                       else if (param == "udc") { id(udc).publish_state(value); sensor_updated = true; }
                       else if (param == "Chipt0") { id(chipt0).publish_state(value); sensor_updated = true; }
                       else if (param == "Cellt0_0") { id(cellt0_0).publish_state(value); sensor_updated = true; }
@@ -1088,6 +1133,16 @@ interval:
                       else if (param == "ChipV2") { id(chipv2).publish_state(value); sensor_updated = true; }
                       else if (param == "ChipV3") { id(chipv3).publish_state(value); sensor_updated = true; }
                       else if (param == "ChipV4") { id(chipv4).publish_state(value); sensor_updated = true; }
+                      else if (param == "current") { 
+                        ESP_LOGI("BMS", "DEBUG: UPDATING current = %f A", value);
+                        id(bms_current).publish_state(value); 
+                        sensor_updated = true; 
+                      }
+                      else if (param == "as8510_temp") { 
+                        ESP_LOGI("BMS", "DEBUG: UPDATING as8510_temp = %f °C", value);
+                        id(as8510_temp).publish_state(value); 
+                        sensor_updated = true; 
+                      }
                       
                       // Handle special case for BalanceCellList (string parameter)
                       if (!sensor_updated && param == "BalanceCellList") {
@@ -1102,6 +1157,7 @@ interval:
                         if (value == 5000.0) {
                           ESP_LOGI("BMS", "Skipping 5V initialization value for %s", param.c_str());
                         } else {
+                          ESP_LOGI("BMS", "DEBUG: UPDATING u1 = %f V", value / 1000.0);
                           id(u1).publish_state(value / 1000.0); 
                         }
                         sensor_updated = true; 
@@ -1180,6 +1236,7 @@ interval:
                       }
                       // Handle remaining cell voltages u11-u108 with 5V initialization check
                       else if (param.substr(0,1) == "u" && param.length() >= 2) {
+                        ESP_LOGI("BMS", "DEBUG: Processing cell voltage %s = %f", param.c_str(), value);
                         // This handles all cell voltage parameters (u11, u12, ..., u108)
                         // Skip 5V initialization values (5000mV)
                         if (value == 5000.0) {
@@ -1292,9 +1349,9 @@ interval:
                       }
                       
                                              if (sensor_updated) {
-                         ESP_LOGI("BMS", "SENSOR UPDATED: %s = %f", param.c_str(), value);
+                         ESP_LOGI("BMS", "DEBUG: SENSOR UPDATED: %s = %f", param.c_str(), value);
                        } else {
-                         ESP_LOGW("BMS", "UNKNOWN PARAMETER: %s", param.c_str());
+                         ESP_LOGW("BMS", "DEBUG: UNKNOWN PARAMETER: %s", param.c_str());
                        }
                       } else {
                         ESP_LOGW("BMS", "Invalid value for parameter %s: '%s'", param.c_str(), value_str.c_str());
@@ -1303,7 +1360,7 @@ interval:
                       ESP_LOGV("BMS", "Empty parameter name in line: %s", buffer.c_str());
                     }
                   } else {
-                    ESP_LOGV("BMS", "Line without ': ' separator: %s", buffer.c_str());
+                    ESP_LOGV("BMS", "Line without '=' separator: %s", buffer.c_str());
                   }
                 }
                 buffer.clear();
@@ -1319,8 +1376,8 @@ interval:
             }
           }
   
-  # Slower interval for parameter requests and display updates
-  - interval: 5s
+  # Faster interval for parameter requests and display updates (increased from 5s to 1s)
+  - interval: 1s
     then:
       # Request system parameters
       - lambda: 'ESP_LOGI("BMS", "SENDING: param get numbmbs");'
@@ -1447,6 +1504,16 @@ interval:
       - uart.write:
           id: tesla_bms_uart_uart
           data: "param get ChipV4\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get current");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get current\n"
+      - delay: 100ms
+      - lambda: 'ESP_LOGI("BMS", "SENDING: param get as8510_temp");'
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "param get as8510_temp\n"
       - delay: 100ms
 
   # Separate faster interval for individual cell voltage requests (every 10 seconds)
@@ -1747,14 +1814,6 @@ interval:
           }
           lv_label_set_text((lv_obj_t*)id(label_delta), buffer);
           
-          // Update average voltage display on main page
-          if (id(uavg).has_state()) {
-            snprintf(buffer, sizeof(buffer), "Avg: %.3fV", id(uavg).state);
-          } else {
-            snprintf(buffer, sizeof(buffer), "Avg: --.---V");
-          }
-          lv_label_set_text((lv_obj_t*)id(label_avg_display), buffer);
-          
           // Update temperature - check for valid data
           if (id(chipt0).has_state()) {
             snprintf(buffer, sizeof(buffer), "Temp: %.1f°C", 
@@ -1883,49 +1942,43 @@ interval:
             id(cell_sum_voltage).publish_state(cell_sum);
           }
           
-          // Update pack voltage display (from BMS DC voltage)
-          if (id(udc).has_state()) {
-            snprintf(buffer, sizeof(buffer), "Pack: %.2fV", id(udc).state);
+          // Update average voltage display on main page - calculate from cell sum
+          float avg_voltage = 0.0f;
+          if (valid_cells > 0) {
+            avg_voltage = cell_sum / valid_cells;
+            snprintf(buffer, sizeof(buffer), "Avg: %.3fV", avg_voltage);
+          } else if (id(uavg).has_state() && id(uavg).state > 0.1f) {
+            snprintf(buffer, sizeof(buffer), "Avg: %.3fV", id(uavg).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Avg: --.---V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_avg_display), buffer);
+          
+          // Update pack voltage display (from cell sum)
+          if (valid_cells > 0) {
+            snprintf(buffer, sizeof(buffer), "Pack: %.2fV", cell_sum);
           } else {
             snprintf(buffer, sizeof(buffer), "Pack: --.--V");
           }
           lv_label_set_text((lv_obj_t*)id(label_pack_voltage), buffer);
           
-          // Update chip voltages display (show range or average)
-          float chip_min = 999.0f, chip_max = 0.0f;
-          int valid_chips = 0;
+
           
-          if (id(chipv1).has_state() && id(chipv1).state > 0.1f) {
-            chip_min = std::min(chip_min, id(chipv1).state);
-            chip_max = std::max(chip_max, id(chipv1).state);
-            valid_chips++;
-          }
-          if (id(chipv2).has_state() && id(chipv2).state > 0.1f) {
-            chip_min = std::min(chip_min, id(chipv2).state);
-            chip_max = std::max(chip_max, id(chipv2).state);
-            valid_chips++;
-          }
-          if (id(chipv3).has_state() && id(chipv3).state > 0.1f) {
-            chip_min = std::min(chip_min, id(chipv3).state);
-            chip_max = std::max(chip_max, id(chipv3).state);
-            valid_chips++;
-          }
-          if (id(chipv4).has_state() && id(chipv4).state > 0.1f) {
-            chip_min = std::min(chip_min, id(chipv4).state);
-            chip_max = std::max(chip_max, id(chipv4).state);
-            valid_chips++;
-          }
-          
-          if (valid_chips > 0) {
-            if (valid_chips == 1) {
-              snprintf(buffer, sizeof(buffer), "Chip: %.2fV", chip_max);
-            } else {
-              snprintf(buffer, sizeof(buffer), "Chips: %.1f-%.1fV", chip_min, chip_max);
-            }
+          // Update current display
+          if (id(bms_current).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Current: %.2fA", id(bms_current).state);
           } else {
-            snprintf(buffer, sizeof(buffer), "Chips: --.--V");
+            snprintf(buffer, sizeof(buffer), "Current: --.--A");
           }
-          lv_label_set_text((lv_obj_t*)id(label_chip_voltages), buffer);
+          lv_label_set_text((lv_obj_t*)id(label_current), buffer);
+          
+          // Update AS8510 temperature display
+          if (id(as8510_temp).has_state()) {
+            snprintf(buffer, sizeof(buffer), "AS8510: %.1f°C", id(as8510_temp).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "AS8510: --°C");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_as8510_temp), buffer);
           
           // Update loop info - check for valid data
           if (id(loopcnt).has_state() && id(loopstate).has_state()) {
@@ -1951,12 +2004,17 @@ interval:
             snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", 
                      time.hour, time.minute, time.second);
             lv_label_set_text((lv_obj_t*)id(label_time), buffer);
+            lv_label_set_text((lv_obj_t*)id(label_details_time), buffer);
             lv_label_set_text((lv_obj_t*)id(label_cells_time), buffer);
           }
           
           // Update second page (Battery Details) labels
-          // Average voltage
-          if (id(uavg).has_state()) {
+          // Average voltage - calculate from cell sum or use uavg parameter
+          float details_avg_voltage = 0.0f;
+          if (valid_cells > 0) {
+            details_avg_voltage = cell_sum / valid_cells;
+            snprintf(buffer, sizeof(buffer), "Avg: %.3fV", details_avg_voltage);
+          } else if (id(uavg).has_state() && id(uavg).state > 0.1f) {
             snprintf(buffer, sizeof(buffer), "Avg: %.3fV", id(uavg).state);
           } else {
             snprintf(buffer, sizeof(buffer), "Avg: --.---V");

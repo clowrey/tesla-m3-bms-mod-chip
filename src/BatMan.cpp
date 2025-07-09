@@ -569,8 +569,17 @@ void BATMan::GetData(uint8_t ReqID)
                 {
                     Voltage[h][g] = tempvol / 12.5;
                 }
+                
+                // Enhanced debugging for Register B (cells 4-6)
+                if (_registerDebugEnabled) {
+                    Serial.printf("  Chip %d, Reg %d: Raw=0x%04X (%5u) -> %.1fmV %s\n", 
+                        h, g, tempvol, tempvol, 
+                        (tempvol != 0xffff) ? Voltage[h][g] : 0.0f,
+                        (tempvol == 0xffff) ? "(INVALID)" : (tempvol == 0) ? "(ZERO/DEAD)" : "(VALID)");
+                }
             }
         }
+        if (_registerDebugEnabled) Serial.println();
         break;
 
     case 0x49:
@@ -586,8 +595,17 @@ void BATMan::GetData(uint8_t ReqID)
                 {
                     Voltage[h][g] = tempvol / 12.5 ;
                 }
+                
+                // Enhanced debugging for Register C (cells 7-9)
+                if (_registerDebugEnabled) {
+                    Serial.printf("  Chip %d, Reg %d: Raw=0x%04X (%5u) -> %.1fmV %s\n", 
+                        h, g, tempvol, tempvol, 
+                        (tempvol != 0xffff) ? Voltage[h][g] : 0.0f,
+                        (tempvol == 0xffff) ? "(INVALID)" : (tempvol == 0) ? "(ZERO/DEAD)" : "(VALID)");
+                }
             }
         }
+        if (_registerDebugEnabled) Serial.println();
         break;
 
     case 0x4A:
@@ -603,8 +621,17 @@ void BATMan::GetData(uint8_t ReqID)
                 {
                     Voltage[h][g] = tempvol / 12.5;
                 }
+                
+                // Enhanced debugging for Register D (cells 10-12)
+                if (_registerDebugEnabled) {
+                    Serial.printf("  Chip %d, Reg %d: Raw=0x%04X (%5u) -> %.1fmV %s\n", 
+                        h, g, tempvol, tempvol, 
+                        (tempvol != 0xffff) ? Voltage[h][g] : 0.0f,
+                        (tempvol == 0xffff) ? "(INVALID)" : (tempvol == 0) ? "(ZERO/DEAD)" : "(VALID)");
+                }
             }
         }
+        if (_registerDebugEnabled) Serial.println();
         break;
 
     case 0x4B:
@@ -620,8 +647,17 @@ void BATMan::GetData(uint8_t ReqID)
                 {
                     Voltage[h][g] = tempvol / 12.5;
                 }
+                
+                // Enhanced debugging for Register E (cells 13-15)
+                if (_registerDebugEnabled) {
+                    Serial.printf("  Chip %d, Reg %d: Raw=0x%04X (%5u) -> %.1fmV %s\n", 
+                        h, g, tempvol, tempvol, 
+                        (tempvol != 0xffff) ? Voltage[h][g] : 0.0f,
+                        (tempvol == 0xffff) ? "(INVALID)" : (tempvol == 0) ? "(ZERO/DEAD)" : "(VALID)");
+                }
             }
         }
+        if (_registerDebugEnabled) Serial.println();
         break;
 
     case 0x4C:
@@ -853,7 +889,7 @@ void BATMan::upDateCellVolts(void)
     // -AI- Process all cells across all BMB chips
     while (h <= 108)
     {
-        if(Yc < 14) //Check actual measurement present
+        if(Yc < 15) //Check actual measurement present (include register 14)
         {
             if(Voltage[Xr][Yc] > 10) //Check actual measurement present
             {
@@ -935,15 +971,24 @@ void BATMan::upDateCellVolts(void)
     Serial.printf("Voltage Delta: %.3fV\n", (CellVMax-CellVMin)/1000.0);
     Serial.printf("Cells Balancing: %d\n", CellBalancing);
     
-    // Calculate sum of all cell voltages
+    // Calculate sum of all cell voltages by dynamically counting all present cells
     float totalCellVoltage = 0;
-    for (int i = 0; i < Param::GetInt(Param::CellsPresent); i++) {
-        float cellVoltage = Param::GetFloat((Param::PARAM_NUM)(Param::u1 + i));
-        if (cellVoltage > 0) {  // Only include if cell is present
-            totalCellVoltage += cellVoltage;
+    int actualCellCount = 0;
+    for (int chip = 0; chip < ChipNum; chip++) {
+        for (int reg = 0; reg < 15; reg++) {
+            if (Voltage[chip][reg] > 10) { // Cell is present
+                totalCellVoltage += Voltage[chip][reg];
+                actualCellCount++;
+            }
         }
     }
     Serial.printf("Total Cell Voltage Sum: %.3fV\n", totalCellVoltage/1000.0);
+    
+    // Debug: Show cell count discrepancy if any
+    if (actualCellCount != Param::GetInt(Param::CellsPresent)) {
+        Serial.printf("⚠️  Cell Count Mismatch: Parameter=%d, Actual=%d (FIXED)\n", 
+            Param::GetInt(Param::CellsPresent), actualCellCount);
+    }
     
     // Print individual cell voltages with hardware position mapping
     Serial.println("\nIndividual Cell Voltages (Sequential# -> Chip:Register):");
@@ -1048,28 +1093,31 @@ void BATMan::upDateAuxVolts(void)
     }
 
     // -AI- Calculate average cell voltage from sum of individual cell voltages (more accurate than using pack voltage)
-    // -AI- Sum all individual cell voltages and divide by number of cells
+    // -AI- Dynamically count and sum all present cells
     float totalCellVoltage = 0;
-    int cellCount = Param::GetInt(Param::CellsPresent);
-    for (int i = 0; i < cellCount; i++) {
-        float cellVoltage = Param::GetFloat((Param::PARAM_NUM)(Param::u1 + i));
-        if (cellVoltage > 10) {  // Only include cells with valid readings (> 10mV)
-            totalCellVoltage += cellVoltage;
+    int cellCount = 0;
+    for (int chip = 0; chip < ChipNum; chip++) {
+        for (int reg = 0; reg < 15; reg++) {
+            if (Voltage[chip][reg] > 10) { // Cell is present
+                totalCellVoltage += Voltage[chip][reg];
+                cellCount++;
+            }
         }
     }
     // Calculate average and store in mV
     if (cellCount > 0) {
-        Param::SetInt(Param::uavg, (int)(totalCellVoltage / cellCount));
+        float avgVoltage = totalCellVoltage / cellCount;
+        Param::SetFloat(Param::uavg, avgVoltage);
     } else {
-        Param::SetInt(Param::uavg, 0);
+        Param::SetFloat(Param::uavg, 0);
     }
 
     //Set Charge and discharge voltage limits !!! Update with configrable
-    // -AI- Calculate charge and discharge voltage limits
-    // -AI- Charge limit = Max cell voltage * Number of cells
-    // -AI- Discharge limit = Min cell voltage * Number of cells
-    Param::SetFloat(Param::chargeVlim,(Param::GetInt(Param::CellVmax)*0.001*Param::GetInt(Param::CellsPresent)));
-    Param::SetFloat(Param::dischargeVlim,(Param::GetInt(Param::CellVmin)*0.001*Param::GetInt(Param::CellsPresent)));
+    // -AI- Calculate charge and discharge voltage limits using dynamic cell count
+    // -AI- Charge limit = Max cell voltage * Number of actual cells present
+    // -AI- Discharge limit = Min cell voltage * Number of actual cells present
+    Param::SetFloat(Param::chargeVlim,(Param::GetInt(Param::CellVmax)*0.001*cellCount));
+    Param::SetFloat(Param::dischargeVlim,(Param::GetInt(Param::CellVmin)*0.001*cellCount));
 
     // Print auxiliary voltage information
     Serial.println("=== Auxiliary Voltage Information ===");
@@ -1254,7 +1302,14 @@ bool BATMan::checkSPIConnection() {
 void BATMan::printHardwareMapping() const {
     Serial.println("\n=== COMPLETE BMB Register Debug (All Channels) ===");
     Serial.printf("Number of BMB chips configured: %d\n", ChipNum);
-    Serial.printf("Cell validity threshold: >10mV (>0.010V)\n\n");
+    Serial.printf("Cell validity threshold: >10mV (>0.010V)\n");
+    Serial.println("BMB Register Mapping:");
+    Serial.println("  0x47 (A): Registers 0-2   (Cells 1-3)");
+    Serial.println("  0x48 (B): Registers 3-5   (Cells 4-6)");
+    Serial.println("  0x49 (C): Registers 6-8   (Cells 7-9)");
+    Serial.println("  0x4A (D): Registers 9-11  (Cells 10-12)");
+    Serial.println("  0x4B (E): Registers 12-14 (Cells 13-15)");
+    Serial.println();
     
     int sequentialCell = 1;
     int validCells = 0;
@@ -1269,7 +1324,15 @@ void BATMan::printHardwareMapping() const {
             float voltage = rawValue / 1000.0;
             totalRegisters++;
             
-            Serial.printf("│ Reg %2d: %5dmV (%6.3fV) ", reg, rawValue, voltage);
+            // Map register to BMB command
+            const char* bmbReg = "???";
+            if (reg >= 0 && reg <= 2) bmbReg = "0x47";
+            else if (reg >= 3 && reg <= 5) bmbReg = "0x48";
+            else if (reg >= 6 && reg <= 8) bmbReg = "0x49";
+            else if (reg >= 9 && reg <= 11) bmbReg = "0x4A";
+            else if (reg >= 12 && reg <= 14) bmbReg = "0x4B";
+            
+            Serial.printf("│ Reg %2d (%s): %5dmV (%6.3fV) ", reg, bmbReg, rawValue, voltage);
             
             if (rawValue > 10) {
                 Serial.printf("-> Cell %2d ✓ VALID", sequentialCell);

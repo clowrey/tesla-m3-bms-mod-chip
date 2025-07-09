@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "BatMan.h"
-#include <TFT_eSPI.h>
+// #include <TFT_eSPI.h>  // DISABLED to avoid SPI conflicts
 #include <SPI.h>
 #include "../AS8510-library/as8510.h"
 #include <HardwareSerial.h>
@@ -26,7 +26,7 @@ Available commands:
   */
 
 BATMan batman;
-TFT_eSPI tft = TFT_eSPI();
+// TFT_eSPI tft = TFT_eSPI();  // DISABLED to avoid SPI conflicts
 
 /* Tesla Shunt Debug Header Pinout
 
@@ -305,16 +305,22 @@ void setEconomizerDutyCycle(uint8_t dutyCycle) {
 }
 
 void updateDisplay(uint8_t currentDutyCycle) {
-    // Get current values
+    // TFT Display disabled to avoid SPI conflicts - all display code commented out
+    
+    // Get current values (still needed for serial output)
     float minVoltage = batman.getMinVoltage() / 1000.0; // Convert mV to V
     float maxVoltage = batman.getMaxVoltage() / 1000.0; // Convert mV to V
     int minCell = batman.getMinCell();
     int maxCell = batman.getMaxCell();
     
+    // Get average cell voltage from parameter system
+    float avgVoltage = Param::GetFloat(Param::uavg) / 1000.0; // Convert mV to V
+    
     // Get balancing information
     BATMan::BalancingInfo balanceInfo = batman.getBalancingInfo();
 
-        
+    // All TFT display code commented out to avoid SPI conflicts
+    /*
     // Clear the display
     tft.fillScreen(TFT_BLACK);
     
@@ -409,6 +415,7 @@ void updateDisplay(uint8_t currentDutyCycle) {
         tft.print("None");
     }
     tft.setTextColor(TFT_WHITE, TFT_BLACK); // Reset text color
+    */
     
     // Update previous values
     prevMinVoltage = minVoltage;
@@ -425,8 +432,10 @@ void updateParametersFromBATMan() {
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 15; j++) {
             int cellNumber = batman.getSequentialCellNumber(i, j);
+            uint16_t voltage = batman.getVoltage(i, j);
+            
             if (cellNumber > 0 && cellNumber <= 108) {
-                Param::SetInt(static_cast<Param::PARAM_NUM>(Param::u1 + cellNumber - 1), batman.getVoltage(i, j));
+                Param::SetInt(static_cast<Param::PARAM_NUM>(Param::u1 + cellNumber - 1), voltage);
             }
         }
     }
@@ -462,6 +471,12 @@ void updateParametersFromBATMan() {
     
     // Update chip voltages (if available)
     // Note: This would need to be implemented based on actual chip voltage data from BATMan
+    
+    // Update AS8510 current sensor data
+    Param::SetFloat(Param::current, currentReading);
+    if (currentSensor.isInitialized()) {
+        Param::SetFloat(Param::as8510_temp, currentSensor.getInternalTemperature());
+    }
 }
 
 void setup() {
@@ -472,9 +487,10 @@ void setup() {
     Serial2.begin(SERIAL2_BAUD_RATE, SERIAL_8N1, SERIAL2_RX_PIN, SERIAL2_TX_PIN); // RX=12, TX=13
     
     // Initialize the display - Re-enabled on separate SPI controller
-    tft.init();
-    tft.setRotation(0);
-    tft.fillScreen(TFT_BLACK);
+    // TFT Display disabled to avoid SPI conflicts
+    // tft.init();
+    // tft.setRotation(0);
+    // tft.fillScreen(TFT_BLACK);
     
     // Initialize PWM for economizer using new ESP32 Arduino core 3.0 API
     ledcAttach(ECONOMIZER_PWM_PIN, PWM_FREQ, PWM_RESOLUTION);
@@ -503,10 +519,10 @@ void setup() {
     
     // Print SPI bus configuration
     Serial.println("SPI Bus Configuration:");
-    Serial.println("  - TFT display: 40MHz on VSPI/SPI3_HOST (pins 18,19,23,5) - CS=5");
-    Serial.println("  - AS8510: 1MHz on VSPI/SPI3_HOST (pins 32,25,33,26) - CS=26");
+    Serial.println("  - TFT display: DISABLED to avoid SPI conflicts");
     Serial.println("  - Tesla BMS: 1MHz on HSPI/SPI2_HOST (pins 2,17,15,22) - DEDICATED BUS");
-    Serial.println("LCD and AS8510 share VSPI bus with different CS pins - BMB isolated on HSPI");
+    Serial.println("  - AS8510: 1MHz on VSPI/SPI3_HOST (pins 32,25,33,26) - DEDICATED BUS");
+    Serial.println("LCD disabled - BMB on HSPI, AS8510 on VSPI for clean separation");
     
     // Initialize the BATMan interface first
     batman.BatStart();
@@ -534,16 +550,24 @@ void loop() {
     // Run the BATMan state machine - TESTING: Re-enabling to check if this causes hang
     batman.loop();
     
-    // Update parameters from BATMan system data - KEEP DISABLED FOR NOW
-    // updateParametersFromBATMan();
+    // Update parameters from BATMan system data - ENABLED for ESPHome interface
+    updateParametersFromBATMan();
     
     // Get current time for all timing operations
     unsigned long currentMillis = millis();
     
-    // Debug: Show we're alive every 10 seconds
+    // Debug: Show we're alive every 10 seconds with voltage status
     static unsigned long lastHeartbeat = 0;
     if (currentMillis - lastHeartbeat >= 10000) {
         Serial.println("Main loop running - system alive");
+        
+        // Display voltage status including average
+        float minVoltage = batman.getMinVoltage() / 1000.0;
+        float maxVoltage = batman.getMaxVoltage() / 1000.0;
+        float avgVoltage = Param::GetFloat(Param::uavg) / 1000.0;
+        Serial.printf("Voltages - Min: %.3fV, Max: %.3fV, Avg: %.3fV\n", 
+                     minVoltage, maxVoltage, avgVoltage);
+        
         lastHeartbeat = currentMillis;
     }
     
@@ -611,8 +635,12 @@ void loop() {
             // Get internal temperature measurement
             float internalTemp = currentSensor.getInternalTemperature();
             
-            // Display current and internal temperature on one line
-            Serial.printf("AS8510: %.3fA    %.1f°C\n", currentReading, internalTemp);
+            // Get average cell voltage
+            float avgVoltage = Param::GetFloat(Param::uavg) / 1000.0;
+            
+            // Display current, temperature, and average cell voltage on one line
+            Serial.printf("AS8510: %.3fA    %.1f°C    Avg Cell: %.3fV\n", 
+                         currentReading, internalTemp, avgVoltage);
             
         } else {
             Serial.println("AS8510 not initialized - attempting restart...");

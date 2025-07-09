@@ -42,7 +42,10 @@ static const char* paramNames[] = {
     "Chip1_5V", "Chip2_5V",
     
     // Cell counts per chip
-    "Chip1Cells", "Chip2Cells", "Chip3Cells", "Chip4Cells"
+    "Chip1Cells", "Chip2Cells", "Chip3Cells", "Chip4Cells",
+    
+    // AS8510 Current Sensor parameters
+    "current", "as8510_temp"
 };
 
 // Initialize default values
@@ -103,6 +106,10 @@ static void initParams() {
     intParams[Param::Chip2Cells] = 0;
     intParams[Param::Chip3Cells] = 0;
     intParams[Param::Chip4Cells] = 0;
+    
+    // Initialize AS8510 Current Sensor parameters
+    floatParams[Param::current] = 0.0f;
+    floatParams[Param::as8510_temp] = 0.0f;
 }
 
 int Param::GetInt(PARAM_NUM param) {
@@ -162,18 +169,18 @@ void Param::PrintParam(PARAM_NUM param) {
     
     // Check if parameter exists in stringParams
     if (stringParams.find(param) != stringParams.end()) {
-        Serial.printf("%s: %s\n", name, stringParams[param].c_str());
+        Serial.printf("%s=%s\n", name, stringParams[param].c_str());
     }
     // Check if parameter exists in intParams
     else if (intParams.find(param) != intParams.end()) {
-        Serial.printf("%s: %d\n", name, intParams[param]);
+        Serial.printf("%s=%d\n", name, intParams[param]);
     }
     // Check if parameter exists in floatParams
     else if (floatParams.find(param) != floatParams.end()) {
-        Serial.printf("%s: %.3f\n", name, floatParams[param]);
+        Serial.printf("%s=%.3f\n", name, floatParams[param]);
     }
     else {
-        Serial.printf("%s: <not set>\n", name);
+        Serial.printf("%s=<not set>\n", name);
     }
 }
 
@@ -260,18 +267,18 @@ void Param::PrintParam(PARAM_NUM param, HardwareSerial& serialPort) {
     
     // Check if parameter exists in stringParams
     if (stringParams.find(param) != stringParams.end()) {
-        serialPort.printf("%s: %s\n", name, stringParams[param].c_str());
+        serialPort.printf("%s=%s\n", name, stringParams[param].c_str());
     }
     // Check if parameter exists in intParams
     else if (intParams.find(param) != intParams.end()) {
-        serialPort.printf("%s: %d\n", name, intParams[param]);
+        serialPort.printf("%s=%d\n", name, intParams[param]);
     }
     // Check if parameter exists in floatParams
     else if (floatParams.find(param) != floatParams.end()) {
-        serialPort.printf("%s: %.3f\n", name, floatParams[param]);
+        serialPort.printf("%s=%.3f\n", name, floatParams[param]);
     }
     else {
-        serialPort.printf("%s: <not set>\n", name);
+        serialPort.printf("%s=<not set>\n", name);
     }
 }
 

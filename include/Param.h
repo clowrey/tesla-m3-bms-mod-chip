@@ -69,7 +69,11 @@ public:
         Chip1Cells,
         Chip2Cells,
         Chip3Cells,
-        Chip4Cells
+        Chip4Cells,
+        
+        // AS8510 Current Sensor parameters
+        current,
+        as8510_temp
     };
 
     static int GetInt(PARAM_NUM param);
