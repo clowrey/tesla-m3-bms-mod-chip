@@ -391,7 +391,7 @@ void BATMan::StateMachine()
         GetData(0x49);//Read C. Contains Cell voltage measurements
         delayMicroseconds(SendDelay);
         GetData(0x4A);//Read D. Contains Cell voltage measurements
-        // WriteCfg() moved to after all voltage measurements are complete
+        WriteCfg(); // Additional balancing command update for consistency
 
         LoopState++;
         break;
@@ -414,7 +414,7 @@ void BATMan::StateMachine()
         delayMicroseconds(SendDelay);
         GetTempData();//Request temps
 
-        // WriteCfg() moved to after all voltage measurements are complete
+        WriteCfg(); // Send balancing configuration to BMB chips
 
         LoopState++;
         break;
@@ -438,10 +438,6 @@ void BATMan::StateMachine()
         upDateTemps();
         upDateCellVolts();
         upDateAuxVolts();
-        
-        // Send balancing configuration after all voltage measurements are complete
-        WriteCfg();
-        
         LoopState++;
         break;
     }
@@ -477,7 +473,7 @@ void BATMan::IdleWake()
 {
     if(BalanceFlag == true)
     {
-        Generic_Send_Once(Mute, 2);//mute need to do more when balancing to dig into (Primen_CMD)
+        Generic_Send_Once(Unmute, 2);//unmute (turn OFF balancing) during voltage measurements
     }
     else
     {
