@@ -125,6 +125,22 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
     else if (lowerCommand == "mapping" || lowerCommand == "debug") {
         batman.printHardwareMapping();
     }
+    else if (lowerCommand == "bmb registers" || lowerCommand == "bmb debug" || lowerCommand == "registers") {
+        serialPort.println("=== Raw BMB Register Data ===");
+        batman.printHardwareMapping();
+        serialPort.println("Use 'mapping' for basic debug or 'bmb registers' for detailed register analysis");
+    }
+    else if (lowerCommand == "bmb debug on" || lowerCommand == "register debug on") {
+        BATMan::setRegisterDebug(true);
+        serialPort.println("BMB register debug ENABLED - will show raw register data during reads");
+    }
+    else if (lowerCommand == "bmb debug off" || lowerCommand == "register debug off") {
+        BATMan::setRegisterDebug(false);
+        serialPort.println("BMB register debug DISABLED");
+    }
+    else if (lowerCommand == "bmb debug status") {
+        serialPort.printf("BMB register debug is: %s\n", BATMan::getRegisterDebug() ? "ENABLED" : "DISABLED");
+    }
     else if (lowerCommand == "current diag" || lowerCommand == "diag current") {
         diagnoseCurrentSensor();
     }
@@ -193,6 +209,8 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
         serialPort.println("  balance off / balance disable - Disable cell balancing");
         serialPort.println("  balance status / balance     - Show current balance status");
         serialPort.println("  mapping / debug              - Show hardware register mapping");
+        serialPort.println("  bmb registers / registers    - Show detailed BMB register analysis");
+        serialPort.println("  bmb debug on/off             - Enable/disable live BMB register debugging");
         serialPort.println("  current diag                 - Run current sensor diagnostics");
         serialPort.println("  start as8510                 - Explicitly start AS8510 device");
         serialPort.println("  as8510 errors / errors       - Show AS8510 error codes");

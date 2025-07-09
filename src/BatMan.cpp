@@ -171,6 +171,8 @@ static const uint16_t crc14table[256] =
 
 const uint8_t utilTopN[9] = { 0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff };
 
+// Static variable definition for register debugging
+bool BATMan::_registerDebugEnabled = false;
 
 //Tom Magic....
 bool BalanceFlag = false;
@@ -510,6 +512,20 @@ void BATMan::GetData(uint8_t ReqID)
     // -AI- Deactivate chip select
     gpio_set_level(BMB_CS, 1);  // CS inactive high
 
+    // Enhanced register debugging - show raw data when enabled
+    if (_registerDebugEnabled) {
+        Serial.printf("\n=== BMB Register 0x%02X Raw Data ===\n", ReqID);
+        Serial.printf("Raw SPI Response (72 bytes):\n");
+        for (int i = 0; i < 72; i += 8) {
+            Serial.printf("  ");
+            for (int j = 0; j < 8 && (i + j) < 72; j++) {
+                Serial.printf("%02X ", Fluffer[i + j]);
+            }
+            Serial.println();
+        }
+        Serial.println("======================================");
+    }
+
     uint16_t tempvol = 0;
 
     switch (ReqID)
@@ -527,8 +543,17 @@ void BATMan::GetData(uint8_t ReqID)
                 {
                     Voltage[h][g] = tempvol / 12.5;
                 }
+                
+                // Enhanced debugging for Register A (cells 1-3)
+                if (_registerDebugEnabled) {
+                    Serial.printf("  Chip %d, Reg %d: Raw=0x%04X (%5u) -> %.1fmV %s\n", 
+                        h, g, tempvol, tempvol, 
+                        (tempvol != 0xffff) ? Voltage[h][g] : 0.0f,
+                        (tempvol == 0xffff) ? "(INVALID)" : (tempvol == 0) ? "(ZERO/DEAD)" : "(VALID)");
+                }
             }
         }
+        if (_registerDebugEnabled) Serial.println();
         break;
 
     case 0x48:
@@ -1227,23 +1252,71 @@ bool BATMan::checkSPIConnection() {
 }
 
 void BATMan::printHardwareMapping() const {
-    Serial.println("\n=== Hardware Register Mapping ===");
+    Serial.println("\n=== COMPLETE BMB Register Debug (All Channels) ===");
+    Serial.printf("Number of BMB chips configured: %d\n", ChipNum);
+    Serial.printf("Cell validity threshold: >10mV (>0.010V)\n\n");
+    
     int sequentialCell = 1;
-    for (int chip = 0; chip < 8; chip++) {
-        bool chipHasCells = false;
+    int validCells = 0;
+    int totalRegisters = 0;
+    
+    for (int chip = 0; chip < ChipNum; chip++) {
+        Serial.printf("┌─── BMB Chip %d (Registers 0-14) ───┐\n", chip);
+        bool chipHasValidCells = false;
+        
         for (int reg = 0; reg < 15; reg++) {
-            if (Voltage[chip][reg] > 10) {
-                if (!chipHasCells) {
-                    Serial.printf("Chip %d:\n", chip);
-                    chipHasCells = true;
-                }
-                Serial.printf("  Register %d -> Sequential Cell %d (%.3fV)\n", 
-                    reg, sequentialCell, Voltage[chip][reg]/1000.0);
+            uint16_t rawValue = Voltage[chip][reg];
+            float voltage = rawValue / 1000.0;
+            totalRegisters++;
+            
+            Serial.printf("│ Reg %2d: %5dmV (%6.3fV) ", reg, rawValue, voltage);
+            
+            if (rawValue > 10) {
+                Serial.printf("-> Cell %2d ✓ VALID", sequentialCell);
                 sequentialCell++;
+                validCells++;
+                chipHasValidCells = true;
+            } else if (rawValue == 0) {
+                Serial.printf("-> ---- ✗ DEAD/MISSING");
+            } else {
+                Serial.printf("-> ---- ✗ LOW (<10mV)");
+            }
+            Serial.println(" │");
+        }
+        
+        Serial.printf("└─ Chip %d Summary: %s ─┘\n", chip, 
+            chipHasValidCells ? "HAS VALID CELLS" : "NO VALID CELLS");
+        Serial.println();
+    }
+    
+    // Summary statistics
+    Serial.println("=== BMB Channel Analysis Summary ===");
+    Serial.printf("Total registers scanned: %d\n", totalRegisters);
+    Serial.printf("Valid cells found: %d\n", validCells);
+    Serial.printf("Dead/damaged channels: %d\n", totalRegisters - validCells);
+    Serial.printf("Sequential cell mapping: 1-%d\n", sequentialCell - 1);
+    
+    // Show which registers are being skipped
+    Serial.println("\n=== Potentially Damaged Channels ===");
+    bool foundDamaged = false;
+    for (int chip = 0; chip < ChipNum; chip++) {
+        for (int reg = 0; reg < 15; reg++) {
+            if (Voltage[chip][reg] <= 10) {
+                if (!foundDamaged) {
+                    Serial.println("The following channels are not providing valid readings:");
+                    foundDamaged = true;
+                }
+                Serial.printf("  Chip %d, Register %d: %dmV (Expected: >10mV)\n", 
+                    chip, reg, Voltage[chip][reg]);
             }
         }
     }
-    Serial.println("================================\n");
+    
+    if (!foundDamaged) {
+        Serial.println("All configured channels are providing valid readings!");
+    }
+    
+    Serial.println("============================================\n");
 }
 
 BATMan::BalancingInfo BATMan::getBalancingInfo() const {
@@ -1282,3 +1355,4 @@ BATMan::BalancingInfo BATMan::getBalancingInfo() const {
     
     return info;
 }
+

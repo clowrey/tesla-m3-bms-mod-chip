@@ -103,6 +103,10 @@ public:
     // Debug method to print hardware register mapping
     void printHardwareMapping() const;
     
+    // Add debug control for detailed register analysis
+    static void setRegisterDebug(bool enable) { _registerDebugEnabled = enable; }
+    static bool getRegisterDebug() { return _registerDebugEnabled; }
+
     int getMinCell() const {
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 15; j++) {
@@ -143,6 +147,7 @@ public:
 
 private:
     spi_device_handle_t spi_dev;
+    static bool _registerDebugEnabled;  // Debug flag for detailed register output
     uint8_t ChipNum;
     uint16_t Voltage[8][15];
     uint16_t CellBalCmd[8];
