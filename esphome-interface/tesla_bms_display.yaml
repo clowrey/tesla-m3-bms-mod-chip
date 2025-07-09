@@ -1399,8 +1399,8 @@ interval:
             }
           }
   
-  # Faster interval for parameter requests and display updates (increased from 5s to 1s)
-  - interval: 1s
+  # Faster interval for parameter requests and display updates (increased from 1s to 500ms for more responsive display)
+- interval: 500ms
     then:
       # Request system parameters
       - lambda: 'ESP_LOGI("BMS", "SENDING: param get numbmbs");'
@@ -1539,8 +1539,8 @@ interval:
           data: "param get as8510_temp\n"
       - delay: 100ms
 
-  # Separate faster interval for individual cell voltage requests (every 10 seconds)
-  - interval: 10s
+  # Separate faster interval for individual cell voltage requests (every 5 seconds for more responsive cell display)
+- interval: 5s
     then:
       # Request individual cell voltages in batches to avoid overwhelming the system
       # Batch 1: Cells 1-20
@@ -1587,7 +1587,7 @@ interval:
       - delay: 500ms  # Longer delay between batches
 
   # Batch 2: Cells 21-40 (offset by 2s)
-  - interval: 10s
+  - interval: 5s
     then:
       - delay: 2s  # Offset to spread requests
       - lambda: 'ESP_LOGI("BMS", "REQUESTING: Cell voltages batch 2 (u21-u40)");'
@@ -1633,7 +1633,7 @@ interval:
       - delay: 500ms
 
   # Batch 3: Cells 41-60 (offset by 4s)
-  - interval: 10s
+  - interval: 5s
     then:
       - delay: 4s
       - lambda: 'ESP_LOGI("BMS", "REQUESTING: Cell voltages batch 3 (u41-u60)");'
@@ -1679,7 +1679,7 @@ interval:
       - delay: 500ms
 
   # Batch 4: Cells 61-80 (offset by 6s)
-  - interval: 10s
+  - interval: 5s
     then:
       - delay: 6s
       - lambda: 'ESP_LOGI("BMS", "REQUESTING: Cell voltages batch 4 (u61-u80)");'
@@ -1725,7 +1725,7 @@ interval:
       - delay: 500ms
 
   # Batch 5: Cells 81-100 (offset by 8s)
-  - interval: 10s
+  - interval: 5s
     then:
       - delay: 8s
       - lambda: 'ESP_LOGI("BMS", "REQUESTING: Cell voltages batch 5 (u81-u100)");'
@@ -1771,7 +1771,7 @@ interval:
       - delay: 500ms
 
   # Batch 6: Cells 101-108 (offset by 9s)
-  - interval: 10s
+  - interval: 5s
     then:
       - delay: 9s
       - lambda: 'ESP_LOGI("BMS", "REQUESTING: Cell voltages batch 6 (u101-u108)");'
@@ -2233,7 +2233,7 @@ interval:
             cell_data.push_back({61, id(u62).has_state() ? id(u62).state : 0.0f});
             cell_data.push_back({62, id(u63).has_state() ? id(u63).state : 0.0f});
             cell_data.push_back({63, id(u64).has_state() ? id(u64).state : 0.0f});
-o;/nmonm            cell_data.push_back({64, id(u65).has_state() ? id(u65).state : 0.0f});
+            cell_data.push_back({64, id(u65).has_state() ? id(u65).state : 0.0f});
             cell_data.push_back({65, id(u66).has_state() ? id(u66).state : 0.0f});
             cell_data.push_back({66, id(u67).has_state() ? id(u67).state : 0.0f});
             cell_data.push_back({67, id(u68).has_state() ? id(u68).state : 0.0f});
