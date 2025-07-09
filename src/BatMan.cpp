@@ -34,7 +34,7 @@ Tom de Bree - Volt Influx
 Damien Mcguire - EV Bmw
 */
 
-#define cycletime 10  // 10 * 100ms = 1000ms = 1 second cell read rate
+#define cycletime 3  // 3 * 100ms = 300ms = faster balancing update rate
 float BalHys = 20; //mV balance limit
 
 uint16_t WakeUp[2] = {0x2ad4, 0x0000};
@@ -391,6 +391,7 @@ void BATMan::StateMachine()
         GetData(0x49);//Read C. Contains Cell voltage measurements
         delayMicroseconds(SendDelay);
         GetData(0x4A);//Read D. Contains Cell voltage measurements
+        // WriteCfg() moved to after all voltage measurements are complete
 
         LoopState++;
         break;
@@ -413,7 +414,7 @@ void BATMan::StateMachine()
         delayMicroseconds(SendDelay);
         GetTempData();//Request temps
 
-        //WriteCfg();
+        // WriteCfg() moved to after all voltage measurements are complete
 
         LoopState++;
         break;
@@ -437,6 +438,10 @@ void BATMan::StateMachine()
         upDateTemps();
         upDateCellVolts();
         upDateAuxVolts();
+        
+        // Send balancing configuration after all voltage measurements are complete
+        WriteCfg();
+        
         LoopState++;
         break;
     }
