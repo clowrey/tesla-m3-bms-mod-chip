@@ -11,6 +11,7 @@ public:
         numbmbs,
         LoopCnt,
         LoopState,
+        BalancePhase,  // 0=measurement only, 1=even cells, 2=odd cells
         CellsPresent,
         CellsBalancing,
         BalanceCellList,  // New: comma-separated list of balancing cell numbers

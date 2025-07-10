@@ -46,6 +46,7 @@ public:
     void upDateCellVolts();
     void upDateAuxVolts();
     void upDateTemps();
+    void updateIndividualCellVoltageParameters(void);  // Update individual cell voltage parameters during all phases
     uint8_t calcCRC(uint8_t *inData, uint8_t Length);
     void crc14_bytes(uint8_t len_B, uint8_t *bytes, uint16_t *crcP);
     void crc14_bits(uint8_t len_b, uint8_t inB, uint16_t *crcP);
@@ -170,7 +171,8 @@ private:
     uint16_t IdleCnt;
     uint16_t SendDelay;
     uint32_t lasttime;
-    bool BalEven;
+    uint8_t BalancePhase;  // 0=measurement only (no balancing), 1=even cells, 2=odd cells
+    uint16_t LastCellBalancing;  // Preserve balancing count across phases
     float Cell1start;
     float Cell2start;
 };

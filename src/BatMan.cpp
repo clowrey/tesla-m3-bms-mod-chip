@@ -34,7 +34,7 @@ Tom de Bree - Volt Influx
 Damien Mcguire - EV Bmw
 */
 
-#define cycletime 3  // 3 * 100ms = 300ms = faster balancing update rate
+#define cycletime 5  // 5 * 100ms = 500ms = more stable balancing cycle to reduce voltage bouncing
 float BalHys = 20; //mV balance limit
 
 uint16_t WakeUp[2] = {0x2ad4, 0x0000};
@@ -189,9 +189,10 @@ float TempMax = 0;
 float TempMin = 1000;
 uint16_t SendDelay = 125;  // 125 microseconds
 uint32_t lasttime = 0;
-bool BalEven = false;
 
 float Cell1start, Cell2start = 0;
+
+uint8_t BalancePhase = 0;  // 0=measurement only (no balancing), 1=even cells, 2=odd cells
 
 // Constructor implementation
 BATMan::BATMan() {
@@ -210,9 +211,10 @@ BATMan::BATMan() {
     IdleCnt = 0;
     SendDelay = 125;  // 125 microseconds
     lasttime = 0;
-    BalEven = false;
     Cell1start = 0;
     Cell2start = 0;
+    BalancePhase = 0;  // Start with measurement only phase
+    LastCellBalancing = 0;  // Initialize balancing count
 }
 
 void BATMan::BatStart()
@@ -435,10 +437,39 @@ void BATMan::StateMachine()
     case 7:
     {
         // -AI- Process state: Update temperature and voltage measurements
+        // Always update temperatures as they're not affected by balancing
         upDateTemps();
-        upDateCellVolts();
         upDateAuxVolts();
-        LoopState++;
+        
+        // Only process cell voltages during Phase 0 (measurement-only phase) 
+        // to ensure stable readings without balance resistor interference
+        if(BalancePhase == 0)
+        {
+            upDateCellVolts();
+            // Add debug info to show when voltage processing occurs
+            if (_registerDebugEnabled) {
+                Serial.println("VOLTAGE PROCESSING: Phase 0 - measurement-only phase (stable readings)");
+            }
+        }
+        else
+        {
+            // During balancing phases, still read voltages but don't process them for balancing decisions
+            // This keeps the raw data fresh but prevents unstable readings from affecting decisions
+            // BUT we still need to update the CellsBalancing parameter for display
+            Param::SetInt(Param::CellsBalancing, LastCellBalancing);
+            
+            // CRITICAL FIX: Update individual cell voltage parameters during all phases
+            // This ensures ESPHome interface gets current voltage data even during balancing phases
+            updateIndividualCellVoltageParameters();
+            
+            if (_registerDebugEnabled) {
+                Serial.print("VOLTAGE SKIPPED: Phase ");
+                Serial.print(BalancePhase);
+                Serial.println(" - balancing active, waiting for measurement phase");
+            }
+        }
+        
+        LoopState = 0;
         break;
     }
 
@@ -466,19 +497,26 @@ void BATMan::StateMachine()
     }
 
     Param::SetInt(Param::LoopState, LoopState);
+    Param::SetInt(Param::BalancePhase, BalancePhase);  // Expose current balance phase
 }
 
 
 void BATMan::IdleWake()
 {
-    if(BalanceFlag == true)
+    if(BalanceFlag == true && BalancePhase != 0)
     {
-        Generic_Send_Once(Unmute, 2);//unmute (turn OFF balancing) during voltage measurements
+        // Only mute during active balancing phases (1=even, 2=odd), not during measurement phase (0)
+        Generic_Send_Once(Mute, 2);//mute need to do more when balancing to dig into (Primen_CMD)
+        // Add settling delay after mute command - LTC6813 datasheet specifies 100µs minimum
+        // Using 200µs to ensure stable readings with faster loop timing
+        delayMicroseconds(200);
     }
     else
     {
+        // During measurement phase (BalancePhase == 0) or when balancing is off, always unmute
         Generic_Send_Once(Unmute, 2);//unmute
-
+        // Add small delay after unmute as well for consistency
+        delayMicroseconds(50);
     }
 }
 
@@ -772,17 +810,23 @@ void BATMan::WriteCfg()
         tempData[2]=CellBalCmd[7-h] & 0x00FF; //balancing 8-1
         tempData[3]=(CellBalCmd[7-h] & 0xFF00)>>8; //balancing  16-9
 
-        //now alternate between even and odd using AND 0x55 or 0xAA
+        //now implement 3-phase balancing: measurement only, even cells, odd cells
 
-        if(BalEven == false)
+        if(BalancePhase == 0)
         {
-            // -AI- Mask to keep only even cells (0xAA = 10101010)
+            // -AI- Phase 0: Measurement only - no balancing (0x00 = 00000000)
+            tempData[2] = 0x00;
+            tempData[3] = 0x00;
+        }
+        else if(BalancePhase == 1)
+        {
+            // -AI- Phase 1: Balance even cells only (0xAA = 10101010)
             tempData[2] = tempData[2] & 0xAA;
             tempData[3] = tempData[3] & 0xAA;
         }
         else
         {
-            // -AI- Mask to keep only odd cells (0x55 = 01010101)
+            // -AI- Phase 2: Balance odd cells only (0x55 = 01010101)
             tempData[2] = tempData[2] & 0x55;
             tempData[3] = tempData[3] & 0x55;
         }
@@ -800,13 +844,17 @@ void BATMan::WriteCfg()
 
     }
     // -AI- Toggle the balancing pattern for next cycle
-    if(BalEven == false)
+    if(BalancePhase == 0)
     {
-        BalEven = true;
+        BalancePhase = 1;
+    }
+    else if(BalancePhase == 1)
+    {
+        BalancePhase = 2;
     }
     else
     {
-        BalEven = false;
+        BalancePhase = 0;
     }
 
     // -AI- Send the configuration data over SPI
@@ -954,8 +1002,17 @@ void BATMan::upDateCellVolts(void)
         }
     }
 
-    // -AI- Store number of cells currently being balanced
-    Param::SetInt(Param::CellsBalancing, CellBalancing);
+    // -AI- Store number of cells currently being balanced - ALWAYS update this parameter
+    // During Phase 0 (measurement-only), calculate and preserve the balancing count
+    // During other phases, use the preserved count so display shows correct balancing status
+    if(BalancePhase == 0) {
+        // Phase 0: Store the calculated balancing count for use in other phases
+        LastCellBalancing = CellBalancing;
+        Param::SetInt(Param::CellsBalancing, CellBalancing);
+    } else {
+        // Phase 1 & 2: Use the preserved balancing count from Phase 0
+        Param::SetInt(Param::CellsBalancing, LastCellBalancing);
+    }
 
     // -AI- Debug tracking of initial cell voltages
     if(Cell1start == 0)
@@ -1396,19 +1453,19 @@ BATMan::BalancingInfo BATMan::getBalancingInfo() const {
     float minVoltage = Param::GetFloat(Param::umin);
     float balanceThreshold = minVoltage + BalHys;
     
-    // Scan through all cells to find which ones are being balanced
+    // Scan through all cells to find which ones SHOULD be balanced
+    // This checks the original balancing logic, not the current phase-masked state
     for (int chip = 0; chip < 8; chip++) {
         for (int reg = 0; reg < 15; reg++) {
             if (Voltage[chip][reg] > 10) { // Cell is present
                 cellCount++;
                 
-                // Check if this cell is being balanced
+                // Check if this cell SHOULD be balanced based on voltage threshold
+                // This is the same logic used in upDateCellVolts() to determine balancing
                 if (Voltage[chip][reg] > balanceThreshold) {
-                    // Check if the balancing bit is set in CellBalCmd
-                    if (CellBalCmd[chip] & (0x01 << reg)) {
-                        info.balancingCellNumbers[balancingCount] = cellCount;
-                        balancingCount++;
-                    }
+                    // This cell should be balanced - add it to the list
+                    info.balancingCellNumbers[balancingCount] = cellCount;
+                    balancingCount++;
                 }
             }
         }
@@ -1418,5 +1475,44 @@ BATMan::BalancingInfo BATMan::getBalancingInfo() const {
     info.balancingCells = balancingCount;
     
     return info;
+}
+
+void BATMan::updateIndividualCellVoltageParameters(void)
+{
+    // -AI- Update individual cell voltage parameters (u1, u2, u3, etc.) during all phases
+    // This function ensures ESPHome interface gets current voltage data even during balancing phases
+    // WITHOUT doing any balancing calculations or decisions
+    
+    uint8_t Xr = 0; //BMB number
+    uint8_t Yc = 0; //Cell voltage register number
+    uint8_t h = 0;  //Sequential cell index for parameter system
+    
+    // -AI- Process all cells across all BMB chips - ONLY update parameters, no balancing logic
+    while (h <= 108)
+    {
+        if(Yc < 15) //Check actual measurement present (include register 14)
+        {
+            if(Voltage[Xr][Yc] > 10) //Check actual measurement present
+            {
+                // -AI- Update individual cell voltage parameter in parameter system
+                // This ensures ESPHome interface gets current voltage data during all phases
+                Param::SetFloat((Param::PARAM_NUM)(Param::u1 + h), (Voltage[Xr][Yc]));
+                
+                h++; //next cell spot value along
+            }
+            Yc++; //next cell along
+        }
+        else
+        {
+            Yc = 0; //reset Cell column
+            Xr++; //next BMB
+        }
+
+        if(Xr == ChipNum)
+        {
+            h = 108; // Exit loop
+            break;
+        }
+    }
 }
 
