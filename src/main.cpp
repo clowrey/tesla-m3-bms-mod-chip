@@ -1,10 +1,11 @@
 #include <Arduino.h>
 #include "BatMan.h"
-// #include <TFT_eSPI.h>  // DISABLED to avoid SPI conflicts
 #include <SPI.h>
 #include "../AS8510-library/as8510.h"
 #include <HardwareSerial.h>
 #include <cstdint>
+#include <Wire.h>
+#include <Adafruit_ADS1X15.h>
 
 /*> 
 balance on
@@ -26,7 +27,6 @@ Available commands:
   */
 
 BATMan batman;
-// TFT_eSPI tft = TFT_eSPI();  // DISABLED to avoid SPI conflicts
 
 /* Tesla Shunt Debug Header Pinout
 
@@ -38,16 +38,22 @@ BATMan batman;
 #6 - GND
 */
 
-// AS8510 Current Sensor Configuration (dedicated HSPI bus at 1MHz)
-#define AS8510_CS_PIN 26        // GPIO pin for AS8510 chip select
-#define AS8510_MOSI_PIN 33      // GPIO pin for AS8510 MOSI (HSPI)
-#define AS8510_MISO_PIN 25      // GPIO pin for AS8510 MISO (HSPI)
-#define AS8510_SCK_PIN 32       // GPIO pin for AS8510 SCK (HSPI)
+// AS8510 Current Sensor Configuration (dedicated VSPI bus at 1MHz)
+#define AS8510_CS_PIN 14        // GPIO pin for AS8510 chip select
+#define AS8510_MOSI_PIN 26      // GPIO pin for AS8510 MOSI (VSPI)
+#define AS8510_MISO_PIN 27      // GPIO pin for AS8510 MISO (VSPI)
+#define AS8510_SCK_PIN 25       // GPIO pin for AS8510 SCK (VSPI)
 #define SHUNT_RESISTANCE 0.000025296 // 25296nΩ shunt resistance
 
+// ADS1115 ADC Configuration (I2C interface)
+#define ADS1115_I2C_SDA 21      // GPIO pin for I2C SDA
+#define ADS1115_I2C_SCL 22      // GPIO pin for I2C SCL
+#define ADS1115_I2C_FREQ 400000 // I2C frequency (400kHz)
+#define ADS1115_ADDRESS 0x48    // Default I2C address (ADDR pin to GND)
+
 // Serial Interface Configuration
-#define SERIAL2_RX_PIN 39       // GPIO pin for Serial2 RX
-#define SERIAL2_TX_PIN 12      // GPIO pin for Serial2 TX
+#define SERIAL2_RX_PIN 22       // GPIO pin for Serial2 RX
+#define SERIAL2_TX_PIN 23      // GPIO pin for Serial2 TX
 #define SERIAL2_BAUD_RATE 115200 // Baud rate for Serial2
 
 // PWM Configuration for Economizer (moved to avoid conflict with Serial2)
@@ -62,7 +68,10 @@ BATMan batman;
 #define DEBOUNCE_TIME 50     // Debounce time in milliseconds
 
 // Current sensor instance - Updated for new Rust-based AS8510 library
-AS8510 currentSensor(26, 33, 25, 32, Gain::Gain100, Gain::Gain25);
+AS8510 currentSensor(AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, Gain::Gain100, Gain::Gain25);
+
+// ADS1115 ADC instance
+Adafruit_ADS1115 ads;
 
 // Variables to store previous values for comparison
 float prevMinVoltage = 0;
@@ -75,6 +84,13 @@ uint8_t prevDutyCycle = 0;  // Track duty cycle changes
 float currentReading = 0;
 float prevCurrentReading = 0;
 bool currentSensorInitialized = false;
+
+// ADS1115 voltage measurement variables
+float packCellVoltage1 = 0;     // Channel 0: Pack cell voltage 1
+float packCellVoltage2 = 0;     // Channel 1: Pack cell voltage 2
+float packLinkVoltage1 = 0;     // Channel 2: Pack link voltage 1 (after contactors)
+float packLinkVoltage2 = 0;     // Channel 3: Pack link voltage 2 (after contactors)
+bool ads1115Initialized = false;
 
 // Balance control variable
 bool balanceEnabled = false;
@@ -90,9 +106,9 @@ bool initialPulseComplete = false;
 // Add global variable for current duty cycle
 volatile uint8_t currentDutyCycle = 0;
 
-// Add display update timer variables
+// Timer variables
 unsigned long lastDisplayUpdate = 0;
-const unsigned long DISPLAY_UPDATE_INTERVAL = 500; // Update display every 500ms (0.5 second) for faster responsiveness
+const unsigned long DISPLAY_UPDATE_INTERVAL = 500; // Update interval for value tracking
 
 // Serial command buffers
 String serialCommand = "";
@@ -176,6 +192,25 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
         serialPort.println("Running complete AS8510 diagnostics...");
         currentSensor.printAllDiagnostics();
     }
+    else if (lowerCommand == "ads1115 read" || lowerCommand == "pack voltages") {
+        if (ads1115Initialized) {
+            serialPort.println("=== ADS1115 Pack Voltage Readings ===");
+            serialPort.printf("Pack Cell Voltage 1 (Ch0): %.3fV\n", packCellVoltage1);
+            serialPort.printf("Pack Cell Voltage 2 (Ch1): %.3fV\n", packCellVoltage2);
+            serialPort.printf("Pack Link Voltage 1 (Ch2): %.3fV\n", packLinkVoltage1);
+            serialPort.printf("Pack Link Voltage 2 (Ch3): %.3fV\n", packLinkVoltage2);
+            serialPort.println("=====================================");
+        } else {
+            serialPort.println("ADS1115 not initialized!");
+        }
+    }
+    else if (lowerCommand == "ads1115 status" || lowerCommand == "adc status") {
+        serialPort.printf("ADS1115 Initialized: %s\n", ads1115Initialized ? "YES" : "NO");
+        if (ads1115Initialized) {
+            serialPort.printf("I2C Address: 0x%02X\n", ADS1115_ADDRESS);
+            serialPort.printf("I2C Pins: SDA=%d, SCL=%d\n", ADS1115_I2C_SDA, ADS1115_I2C_SCL);
+        }
+    }
     // Parameter API commands
     else if (lowerCommand.startsWith("param ")) {
         String paramCommand = command.substring(6); // Remove "param " prefix (preserve original case)
@@ -224,6 +259,8 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
         serialPort.println("  as8510 errors / errors       - Show AS8510 error codes");
         serialPort.println("  as8510 saturation / saturation - Show AS8510 saturation flags");
         serialPort.println("  as8510 diagnostics / diagnostics - Complete AS8510 diagnostics");
+        serialPort.println("  ads1115 read / pack voltages - Read all ADS1115 pack voltages");
+        serialPort.println("  ads1115 status / adc status  - Show ADS1115 ADC status");
         serialPort.println("  param list                   - List all parameters");
         serialPort.println("  param get <name>             - Get parameter value");
         serialPort.println("  param set <name> <value>     - Set parameter value");
@@ -255,117 +292,11 @@ void setEconomizerDutyCycle(uint8_t dutyCycle) {
 }
 
 void updateDisplay(uint8_t currentDutyCycle) {
-    // TFT Display disabled to avoid SPI conflicts - all display code commented out
-    
-    // Get current values (still needed for serial output)
+    // Get current values for tracking previous values
     float minVoltage = batman.getMinVoltage() / 1000.0; // Convert mV to V
     float maxVoltage = batman.getMaxVoltage() / 1000.0; // Convert mV to V
     int minCell = batman.getMinCell();
     int maxCell = batman.getMaxCell();
-    
-    // Get average cell voltage from parameter system
-    float avgVoltage = Param::GetFloat(Param::uavg) / 1000.0; // Convert mV to V
-    
-    // Get balancing information
-    BATMan::BalancingInfo balanceInfo = batman.getBalancingInfo();
-
-    // All TFT display code commented out to avoid SPI conflicts
-    /*
-    // Clear the display
-    tft.fillScreen(TFT_BLACK);
-    
-    // Set text color and size
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.setTextSize(1);
-    
-    // Display title
-    tft.setCursor(10, 10);
-    tft.println("Tesla BMS Status");
-    
-    // Display min voltage
-    tft.setCursor(10, 30);
-    tft.print("MinV: ");
-    tft.print(minVoltage, 3);
-    tft.println("V");
-    
-    // Display min cell number
-    tft.setCursor(10, 40);
-    tft.print("Min Cell: ");
-    tft.println(minCell);
-    
-    // Display max voltage
-    tft.setCursor(10, 60);
-    tft.print("MaxV: ");
-    tft.print(maxVoltage, 3);
-    tft.println("V");
-    
-    // Display max cell number
-    tft.setCursor(10, 70);
-    tft.print("Max Cell: ");
-    tft.println(maxCell);
-    
-    // Display voltage delta
-    tft.setCursor(10, 90);
-    tft.print("Delta: ");
-    tft.print(maxVoltage - minVoltage, 3);
-    tft.println("V");
-    
-    // Display current reading
-    tft.setCursor(10, 110);
-    tft.print("Current: ");
-    tft.print(currentReading, 3);
-    tft.println("A");
-    
-    // Display economizer status with duty cycle
-    tft.setCursor(10, 130);
-    tft.print("Economizer: ");
-    tft.print(currentDutyCycle);
-    tft.println("%");
-    
-    // Display balance status
-    tft.setCursor(10, 150);
-    tft.print("Balance: ");
-    if (balanceEnabled) {
-        tft.setTextColor(TFT_GREEN, TFT_BLACK);
-        tft.println("ON");
-    } else {
-        tft.setTextColor(TFT_RED, TFT_BLACK);
-        tft.println("OFF");
-    }
-    tft.setTextColor(TFT_WHITE, TFT_BLACK); // Reset text color
-    
-    // Display compact balancing information
-    tft.setCursor(10, 170);
-    tft.print("Balancing: ");
-    if (balanceInfo.balancingCells > 0) {
-        tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-        tft.print(balanceInfo.balancingCells);
-        tft.print(" cells");
-        
-        // Show first few balancing cell numbers in compact format
-        if (balanceInfo.balancingCells <= 8) {
-            tft.print(" (");
-            for (int i = 0; i < balanceInfo.balancingCells; i++) {
-                if (i > 0) tft.print(",");
-                tft.print(balanceInfo.balancingCellNumbers[i]);
-            }
-            tft.print(")");
-        } else {
-            tft.print(" (");
-            for (int i = 0; i < 6; i++) {
-                if (i > 0) tft.print(",");
-                tft.print(balanceInfo.balancingCellNumbers[i]);
-            }
-            tft.print("...");
-            tft.print(balanceInfo.balancingCellNumbers[balanceInfo.balancingCells-1]);
-            tft.print(")");
-        }
-    } else {
-        tft.setTextColor(TFT_GREEN, TFT_BLACK);
-        tft.print("None");
-    }
-    tft.setTextColor(TFT_WHITE, TFT_BLACK); // Reset text color
-    */
     
     // Update previous values
     prevMinVoltage = minVoltage;
@@ -432,6 +363,15 @@ void updateParametersFromBATMan() {
     } else {
         // If not initialized, set temperature to 0
         Param::SetFloat(Param::as8510_temp, 0.0);
+    }
+    
+    // Update ADS1115 pack voltage data (using spare chip voltage parameters)
+    if (ads1115Initialized) {
+        // Store pack voltages in chip voltage parameters (repurposed)
+        Param::SetFloat(Param::ChipV1, packCellVoltage1);  // Pack Cell Voltage 1
+        Param::SetFloat(Param::ChipV2, packCellVoltage2);  // Pack Cell Voltage 2  
+        Param::SetFloat(Param::ChipV3, packLinkVoltage1);  // Pack Link Voltage 1 (after contactors)
+        Param::SetFloat(Param::ChipV4, packLinkVoltage2);  // Pack Link Voltage 2 (after contactors)
     }
 }
 
@@ -565,11 +505,7 @@ void setup() {
     // Initialize second serial interface
     Serial2.begin(SERIAL2_BAUD_RATE, SERIAL_8N1, SERIAL2_RX_PIN, SERIAL2_TX_PIN); // RX=12, TX=13
     
-    // Initialize the display - Re-enabled on separate SPI controller
-    // TFT Display disabled to avoid SPI conflicts
-    // tft.init();
-    // tft.setRotation(0);
-    // tft.fillScreen(TFT_BLACK);
+
     
     // Initialize PWM for economizer using new ESP32 Arduino core 3.0 API
     ledcAttach(ECONOMIZER_PWM_PIN, PWM_FREQ, PWM_RESOLUTION);
@@ -577,6 +513,36 @@ void setup() {
     
     // Initialize button pin
     pinMode(BUTTON_PIN, INPUT_PULLUP);
+    
+    // Initialize I2C for ADS1115
+    Serial.println("Initializing I2C for ADS1115...");
+    Wire.begin(ADS1115_I2C_SDA, ADS1115_I2C_SCL);
+    Wire.setClock(ADS1115_I2C_FREQ);
+    Serial.printf("I2C Configuration - SDA: %d, SCL: %d, Freq: %dHz\n", 
+        ADS1115_I2C_SDA, ADS1115_I2C_SCL, ADS1115_I2C_FREQ);
+    
+    // Initialize ADS1115 ADC
+    Serial.println("Initializing ADS1115 ADC...");
+    if (ads.begin(ADS1115_ADDRESS)) {
+        Serial.printf("ADS1115 initialized successfully at address 0x%02X!\n", ADS1115_ADDRESS);
+        
+        // Set gain and data rate
+        ads.setGain(GAIN_FOUR);     // ±1.024V range (1 bit = 0.03125mV)
+        ads.setDataRate(RATE_ADS1115_860SPS);  // 860 samples per second
+        
+        Serial.println("ADS1115 Configuration:");
+        Serial.println("  - Gain: ±1.024V (1 bit = 0.03125mV)");
+        Serial.println("  - Data Rate: 860 SPS");
+        Serial.println("  - Channel 0: Pack Cell Voltage 1");
+        Serial.println("  - Channel 1: Pack Cell Voltage 2");
+        Serial.println("  - Channel 2: Pack Link Voltage 1 (after contactors)");
+        Serial.println("  - Channel 3: Pack Link Voltage 2 (after contactors)");
+        
+        ads1115Initialized = true;
+    } else {
+        Serial.printf("ADS1115 initialization failed at address 0x%02X!\n", ADS1115_ADDRESS);
+        ads1115Initialized = false;
+    }
     
     // Initialize AS8510 current sensor
     Serial.println("Initializing AS8510 current sensor...");
@@ -592,16 +558,15 @@ void setup() {
     delay(10);
     Serial.printf("CS pin %d set HIGH\n", AS8510_CS_PIN);
     
-    // Ensure TFT display SPI doesn't interfere - add delay
+    // Wait for SPI bus to settle before initialization
     Serial.println("Waiting for SPI bus to settle...");
     delay(100);
     
     // Print SPI bus configuration
     Serial.println("SPI Bus Configuration:");
-    Serial.println("  - TFT display: DISABLED to avoid SPI conflicts");
     Serial.println("  - Tesla BMS: 1MHz on HSPI/SPI2_HOST (pins 2,17,15,22) - DEDICATED BUS");
-    Serial.println("  - AS8510: 1MHz on VSPI/SPI3_HOST (pins 32,25,33,26) - DEDICATED BUS");
-    Serial.println("LCD disabled - BMB on HSPI, AS8510 on VSPI for clean separation");
+    Serial.println("  - AS8510: 1MHz on VSPI/SPI3_HOST (SCK=25, MISO=27, MOSI=26, CS=14) - DEDICATED BUS");
+    Serial.println("BMB on HSPI, AS8510 on VSPI for clean separation");
     
     // Initialize the BATMan interface first
     batman.BatStart();
@@ -620,8 +585,9 @@ void setup() {
     // Set verbose logging to false to disable detailed debug output
     currentSensor.setVerboseLogging(false);
     
-    Serial.println("System ready. Commands available on both Serial and Serial2 (pins 12/13)");
-    Serial.println("LCD + AS8510 share VSPI bus - BMB on HSPI - All systems enabled - No rewiring needed");
+    Serial.println("System ready. Commands available on both Serial and Serial2 (pins 22/23)");
+    Serial.printf("AS8510 on VSPI bus - BMB on HSPI - ADS1115 on I2C (%s) - All systems enabled\n", 
+                  ads1115Initialized ? "OK" : "FAILED");
     Serial.println("============ Setup Complete - Starting Main Loop =============");
 }
 
@@ -720,7 +686,7 @@ void loop() {
         lastCurrentRead = currentMillis;
         
         if (currentSensor.isInitialized()) {
-            // Get current measurement and update global variable for LCD display
+            // Get current measurement and update global variable
             currentReading = currentSensor.getCurrent();
             
             // Get internal temperature measurement
@@ -736,6 +702,33 @@ void loop() {
         } else {
             Serial.println("AS8510 not initialized - attempting restart...");
             currentSensor.startDevice();
+        }
+    }
+    
+    // ADS1115 PACK VOLTAGE MEASUREMENT - Every 3 seconds
+    static unsigned long lastVoltageRead = 0;
+    if (currentMillis - lastVoltageRead >= 3000) {
+        lastVoltageRead = currentMillis;
+        
+        if (ads1115Initialized) {
+            // Read all 4 channels
+            int16_t adc0 = ads.readADC_SingleEnded(0);
+            int16_t adc1 = ads.readADC_SingleEnded(1);
+            int16_t adc2 = ads.readADC_SingleEnded(2);
+            int16_t adc3 = ads.readADC_SingleEnded(3);
+            
+            // Convert to voltages (assuming ±1.024V range, 1 bit = 0.03125mV)
+            packCellVoltage1 = ads.computeVolts(adc0);
+            packCellVoltage2 = ads.computeVolts(adc1);
+            packLinkVoltage1 = ads.computeVolts(adc2);
+            packLinkVoltage2 = ads.computeVolts(adc3);
+            
+            // Display pack voltages on one line
+            Serial.printf("Pack: Cell1=%.3fV Cell2=%.3fV Link1=%.3fV Link2=%.3fV\n", 
+                         packCellVoltage1, packCellVoltage2, packLinkVoltage1, packLinkVoltage2);
+            
+        } else {
+            Serial.println("ADS1115 not initialized - pack voltage readings unavailable");
         }
     }
     
@@ -759,7 +752,7 @@ void loop() {
     //     Serial.println("└─────────────────────┘");
     // }
     
-    // Check if it's time to update the display
+    // Check if it's time to update tracked values
     if (currentMillis - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
         updateDisplay(currentDutyCycle);
         lastDisplayUpdate = currentMillis;
