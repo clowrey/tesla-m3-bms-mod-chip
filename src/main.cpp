@@ -46,8 +46,8 @@ BATMan batman;
 #define SHUNT_RESISTANCE 0.000025296 // 25296nΩ shunt resistance
 
 // ADS1115 ADC Configuration (I2C interface)
-#define ADS1115_I2C_SDA 21      // GPIO pin for I2C SDA
-#define ADS1115_I2C_SCL 22      // GPIO pin for I2C SCL
+#define ADS1115_I2C_SDA 32      // GPIO pin for I2C SDA
+#define ADS1115_I2C_SCL 33      // GPIO pin for I2C SCL
 #define ADS1115_I2C_FREQ 400000 // I2C frequency (400kHz)
 #define ADS1115_ADDRESS 0x48    // Default I2C address (ADDR pin to GND)
 
@@ -57,7 +57,7 @@ BATMan batman;
 #define SERIAL2_BAUD_RATE 115200 // Baud rate for Serial2
 
 // PWM Configuration for Economizer (moved to avoid conflict with Serial2)
-#define ECONOMIZER_PWM_PIN 36  // Changed from 12 to 14 to avoid conflict with Serial2
+#define ECONOMIZER_PWM_PIN 4  // Changed from 12 to 14 to avoid conflict with Serial2
 #define PWM_FREQ 20000        // 20kHz PWM frequency
 #define PWM_RESOLUTION 8      // 8-bit resolution (0-255)
 #define ECONOMIZER_DUTY 15   // Normal duty cycle (25%)
@@ -309,16 +309,20 @@ void updateDisplay(uint8_t currentDutyCycle) {
 
 // Function to update parameters from BATMan system data
 void updateParametersFromBATMan() {
-    // Update cell voltages (u1-u108)
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 15; j++) {
-            int cellNumber = batman.getSequentialCellNumber(i, j);
-            uint16_t voltage = batman.getVoltage(i, j);
-            
-            if (cellNumber > 0 && cellNumber <= 108) {
-                Param::SetInt(static_cast<Param::PARAM_NUM>(Param::u1 + cellNumber - 1), voltage);
-            }
+    // REMOVED: Individual cell voltage updating - this is now handled by BATMan.upDateCellVolts()
+    // to avoid parameter conflicts and ensure proper cell numbering alignment
+    // The main BATMan system already correctly sets u1-u108 parameters
+    
+    // DEBUG: Verify first few cell parameters are being set correctly
+    static unsigned long lastDebugOutput = 0;
+    if (millis() - lastDebugOutput >= 15000) { // Every 15 seconds
+        Serial.println("=== Cell Parameter Debug ===");
+        for (int i = 1; i <= 5; i++) {
+            float voltage = Param::GetFloat(static_cast<Param::PARAM_NUM>(Param::u1 + i - 1));
+            Serial.printf("u%d = %.0fmV\n", i, voltage);
         }
+        Serial.println("===========================");
+        lastDebugOutput = millis();
     }
     
     // Update voltage statistics
