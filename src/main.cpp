@@ -86,10 +86,11 @@ float prevCurrentReading = 0;
 bool currentSensorInitialized = false;
 
 // ADS1115 voltage measurement variables
-float packCellVoltage1 = 0;     // Channel 0: Pack cell voltage 1
-float packCellVoltage2 = 0;     // Channel 1: Pack cell voltage 2
-float packLinkVoltage1 = 0;     // Channel 2: Pack link voltage 1 (after contactors)
-float packLinkVoltage2 = 0;     // Channel 3: Pack link voltage 2 (after contactors)
+float battPos = 0;     // Channel 1: Batt-Pos
+float battNeg = 0;     // Channel 0: Batt-Neg
+float battSum = 0;     // Sum of absolute values: |battPos| + |battNeg|
+float linkPos = 0;     // Channel 2: Link-Pos (after contactors)
+float linkNeg = 0;     // Channel 3: Link-Neg (after contactors)
 bool ads1115Initialized = false;
 
 // Balance control variable
@@ -125,6 +126,7 @@ HardwareSerial* diagnosticSerial = nullptr;
 void runDiagnosticStep();
 void startAS8510NonBlocking(HardwareSerial& serialPort);
 void processSerialInputs();
+void sendAllParametersToESPHome();
 
 // Function to process serial commands (now takes a HardwareSerial reference)
 void processSerialCommand(String command, HardwareSerial& serialPort) {
@@ -195,11 +197,13 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
     else if (lowerCommand == "ads1115 read" || lowerCommand == "pack voltages") {
         if (ads1115Initialized) {
             serialPort.println("=== ADS1115 Pack Voltage Readings ===");
-            serialPort.printf("Pack Cell Voltage 1 (Ch0): %.3fV\n", packCellVoltage1);
-            serialPort.printf("Pack Cell Voltage 2 (Ch1): %.3fV\n", packCellVoltage2);
-            serialPort.printf("Pack Link Voltage 1 (Ch2): %.3fV\n", packLinkVoltage1);
-            serialPort.printf("Pack Link Voltage 2 (Ch3): %.3fV\n", packLinkVoltage2);
-            serialPort.println("=====================================");
+            serialPort.printf("Batt-Neg (Channel 0): %.3fV\n", battNeg);
+            serialPort.printf("Batt-Pos (Channel 1): %.3fV\n", battPos);
+            serialPort.printf("Batt-Sum (Absolute Total): %.3fV\n", battSum);
+            serialPort.printf("Link-Pos - Post-Contactors (Channel 2): %.3fV\n", linkPos);
+            serialPort.printf("Link-Neg - Post-Contactors (Channel 3): %.3fV\n", linkNeg);
+            serialPort.println("Note: Link voltages measured after contactor closure");
+            serialPort.println("=============================================");
         } else {
             serialPort.println("ADS1115 not initialized!");
         }
@@ -309,20 +313,16 @@ void updateDisplay(uint8_t currentDutyCycle) {
 
 // Function to update parameters from BATMan system data
 void updateParametersFromBATMan() {
-    // REMOVED: Individual cell voltage updating - this is now handled by BATMan.upDateCellVolts()
-    // to avoid parameter conflicts and ensure proper cell numbering alignment
-    // The main BATMan system already correctly sets u1-u108 parameters
-    
-    // DEBUG: Verify first few cell parameters are being set correctly
-    static unsigned long lastDebugOutput = 0;
-    if (millis() - lastDebugOutput >= 15000) { // Every 15 seconds
-        Serial.println("=== Cell Parameter Debug ===");
-        for (int i = 1; i <= 5; i++) {
-            float voltage = Param::GetFloat(static_cast<Param::PARAM_NUM>(Param::u1 + i - 1));
-            Serial.printf("u%d = %.0fmV\n", i, voltage);
+    // Update cell voltages (u1-u108)
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 15; j++) {
+            int cellNumber = batman.getSequentialCellNumber(i, j);
+            uint16_t voltage = batman.getVoltage(i, j);
+            
+            if (cellNumber > 0 && cellNumber <= 108) {
+                Param::SetInt(static_cast<Param::PARAM_NUM>(Param::u1 + cellNumber - 1), voltage);
+            }
         }
-        Serial.println("===========================");
-        lastDebugOutput = millis();
     }
     
     // Update voltage statistics
@@ -369,13 +369,14 @@ void updateParametersFromBATMan() {
         Param::SetFloat(Param::as8510_temp, 0.0);
     }
     
-    // Update ADS1115 pack voltage data (using spare chip voltage parameters)
+    // Update ADS1115 pack voltage data
     if (ads1115Initialized) {
-        // Store pack voltages in chip voltage parameters (repurposed)
-        Param::SetFloat(Param::ChipV1, packCellVoltage1);  // Pack Cell Voltage 1
-        Param::SetFloat(Param::ChipV2, packCellVoltage2);  // Pack Cell Voltage 2  
-        Param::SetFloat(Param::ChipV3, packLinkVoltage1);  // Pack Link Voltage 1 (after contactors)
-        Param::SetFloat(Param::ChipV4, packLinkVoltage2);  // Pack Link Voltage 2 (after contactors)
+        // Store pack voltages in dedicated ADS1115 parameters
+        Param::SetFloat(Param::battPos, battPos);  // Batt-Pos
+        Param::SetFloat(Param::battNeg, battNeg);  // Batt-Neg
+        Param::SetFloat(Param::udc, battSum);      // Battery sum (absolute values, total pack voltage)
+        Param::SetFloat(Param::linkPos, linkPos);  // Link-Pos (after contactors)
+        Param::SetFloat(Param::linkNeg, linkNeg);  // Link-Neg (after contactors)
     }
 }
 
@@ -502,6 +503,55 @@ void startAS8510NonBlocking(HardwareSerial& serialPort) {
     }
 }
 
+void sendAllParametersToESPHome() {
+    // Send all parameters in param=value format to Serial2 (ESPHome)
+    // This replaces the individual parameter requests
+    
+    // System parameters
+    Serial2.printf("numbmbs=%d\n", Param::GetInt(Param::numbmbs));
+    Serial2.printf("LoopCnt=%d\n", Param::GetInt(Param::LoopCnt));
+    Serial2.printf("LoopState=%d\n", Param::GetInt(Param::LoopState));
+    Serial2.printf("CellsPresent=%d\n", Param::GetInt(Param::CellsPresent));
+    Serial2.printf("CellsBalancing=%d\n", Param::GetInt(Param::CellsBalancing));
+    Serial2.printf("balance=%d\n", Param::GetInt(Param::balance));
+    Serial2.printf("BalanceCellList=%s\n", Param::GetString(Param::BalanceCellList).c_str());
+    
+    // Voltage statistics
+    Serial2.printf("CellMax=%d\n", Param::GetInt(Param::CellMax));
+    Serial2.printf("CellMin=%d\n", Param::GetInt(Param::CellMin));
+    Serial2.printf("umax=%d\n", Param::GetInt(Param::umax));
+    Serial2.printf("umin=%d\n", Param::GetInt(Param::umin));
+    Serial2.printf("deltaV=%d\n", Param::GetInt(Param::deltaV));
+    Serial2.printf("uavg=%.3f\n", Param::GetFloat(Param::uavg));
+    Serial2.printf("udc=%.2f\n", Param::GetFloat(Param::udc));
+    
+    // Temperature parameters
+    Serial2.printf("Chipt0=%d\n", Param::GetInt(Param::Chipt0));
+    Serial2.printf("Cellt0_0=%d\n", Param::GetInt(Param::Cellt0_0));
+    Serial2.printf("Cellt0_1=%d\n", Param::GetInt(Param::Cellt0_1));
+    Serial2.printf("TempMax=%d\n", Param::GetInt(Param::TempMax));
+    Serial2.printf("TempMin=%d\n", Param::GetInt(Param::TempMin));
+    
+    // ADS1115 pack voltages
+    Serial2.printf("battPos=%.3f\n", Param::GetFloat(Param::battPos));  // Batt-Pos
+    Serial2.printf("battNeg=%.3f\n", Param::GetFloat(Param::battNeg));  // Batt-Neg
+    Serial2.printf("linkPos=%.3f\n", Param::GetFloat(Param::linkPos));  // Link-Pos
+    Serial2.printf("linkNeg=%.3f\n", Param::GetFloat(Param::linkNeg));  // Link-Neg
+    
+    // AS8510 Current and Temperature
+    Serial2.printf("current=%.3f\n", Param::GetFloat(Param::current));
+    Serial2.printf("as8510_temp=%.1f\n", Param::GetFloat(Param::as8510_temp));
+    
+    // Individual cell voltages (u1-u108)
+    for (int i = Param::u1; i <= Param::u108; i++) {
+        Serial2.printf("%s=%d\n", Param::GetParamName(static_cast<Param::PARAM_NUM>(i)), 
+                       Param::GetInt(static_cast<Param::PARAM_NUM>(i)));
+    }
+    
+    // Send end marker to indicate complete data packet
+    Serial2.println("DATA_COMPLETE");
+}
+
 void setup() {
     Serial.begin(115200);
     Serial.println("Tesla Model 3 BMB Interface Starting...");
@@ -531,16 +581,16 @@ void setup() {
         Serial.printf("ADS1115 initialized successfully at address 0x%02X!\n", ADS1115_ADDRESS);
         
         // Set gain and data rate
-        ads.setGain(GAIN_FOUR);     // ±1.024V range (1 bit = 0.03125mV)
+        ads.setGain(GAIN_EIGHT);     // ±0.512V range (1 bit = 0.015625mV)
         ads.setDataRate(RATE_ADS1115_860SPS);  // 860 samples per second
         
         Serial.println("ADS1115 Configuration:");
-        Serial.println("  - Gain: ±1.024V (1 bit = 0.03125mV)");
+        Serial.println("  - Gain: ±0.512V (1 bit = 0.015625mV)");
         Serial.println("  - Data Rate: 860 SPS");
-        Serial.println("  - Channel 0: Pack Cell Voltage 1");
-        Serial.println("  - Channel 1: Pack Cell Voltage 2");
-        Serial.println("  - Channel 2: Pack Link Voltage 1 (after contactors)");
-        Serial.println("  - Channel 3: Pack Link Voltage 2 (after contactors)");
+        Serial.println("  - Channel 0: Batt-Neg");
+        Serial.println("  - Channel 1: Batt-Pos");
+        Serial.println("  - Channel 2: Link-Pos (after contactors)");
+        Serial.println("  - Channel 3: Link-Neg (after contactors)");
         
         ads1115Initialized = true;
     } else {
@@ -598,6 +648,13 @@ void setup() {
 void loop() {
     // Get current time for all timing operations
     unsigned long currentMillis = millis();
+    
+    // Auto-send all parameters to ESPHome once per second
+    static unsigned long lastESPHomeUpdate = 0;
+    if (currentMillis - lastESPHomeUpdate >= 1000) {
+        sendAllParametersToESPHome();
+        lastESPHomeUpdate = currentMillis;
+    }
     
     // Throttle main loop execution to maintain timing without blocking delays
     if (currentMillis - lastMainLoopTime < MAIN_LOOP_INTERVAL) {
@@ -715,24 +772,27 @@ void loop() {
         lastVoltageRead = currentMillis;
         
         if (ads1115Initialized) {
-            // Read all 4 channels
-            int16_t adc0 = ads.readADC_SingleEnded(0);
-            int16_t adc1 = ads.readADC_SingleEnded(1);
-            int16_t adc2 = ads.readADC_SingleEnded(2);
-            int16_t adc3 = ads.readADC_SingleEnded(3);
+            // Read all channels using differential mode
+            int16_t adc0 = ads.readADC_Differential_0_3();
+            int16_t adc1 = ads.readADC_Differential_1_3();
+            int16_t adc2 = ads.readADC_Differential_2_3();
+            int16_t adc3 = ads.readADC_Differential_2_3();  // Will be changed later
             
-            // Convert to voltages (assuming ±1.024V range, 1 bit = 0.03125mV)
-            packCellVoltage1 = ads.computeVolts(adc0);
-            packCellVoltage2 = ads.computeVolts(adc1);
-            packLinkVoltage1 = ads.computeVolts(adc2);
-            packLinkVoltage2 = ads.computeVolts(adc3);
+            // Convert to voltages (±0.512V range, 1 bit = 0.015625mV)
+            // Apply scaling factor: 25V input = 0.067V ADC, so scale factor = 373.13
+            const float VOLTAGE_SCALE_FACTOR = 25.0 / 0.067;  // 373.13
+            battPos = ads.computeVolts(adc1) * VOLTAGE_SCALE_FACTOR;  // A1 = Batt positive
+            battNeg = ads.computeVolts(adc0) * VOLTAGE_SCALE_FACTOR;  // A0 = Batt negative
+            battSum = fabs(battPos) + fabs(battNeg);  // Calculate sum of absolute battery voltages
+            linkPos = ads.computeVolts(adc2) * VOLTAGE_SCALE_FACTOR;
+            linkNeg = ads.computeVolts(adc3) * VOLTAGE_SCALE_FACTOR;
             
-            // Display pack voltages on one line
-            Serial.printf("Pack: Cell1=%.3fV Cell2=%.3fV Link1=%.3fV Link2=%.3fV\n", 
-                         packCellVoltage1, packCellVoltage2, packLinkVoltage1, packLinkVoltage2);
+            // Display pack voltages with descriptive labels
+            Serial.printf("ADS1115 Pack Voltages: Batt-Neg=%.3fV Batt-Pos=%.3fV Batt-Sum(abs)=%.3fV Link-Pos(post-contactors)=%.3fV Link-Neg(post-contactors)=%.3fV\n", 
+                         battNeg, battPos, battSum, linkPos, linkNeg);
             
         } else {
-            Serial.println("ADS1115 not initialized - pack voltage readings unavailable");
+            Serial.println("ADS1115 ADC not initialized - pack voltage readings unavailable");
         }
     }
     
