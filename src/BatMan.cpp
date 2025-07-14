@@ -1445,13 +1445,29 @@ BATMan::BalancingInfo BATMan::getBalancingInfo() const {
     int cellCount = 0;
     int balancingCount = 0;
     
+    // Always calculate total cells present for info completeness
+    for (int chip = 0; chip < 8; chip++) {
+        for (int reg = 0; reg < 15; reg++) {
+            if (Voltage[chip][reg] > 10) { // Cell is present
+                cellCount++;
+            }
+        }
+    }
+    info.totalCells = cellCount;
+    
     // Check if balancing is enabled
     if (!Param::GetInt(Param::balance)) {
+        // When balancing is disabled, return info with empty balancing list
+        // This ensures the BalanceCellList parameter is updated to empty string
+        info.balancingCells = 0;
         return info;
     }
     
     float minVoltage = Param::GetFloat(Param::umin);
     float balanceThreshold = minVoltage + BalHys;
+    
+    // Reset cell count for balancing logic
+    cellCount = 0;
     
     // Scan through all cells to find which ones SHOULD be balanced
     // This checks the original balancing logic, not the current phase-masked state
@@ -1471,7 +1487,6 @@ BATMan::BalancingInfo BATMan::getBalancingInfo() const {
         }
     }
     
-    info.totalCells = cellCount;
     info.balancingCells = balancingCount;
     
     return info;

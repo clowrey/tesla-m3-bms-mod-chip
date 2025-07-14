@@ -74,7 +74,13 @@ public:
         
         // AS8510 Current Sensor parameters
         current,
-        as8510_temp
+        as8510_temp,
+        
+        // ADS1115 Pack Voltage parameters
+        battPos,
+        battNeg,
+        linkPos,
+        linkNeg
     };
 
     static int GetInt(PARAM_NUM param);

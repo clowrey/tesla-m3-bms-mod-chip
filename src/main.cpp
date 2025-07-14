@@ -56,16 +56,16 @@ BATMan batman;
 #define SERIAL2_TX_PIN 23      // GPIO pin for Serial2 TX
 #define SERIAL2_BAUD_RATE 115200 // Baud rate for Serial2
 
-// PWM Configuration for Economizer (moved to avoid conflict with Serial2)
-#define ECONOMIZER_PWM_PIN 4  // Changed from 12 to 14 to avoid conflict with Serial2
+// PWM Configuration for PackContactors (moved to avoid conflict with Serial2)
+#define PACK_CONTACTORS_PWM_PIN 4  // Changed from 12 to 14 to avoid conflict with Serial2
+#define CP_CONTACTORS_PWM_PIN 21   // Charge Port contactors on pin 21
 #define PWM_FREQ 20000        // 20kHz PWM frequency
 #define PWM_RESOLUTION 8      // 8-bit resolution (0-255)
-#define ECONOMIZER_DUTY 15   // Normal duty cycle (25%)
+#define PACK_CONTACTORS_DUTY 50   // Normal duty cycle (25%)
+#define CP_CONTACTORS_DUTY 50     // Normal duty cycle (25%)
 #define INITIAL_PULSE_TIME 100  // Initial 100% duty cycle time in milliseconds
 
-// Button Configuration
-#define BUTTON_PIN 35        // GPIO pin for push button
-#define DEBOUNCE_TIME 50     // Debounce time in milliseconds
+// Button Configuration - REMOVED: Physical button control replaced with serial API
 
 // Current sensor instance - Updated for new Rust-based AS8510 library
 AS8510 currentSensor(AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, Gain::Gain100, Gain::Gain25);
@@ -96,13 +96,13 @@ bool ads1115Initialized = false;
 // Balance control variable
 bool balanceEnabled = false;
 
-// Button and Economizer state variables
-bool economizerEnabled = false;
-bool lastButtonState = HIGH;
-bool buttonState = HIGH;
-unsigned long lastDebounceTime = 0;
-unsigned long economizerStartTime = 0;
+// PackContactors and CP Contactors state variables
+bool packContactorsEnabled = false;
+bool cpContactorsEnabled = false;
+unsigned long packContactorsStartTime = 0;
+unsigned long cpContactorsStartTime = 0;
 bool initialPulseComplete = false;
+bool cpInitialPulseComplete = false;
 
 // Add global variable for current duty cycle
 volatile uint8_t currentDutyCycle = 0;
@@ -127,6 +127,8 @@ void runDiagnosticStep();
 void startAS8510NonBlocking(HardwareSerial& serialPort);
 void processSerialInputs();
 void sendAllParametersToESPHome();
+void setPackContactorsDutyCycle(uint8_t dutyCycle);
+void setCpContactorsDutyCycle(uint8_t dutyCycle);
 
 // Function to process serial commands (now takes a HardwareSerial reference)
 void processSerialCommand(String command, HardwareSerial& serialPort) {
@@ -148,6 +150,42 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
     }
     else if (lowerCommand == "balance status" || lowerCommand == "balance") {
         serialPort.printf("Balance is currently: %s\n", balanceEnabled ? "ENABLED" : "DISABLED");
+    }
+    else if (lowerCommand == "pack contactors on" || lowerCommand == "pack contactors enable") {
+        if (!packContactorsEnabled) {
+            packContactorsEnabled = true;
+            setPackContactorsDutyCycle(100);
+            packContactorsStartTime = millis();
+            initialPulseComplete = false;
+        }
+        serialPort.println("Pack Contactors ENABLED");
+    }
+    else if (lowerCommand == "pack contactors off" || lowerCommand == "pack contactors disable") {
+        packContactorsEnabled = false;
+        setPackContactorsDutyCycle(0);
+        initialPulseComplete = false;
+        serialPort.println("Pack Contactors DISABLED");
+    }
+    else if (lowerCommand == "pack contactors status" || lowerCommand == "pack contactors") {
+        serialPort.printf("Pack Contactors are currently: %s\n", packContactorsEnabled ? "ENABLED" : "DISABLED");
+    }
+    else if (lowerCommand == "cp contactors on" || lowerCommand == "cp contactors enable") {
+        if (!cpContactorsEnabled) {
+            cpContactorsEnabled = true;
+            setCpContactorsDutyCycle(100);
+            cpContactorsStartTime = millis();
+            cpInitialPulseComplete = false;
+        }
+        serialPort.println("CP Contactors ENABLED");
+    }
+    else if (lowerCommand == "cp contactors off" || lowerCommand == "cp contactors disable") {
+        cpContactorsEnabled = false;
+        setCpContactorsDutyCycle(0);
+        cpInitialPulseComplete = false;
+        serialPort.println("CP Contactors DISABLED");
+    }
+    else if (lowerCommand == "cp contactors status" || lowerCommand == "cp contactors") {
+        serialPort.printf("CP Contactors are currently: %s\n", cpContactorsEnabled ? "ENABLED" : "DISABLED");
     }
     else if (lowerCommand == "mapping" || lowerCommand == "debug") {
         batman.printHardwareMapping();
@@ -255,6 +293,12 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
         serialPort.println("  balance on / balance enable  - Enable cell balancing");
         serialPort.println("  balance off / balance disable - Disable cell balancing");
         serialPort.println("  balance status / balance     - Show current balance status");
+        serialPort.println("  pack contactors on / pack contactors enable  - Enable pack contactors");
+        serialPort.println("  pack contactors off / pack contactors disable - Disable pack contactors");
+        serialPort.println("  pack contactors status / pack contactors      - Show pack contactors status");
+        serialPort.println("  cp contactors on / cp contactors enable       - Enable charge port contactors");
+        serialPort.println("  cp contactors off / cp contactors disable     - Disable charge port contactors");
+        serialPort.println("  cp contactors status / cp contactors          - Show charge port contactors status");
         serialPort.println("  mapping / debug              - Show hardware register mapping");
         serialPort.println("  bmb registers / registers    - Show detailed BMB register analysis");
         serialPort.println("  bmb debug on/off             - Enable/disable live BMB register debugging");
@@ -279,20 +323,32 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
 
 
 
-// Function to set economizer PWM duty cycle (0-100%)
-void setEconomizerDutyCycle(uint8_t dutyCycle) {
+// Function to set pack contactors PWM duty cycle (0-100%)
+void setPackContactorsDutyCycle(uint8_t dutyCycle) {
     // Convert percentage to 8-bit value (0-255)
     uint32_t pwmValue = (dutyCycle * 255) / 100;
-    ledcWrite(ECONOMIZER_PWM_PIN, pwmValue);
+    ledcWrite(PACK_CONTACTORS_PWM_PIN, pwmValue);
     
     // Print duty cycle change to serial
     if (dutyCycle != prevDutyCycle) {
-        Serial.print("Economizer duty cycle: ");
+        Serial.print("PackContactors duty cycle: ");
         Serial.print(dutyCycle);
         Serial.println("%");
         prevDutyCycle = dutyCycle;
     }
     currentDutyCycle = dutyCycle; // Always update global
+}
+
+// Function to set charge port contactors PWM duty cycle (0-100%)
+void setCpContactorsDutyCycle(uint8_t dutyCycle) {
+    // Convert percentage to 8-bit value (0-255)
+    uint32_t pwmValue = (dutyCycle * 255) / 100;
+    ledcWrite(CP_CONTACTORS_PWM_PIN, pwmValue);
+    
+    // Print duty cycle change to serial
+    Serial.print("CpContactors duty cycle: ");
+    Serial.print(dutyCycle);
+    Serial.println("%");
 }
 
 void updateDisplay(uint8_t currentDutyCycle) {
@@ -313,17 +369,8 @@ void updateDisplay(uint8_t currentDutyCycle) {
 
 // Function to update parameters from BATMan system data
 void updateParametersFromBATMan() {
-    // Update cell voltages (u1-u108)
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 15; j++) {
-            int cellNumber = batman.getSequentialCellNumber(i, j);
-            uint16_t voltage = batman.getVoltage(i, j);
-            
-            if (cellNumber > 0 && cellNumber <= 108) {
-                Param::SetInt(static_cast<Param::PARAM_NUM>(Param::u1 + cellNumber - 1), voltage);
-            }
-        }
-    }
+    // REMOVED: Cell voltage setting - this is now handled by upDateCellVolts() to avoid off-by-one errors
+    // The main BATMan system already sets u1-u108 parameters correctly
     
     // Update voltage statistics
     Param::SetInt(Param::CellMax, batman.getMaxCell());
@@ -516,6 +563,10 @@ void sendAllParametersToESPHome() {
     Serial2.printf("balance=%d\n", Param::GetInt(Param::balance));
     Serial2.printf("BalanceCellList=%s\n", Param::GetString(Param::BalanceCellList).c_str());
     
+    // Contactor states
+    Serial2.printf("packContactors=%d\n", packContactorsEnabled ? 1 : 0);
+    Serial2.printf("cpContactors=%d\n", cpContactorsEnabled ? 1 : 0);
+    
     // Voltage statistics
     Serial2.printf("CellMax=%d\n", Param::GetInt(Param::CellMax));
     Serial2.printf("CellMin=%d\n", Param::GetInt(Param::CellMin));
@@ -542,10 +593,24 @@ void sendAllParametersToESPHome() {
     Serial2.printf("current=%.3f\n", Param::GetFloat(Param::current));
     Serial2.printf("as8510_temp=%.1f\n", Param::GetFloat(Param::as8510_temp));
     
-    // Individual cell voltages (u1-u108)
+    // Individual cell voltages (u1-u108) - Use numeric IDs for faster/more reliable transmission
+    // Format: cellID=voltage (e.g., 1=3770, 2=3814, etc.)
+    int cellID = 1;
     for (int i = Param::u1; i <= Param::u108; i++) {
-        Serial2.printf("%s=%d\n", Param::GetParamName(static_cast<Param::PARAM_NUM>(i)), 
-                       Param::GetInt(static_cast<Param::PARAM_NUM>(i)));
+        float cellVoltage = Param::GetFloat(static_cast<Param::PARAM_NUM>(i));
+        
+        // Only send cells that have valid voltage readings (non-zero)
+        if (cellVoltage > 0) {
+            // Debug output for cell 7 specifically to trace the issue
+            if (cellID == 7) {
+                Serial.printf("DEBUG Cell7: enum=%d, cellID=%d, stored_value=%.1f, sending=%.0f\n", 
+                             i, cellID, cellVoltage, cellVoltage);
+            }
+            
+            // Send as: cellID=voltage (much faster than parameter names)
+            Serial2.printf("%d=%.0f\n", cellID, cellVoltage);
+            cellID++;
+        }
     }
     
     // Send end marker to indicate complete data packet
@@ -561,12 +626,15 @@ void setup() {
     
 
     
-    // Initialize PWM for economizer using new ESP32 Arduino core 3.0 API
-    ledcAttach(ECONOMIZER_PWM_PIN, PWM_FREQ, PWM_RESOLUTION);
-    setEconomizerDutyCycle(0);  // Start with economizer off
+    // Initialize PWM for pack contactors using new ESP32 Arduino core 3.0 API
+    ledcAttach(PACK_CONTACTORS_PWM_PIN, PWM_FREQ, PWM_RESOLUTION);
+    setPackContactorsDutyCycle(0);  // Start with pack contactors off
     
-    // Initialize button pin
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
+    // Initialize PWM for charge port contactors using new ESP32 Arduino core 3.0 API
+    ledcAttach(CP_CONTACTORS_PWM_PIN, PWM_FREQ, PWM_RESOLUTION);
+    setCpContactorsDutyCycle(0);  // Start with charge port contactors off
+    
+    // Button initialization removed - contactors now controlled via serial API
     
     // Initialize I2C for ADS1115
     Serial.println("Initializing I2C for ADS1115...");
@@ -822,45 +890,25 @@ void loop() {
         lastDisplayUpdate = currentMillis;
     }
     
-    // Read button state with debouncing
-    bool reading = digitalRead(BUTTON_PIN);
-    
-    // Check if button state has changed
-    if (reading != lastButtonState) {
-        lastDebounceTime = millis();
-    }
-    
-    // If button state is stable for debounce time
-    if ((millis() - lastDebounceTime) > DEBOUNCE_TIME) {
-        if (reading != buttonState) {
-            buttonState = reading;
-            
-            // If button is pressed (LOW due to INPUT_PULLUP)
-            if (buttonState == LOW) {
-                economizerEnabled = !economizerEnabled;
-                if (economizerEnabled) {
-                    // Start with 100% duty cycle
-                    setEconomizerDutyCycle(100);
-                    economizerStartTime = millis();
-                    initialPulseComplete = false;
-                } else {
-                    // Turn off economizer
-                    setEconomizerDutyCycle(0);
-                    initialPulseComplete = false;
-                }
-            }
-        }
-    }
+    // Button handling removed - contactors now controlled via serial API
     
     // Handle initial pulse timing
-    if (economizerEnabled && !initialPulseComplete) {
-        if ((millis() - economizerStartTime) >= INITIAL_PULSE_TIME) {
-            setEconomizerDutyCycle(ECONOMIZER_DUTY);  // Set to normal duty cycle
+    if (packContactorsEnabled && !initialPulseComplete) {
+        if ((millis() - packContactorsStartTime) >= INITIAL_PULSE_TIME) {
+            setPackContactorsDutyCycle(PACK_CONTACTORS_DUTY);  // Set to normal duty cycle
             initialPulseComplete = true;
         }
     }
     
-    lastButtonState = reading;
+    // Handle charge port contactors initial pulse timing
+    if (cpContactorsEnabled && !cpInitialPulseComplete) {
+        if ((millis() - cpContactorsStartTime) >= INITIAL_PULSE_TIME) {
+            setCpContactorsDutyCycle(CP_CONTACTORS_DUTY);  // Set to normal duty cycle
+            cpInitialPulseComplete = true;
+        }
+    }
+    
+    // Button state tracking removed - contactors now controlled via serial API
     
     // Process serial commands (moved to separate function for reuse)
     processSerialInputs();

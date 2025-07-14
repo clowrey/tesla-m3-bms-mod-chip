@@ -215,7 +215,7 @@ lvgl:
             layout:
               pad_column: 2
               type: GRID
-              grid_rows: [FR(35), FR(25), FR(25), FR(25), FR(25), FR(25), FR(25), FR(25), FR(35)]
+              grid_rows: [FR(35), FR(25), FR(25), FR(25), FR(25), FR(25), FR(25), FR(40), FR(40), FR(40)]
               grid_columns: [FR(240), FR(240)]
             widgets:
               - label:
@@ -312,6 +312,46 @@ lvgl:
                   text: "Current: 0.00A"
                   text_color: white
 
+              - button:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 7
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_pack_contactors
+                  bg_color: grey
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "Pack Contactors"
+                        text_color: white
+                  on_short_click:
+                    - lambda: |-
+                        // Toggle pack contactors via Home Assistant switch
+                        if (id(pack_contactors_switch).state) {
+                          id(pack_contactors_switch).turn_off();
+                        } else {
+                          id(pack_contactors_switch).turn_on();
+                        }
+              - button:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 7
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_cp_contactors
+                  bg_color: grey
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "CP Contactors"
+                        text_color: white
+                  on_short_click:
+                    - lambda: |-
+                        // Toggle CP contactors via Home Assistant switch
+                        if (id(cp_contactors_switch).state) {
+                          id(cp_contactors_switch).turn_off();
+                        } else {
+                          id(cp_contactors_switch).turn_on();
+                        }
               - label:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 5
@@ -343,7 +383,7 @@ lvgl:
                   text_font: montserrat_12
               - button:
                   grid_cell_column_pos: 0
-                  grid_cell_row_pos: 7
+                  grid_cell_row_pos: 8
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: btn_balance_on
@@ -359,7 +399,7 @@ lvgl:
                         data: "balance on\n"
               - button:
                   grid_cell_column_pos: 1
-                  grid_cell_row_pos: 7
+                  grid_cell_row_pos: 8
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: btn_balance_off
@@ -376,7 +416,7 @@ lvgl:
 
               - button:
                   grid_cell_column_pos: 0
-                  grid_cell_row_pos: 8
+                  grid_cell_row_pos: 9
                   grid_cell_column_span: 2
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
@@ -905,6 +945,48 @@ binary_sensor:
     name: "Tesla BMS Display Status"
     id: display_status
 
+# Switches for contactor control (Home Assistant integration)
+switch:
+  - platform: template
+    name: "Pack Contactors"
+    id: pack_contactors_switch
+    optimistic: true
+    restore_mode: DISABLED
+    turn_on_action:
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "pack contactors on\n"
+      - lambda: |-
+          // Update button color immediately
+          lv_obj_set_style_bg_color((lv_obj_t*)id(btn_pack_contactors), lv_color_make(0, 255, 0), LV_PART_MAIN);
+    turn_off_action:
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "pack contactors off\n"
+      - lambda: |-
+          // Update button color immediately
+          lv_obj_set_style_bg_color((lv_obj_t*)id(btn_pack_contactors), lv_color_make(128, 128, 128), LV_PART_MAIN);
+
+  - platform: template
+    name: "Charge Port Contactors"
+    id: cp_contactors_switch
+    optimistic: true
+    restore_mode: DISABLED
+    turn_on_action:
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "cp contactors on\n"
+      - lambda: |-
+          // Update button color immediately
+          lv_obj_set_style_bg_color((lv_obj_t*)id(btn_cp_contactors), lv_color_make(0, 255, 0), LV_PART_MAIN);
+    turn_off_action:
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "cp contactors off\n"
+      - lambda: |-
+          // Update button color immediately
+          lv_obj_set_style_bg_color((lv_obj_t*)id(btn_cp_contactors), lv_color_make(128, 128, 128), LV_PART_MAIN);
+
 # Sensors for system parameters
 sensor:
   # System parameters
@@ -1075,6 +1157,19 @@ sensor:
     unit_of_measurement: "status"
     accuracy_decimals: 0
 
+  # Contactor status sensors
+  - platform: template
+    name: "Pack Contactors Status"
+    id: pack_contactors_status
+    unit_of_measurement: "status"
+    accuracy_decimals: 0
+
+  - platform: template
+    name: "CP Contactors Status"
+    id: cp_contactors_status
+    unit_of_measurement: "status"
+    accuracy_decimals: 0
+
   # Current sensor (AS8510)
   - platform: template
     name: "BMS Current"
@@ -1228,6 +1323,16 @@ interval:
                         else if (param == "linkNeg") { 
                           ESP_LOGI("BMS", "DEBUG: UPDATING linkNeg = %f V", value);
                           id(link_neg).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "packContactors") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING packContactors = %f", value);
+                          id(pack_contactors_status).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "cpContactors") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING cpContactors = %f", value);
+                          id(cp_contactors_status).publish_state(value); 
                           sensor_updated = true; 
                         }
                         
@@ -1663,6 +1768,39 @@ interval:
           } else {
             lv_label_set_text((lv_obj_t*)id(label_connected), "Connected: No");
             lv_obj_set_style_text_color((lv_obj_t*)id(label_connected), lv_color_make(255, 0, 0), LV_PART_MAIN); // Red
+          }
+          
+          // Update contactor button colors based on BMS status
+          if (id(pack_contactors_status).has_state()) {
+            if (id(pack_contactors_status).state > 0.5) {
+              lv_obj_set_style_bg_color((lv_obj_t*)id(btn_pack_contactors), lv_color_make(0, 255, 0), LV_PART_MAIN); // Green when on
+              // Sync Home Assistant switch state
+              if (!id(pack_contactors_switch).state) {
+                id(pack_contactors_switch).publish_state(true);
+              }
+            } else {
+              lv_obj_set_style_bg_color((lv_obj_t*)id(btn_pack_contactors), lv_color_make(128, 128, 128), LV_PART_MAIN); // Gray when off
+              // Sync Home Assistant switch state
+              if (id(pack_contactors_switch).state) {
+                id(pack_contactors_switch).publish_state(false);
+              }
+            }
+          }
+          
+          if (id(cp_contactors_status).has_state()) {
+            if (id(cp_contactors_status).state > 0.5) {
+              lv_obj_set_style_bg_color((lv_obj_t*)id(btn_cp_contactors), lv_color_make(0, 255, 0), LV_PART_MAIN); // Green when on
+              // Sync Home Assistant switch state
+              if (!id(cp_contactors_switch).state) {
+                id(cp_contactors_switch).publish_state(true);
+              }
+            } else {
+              lv_obj_set_style_bg_color((lv_obj_t*)id(btn_cp_contactors), lv_color_make(128, 128, 128), LV_PART_MAIN); // Gray when off
+              // Sync Home Assistant switch state
+              if (id(cp_contactors_switch).state) {
+                id(cp_contactors_switch).publish_state(false);
+              }
+            }
           }
           
           // Update time

@@ -11,7 +11,7 @@ static std::map<Param::PARAM_NUM, String> stringParams;
 // Parameter name mapping
 static const char* paramNames[] = {
     // System parameters
-    "numbmbs", "LoopCnt", "LoopState", "CellsPresent", "CellsBalancing", "BalanceCellList",
+    "numbmbs", "LoopCnt", "LoopState", "BalancePhase", "CellsPresent", "CellsBalancing", "BalanceCellList",
     
     // Cell voltage parameters
     "u1", "u2", "u3", "u4", "u5", "u6", "u7", "u8", "u9", "u10",
@@ -45,7 +45,10 @@ static const char* paramNames[] = {
     "Chip1Cells", "Chip2Cells", "Chip3Cells", "Chip4Cells",
     
     // AS8510 Current Sensor parameters
-    "current", "as8510_temp"
+    "current", "as8510_temp",
+    
+    // ADS1115 Pack Voltage parameters
+    "battPos", "battNeg", "linkPos", "linkNeg"
 };
 
 // Initialize default values
@@ -110,6 +113,12 @@ static void initParams() {
     // Initialize AS8510 Current Sensor parameters
     floatParams[Param::current] = 0.0f;
     floatParams[Param::as8510_temp] = 0.0f;
+    
+    // Initialize ADS1115 Pack Voltage parameters
+    floatParams[Param::battPos] = 0.0f;
+    floatParams[Param::battNeg] = 0.0f;
+    floatParams[Param::linkPos] = 0.0f;
+    floatParams[Param::linkNeg] = 0.0f;
 }
 
 int Param::GetInt(PARAM_NUM param) {
@@ -238,6 +247,8 @@ void Param::PrintParamHelp() {
     Serial.println("  Chip Voltages: ChipV1-ChipV8");
     Serial.println("  Chip Supplies: Chip1_5V, Chip2_5V");
     Serial.println("  Cell Counts: Chip1Cells, Chip2Cells, Chip3Cells, Chip4Cells");
+    Serial.println("  ADS1115 Pack Voltages: battPos, battNeg, linkPos, linkNeg");
+    Serial.println("  AS8510 Current Sensor: current, as8510_temp");
     Serial.println("");
     Serial.println("Common Parameters:");
     Serial.println("  balance     - Balance control (0=off, 1=on)");
@@ -336,6 +347,8 @@ void Param::PrintParamHelp(HardwareSerial& serialPort) {
     serialPort.println("  Chip Voltages: ChipV1-ChipV8");
     serialPort.println("  Chip Supplies: Chip1_5V, Chip2_5V");
     serialPort.println("  Cell Counts: Chip1Cells, Chip2Cells, Chip3Cells, Chip4Cells");
+    serialPort.println("  ADS1115 Pack Voltages: battPos, battNeg, linkPos, linkNeg");
+    serialPort.println("  AS8510 Current Sensor: current, as8510_temp");
     serialPort.println("");
     serialPort.println("Common Parameters:");
     serialPort.println("  balance     - Balance control (0=off, 1=on)");
