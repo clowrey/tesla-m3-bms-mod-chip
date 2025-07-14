@@ -29,11 +29,7 @@ esp32:
 preferences:
   flash_write_interval: 1min
 
-external_components:
-  - source: ./external_components/tesla_bms_uart
-  - source: github://pr#8553
-    components: [axs15231]
-    refresh: 1h
+
 
 # Include individual cell voltage sensors
 packages:
@@ -50,7 +46,7 @@ logger:
 
 # WiFi configuration
 wifi:
-  use_address: 10.60.5.130
+  #use_address: 10.60.5.130
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   reboot_timeout: 0s
@@ -295,7 +291,7 @@ lvgl:
                   grid_cell_y_align: STRETCH
                   id: label_avg_display
                   align: RIGHT_MID
-                  text: "Avg: 0.000V"
+                  text: "Cell Avg: 0.000V"
                   text_color: white
               - label:
                   grid_cell_column_pos: 0
@@ -414,7 +410,7 @@ lvgl:
             layout:
               pad_column: 2
               type: GRID
-              grid_rows: [FR(40), FR(26), FR(26), FR(26), FR(26), FR(26), FR(26), FR(40)]
+              grid_rows: [FR(40), FR(26), FR(26), FR(26), FR(26), FR(26), FR(26), FR(26), FR(26), FR(40)]
               grid_columns: [FR(240), FR(240)]
             widgets:
               - label:
@@ -443,7 +439,7 @@ lvgl:
                   grid_cell_y_align: STRETCH
                   id: label_avg_voltage
                   align: LEFT_MID
-                  text: "Avg: 0.000V"
+                  text: "Cell Avg: 0.000V"
                   text_color: white
                   text_font: montserrat_12
               - label:
@@ -556,9 +552,49 @@ lvgl:
                   text: "State: 0"
                   text_color: white
                   text_font: montserrat_12
-              - button:
+              - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 7
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_batt_pos
+                  align: LEFT_MID
+                  text: "Batt+: 0.000V"
+                  text_color: 0x00CCFF
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 7
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_batt_neg
+                  align: RIGHT_MID
+                  text: "Batt-: 0.000V"
+                  text_color: 0x00CCFF
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 8
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_link_pos
+                  align: LEFT_MID
+                  text: "Link+: 0.000V"
+                  text_color: 0x00CCFF
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 8
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_link_neg
+                  align: RIGHT_MID
+                  text: "Link-: 0.000V"
+                  text_color: 0x00CCFF
+                  text_font: montserrat_12
+              - button:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 9
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: btn_prev_page
@@ -572,7 +608,7 @@ lvgl:
                     - lvgl.page.previous:
               - button:
                   grid_cell_column_pos: 1
-                  grid_cell_row_pos: 7
+                  grid_cell_row_pos: 9
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: btn_cells_page
@@ -771,7 +807,7 @@ lvgl:
             x: 0
             y: -5
             id: label_cells_info
-            text: "All 108 Cells (Real BMS Data - Fixed Alignment)"
+            text: "All 108 Cells (Real BMS Data)"
             text_color: white
 
         
@@ -873,19 +909,19 @@ binary_sensor:
 sensor:
   # System parameters
   - platform: template
-    name: "Number of BMBs"
+    name: "Batman ICs Detected"
     id: numbmbs
     unit_of_measurement: "boards"
     accuracy_decimals: 0
     
   - platform: template
-    name: "Loop Counter"
+    name: "Batman Loop Counter"
     id: loopcnt
     unit_of_measurement: "count"
     accuracy_decimals: 0
     
   - platform: template
-    name: "Loop State"
+    name: "Batman Loop State"
     id: loopstate
     unit_of_measurement: "state"
     accuracy_decimals: 0
@@ -904,49 +940,49 @@ sensor:
 
   # Voltage statistics
   - platform: template
-    name: "Cell Max Number"
+    name: "Cell Number Max"
     id: cellmax
     unit_of_measurement: "cell"
     accuracy_decimals: 0
     
   - platform: template
-    name: "Cell Min Number"
+    name: "Cell Number Min"
     id: cellmin
     unit_of_measurement: "cell"
     accuracy_decimals: 0
     
   - platform: template
-    name: "Max Voltage"
+    name: "Cell Voltage Max"
     id: umax
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "Min Voltage"
+    name: "Cell Voltage Min"
     id: umin
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "Voltage Delta"
+    name: "Cell Voltage Delta"
     id: deltav
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "Average Voltage"
+    name: "Cell Voltage Average"
     id: uavg
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "DC Voltage"
+    name: "Batt Contactor V Sum"
     id: udc
     unit_of_measurement: "V"
     accuracy_decimals: 2
 
   - platform: template
-    name: "Cell Sum Voltage"
+    name: "Cell Voltage Sum"
     id: cell_sum_voltage
     unit_of_measurement: "V"
     accuracy_decimals: 2
@@ -976,6 +1012,31 @@ sensor:
     unit_of_measurement: "V"
     accuracy_decimals: 2
 
+  # ADS1115 Pack Voltage sensors
+  - platform: template
+    name: "Batt Contactor V+"
+    id: batt_pos
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Batt Contactor V-"
+    id: batt_neg
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Batt Link V+"
+    id: link_pos
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Batt Link V-"
+    id: link_neg
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+
   # Temperature sensors
   - platform: template
     name: "Chip Temperature"
@@ -996,20 +1057,20 @@ sensor:
     accuracy_decimals: 1
     
   - platform: template
-    name: "Max Temperature"
+    name: "Cell Temperature Max"
     id: tempmax
     unit_of_measurement: "°C"
     accuracy_decimals: 1
     
   - platform: template
-    name: "Min Temperature"
+    name: "Cell Temperature Min"
     id: tempmin
     unit_of_measurement: "°C"
     accuracy_decimals: 1
 
   # Balance control
   - platform: template
-    name: "Balance Status"
+    name: "Cell Balance Status"
     id: balance
     unit_of_measurement: "status"
     accuracy_decimals: 0
@@ -1031,7 +1092,7 @@ sensor:
 # Text sensor for balance cell list
 text_sensor:
   - platform: template
-    name: "Balance Cell List"
+    name: "Cell Balance List"
     id: balance_cell_list
 
 # Interval to process incoming UART data (simplified - no more requests!)
@@ -1082,8 +1143,16 @@ interval:
                           id(numbmbs).publish_state(value); 
                           sensor_updated = true; 
                         }
-                        else if (param == "LoopCnt") { id(loopcnt).publish_state(value); sensor_updated = true; }
-                        else if (param == "LoopState") { id(loopstate).publish_state(value); sensor_updated = true; }
+                        else if (param == "LoopCnt") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING LoopCnt = %f", value);
+                          id(loopcnt).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "LoopState") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING LoopState = %f", value);
+                          id(loopstate).publish_state(value); 
+                          sensor_updated = true; 
+                        }
                         else if (param == "CellsPresent") { id(cellspresent).publish_state(value); sensor_updated = true; }
                         else if (param == "CellsBalancing") { id(cellsbalancing).publish_state(value); sensor_updated = true; }
                         else if (param == "CellMax") { id(cellmax).publish_state(value); sensor_updated = true; }
@@ -1108,8 +1177,8 @@ interval:
                         }
                         else if (param == "deltaV") { id(deltav).publish_state(value / 1000.0); sensor_updated = true; }
                         else if (param == "uavg") { 
-                          ESP_LOGI("BMS", "DEBUG: UPDATING uavg = %f V", value);
-                          id(uavg).publish_state(value); 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING uavg = %f mV -> %f V", value, value / 1000.0);
+                          id(uavg).publish_state(value / 1000.0); 
                           sensor_updated = true; 
                         }
                         else if (param == "udc") { id(udc).publish_state(value); sensor_updated = true; }
@@ -1118,7 +1187,15 @@ interval:
                         else if (param == "Cellt0_1") { id(cellt0_1).publish_state(value); sensor_updated = true; }
                         else if (param == "TempMax") { id(tempmax).publish_state(value); sensor_updated = true; }
                         else if (param == "TempMin") { id(tempmin).publish_state(value); sensor_updated = true; }
-                        else if (param == "balance") { id(balance).publish_state(value); sensor_updated = true; }
+                        else if (param == "balance") { 
+                          id(balance).publish_state(value); 
+                          // Clear balance cell list when balancing is turned off
+                          if (value < 0.5) {
+                            id(balance_cell_list).publish_state("");
+                            ESP_LOGI("BMS", "Balancing OFF - clearing balance cell list");
+                          }
+                          sensor_updated = true; 
+                        }
                         else if (param == "ChipV1") { id(chipv1).publish_state(value); sensor_updated = true; }
                         else if (param == "ChipV2") { id(chipv2).publish_state(value); sensor_updated = true; }
                         else if (param == "ChipV3") { id(chipv3).publish_state(value); sensor_updated = true; }
@@ -1133,130 +1210,162 @@ interval:
                           id(as8510_temp).publish_state(value); 
                           sensor_updated = true; 
                         }
+                        else if (param == "battPos") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING battPos = %f V", value);
+                          id(batt_pos).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "battNeg") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING battNeg = %f V", value);
+                          id(batt_neg).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "linkPos") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING linkPos = %f V", value);
+                          id(link_pos).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "linkNeg") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING linkNeg = %f V", value);
+                          id(link_neg).publish_state(value); 
+                          sensor_updated = true; 
+                        }
                         
-                        // Individual cell voltages (u1-u108) - convert from mV to V, skip 5V initialization values
-                        else if (param.substr(0,1) == "u" && param.length() >= 2) {
+                        // Individual cell voltages - Handle both old format (u1-u108) and new numeric format (1-108)
+                        else if ((param.substr(0,1) == "u" && param.length() >= 2) || 
+                                 (isdigit(param[0]) && param.length() >= 1 && param.length() <= 3)) {
                           ESP_LOGI("BMS", "DEBUG: Processing cell voltage %s = %f", param.c_str(), value);
+                          
+                          // Convert numeric cell ID to corresponding sensor ID
+                          int cell_num = 0;
+                          if (param.substr(0,1) == "u") {
+                            // Old format: u1, u2, etc. - extract number after 'u'
+                            cell_num = atoi(param.substr(1).c_str());
+                          } else {
+                            // New format: 1, 2, etc. - direct numeric ID
+                            cell_num = atoi(param.c_str());
+                          }
+                          
                           // Skip 5V initialization values (5000mV) and values below 10mV
                           if (value == 5000.0) {
-                            ESP_LOGV("BMS", "Skipping 5V initialization value for %s", param.c_str());
+                            ESP_LOGV("BMS", "Skipping 5V initialization value for cell %d", cell_num);
                             sensor_updated = true;
                           } else if (value < 10.0) {
-                            ESP_LOGV("BMS", "Skipping low voltage value (%.1fmV) for %s", value, param.c_str());
+                            ESP_LOGV("BMS", "Skipping low voltage value (%.1fmV) for cell %d", value, cell_num);
                             sensor_updated = true;
                           } else {
                             // Publish the voltage value converted from mV to V
                             float voltage_v = value / 1000.0;
                             
-                            // Update individual cell sensors (u1-u108)
-                            if (param == "u1") { id(u1).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u2") { id(u2).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u3") { id(u3).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u4") { id(u4).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u5") { id(u5).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u6") { id(u6).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u7") { id(u7).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u8") { id(u8).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u9") { id(u9).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u10") { id(u10).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u11") { id(u11).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u12") { id(u12).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u13") { id(u13).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u14") { id(u14).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u15") { id(u15).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u16") { id(u16).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u17") { id(u17).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u18") { id(u18).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u19") { id(u19).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u20") { id(u20).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u21") { id(u21).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u22") { id(u22).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u23") { id(u23).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u24") { id(u24).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u25") { id(u25).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u26") { id(u26).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u27") { id(u27).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u28") { id(u28).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u29") { id(u29).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u30") { id(u30).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u31") { id(u31).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u32") { id(u32).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u33") { id(u33).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u34") { id(u34).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u35") { id(u35).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u36") { id(u36).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u37") { id(u37).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u38") { id(u38).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u39") { id(u39).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u40") { id(u40).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u41") { id(u41).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u42") { id(u42).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u43") { id(u43).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u44") { id(u44).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u45") { id(u45).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u46") { id(u46).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u47") { id(u47).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u48") { id(u48).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u49") { id(u49).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u50") { id(u50).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u51") { id(u51).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u52") { id(u52).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u53") { id(u53).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u54") { id(u54).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u55") { id(u55).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u56") { id(u56).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u57") { id(u57).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u58") { id(u58).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u59") { id(u59).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u60") { id(u60).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u61") { id(u61).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u62") { id(u62).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u63") { id(u63).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u64") { id(u64).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u65") { id(u65).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u66") { id(u66).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u67") { id(u67).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u68") { id(u68).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u69") { id(u69).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u70") { id(u70).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u71") { id(u71).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u72") { id(u72).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u73") { id(u73).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u74") { id(u74).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u75") { id(u75).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u76") { id(u76).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u77") { id(u77).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u78") { id(u78).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u79") { id(u79).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u80") { id(u80).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u81") { id(u81).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u82") { id(u82).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u83") { id(u83).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u84") { id(u84).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u85") { id(u85).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u86") { id(u86).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u87") { id(u87).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u88") { id(u88).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u89") { id(u89).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u90") { id(u90).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u91") { id(u91).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u92") { id(u92).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u93") { id(u93).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u94") { id(u94).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u95") { id(u95).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u96") { id(u96).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u97") { id(u97).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u98") { id(u98).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u99") { id(u99).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u100") { id(u100).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u101") { id(u101).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u102") { id(u102).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u103") { id(u103).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u104") { id(u104).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u105") { id(u105).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u106") { id(u106).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u107") { id(u107).publish_state(voltage_v); sensor_updated = true; }
-                            else if (param == "u108") { id(u108).publish_state(voltage_v); sensor_updated = true; }
+                            // Update individual cell sensors (cells 1-108)
+                            if (cell_num == 1) { id(u1).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 2) { id(u2).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 3) { id(u3).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 4) { id(u4).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 5) { id(u5).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 6) { id(u6).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 7) { id(u7).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 8) { id(u8).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 9) { id(u9).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 10) { id(u10).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 11) { id(u11).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 12) { id(u12).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 13) { id(u13).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 14) { id(u14).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 15) { id(u15).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 16) { id(u16).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 17) { id(u17).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 18) { id(u18).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 19) { id(u19).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 20) { id(u20).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 21) { id(u21).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 22) { id(u22).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 23) { id(u23).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 24) { id(u24).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 25) { id(u25).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 26) { id(u26).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 27) { id(u27).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 28) { id(u28).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 29) { id(u29).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 30) { id(u30).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 31) { id(u31).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 32) { id(u32).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 33) { id(u33).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 34) { id(u34).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 35) { id(u35).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 36) { id(u36).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 37) { id(u37).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 38) { id(u38).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 39) { id(u39).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 40) { id(u40).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 41) { id(u41).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 42) { id(u42).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 43) { id(u43).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 44) { id(u44).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 45) { id(u45).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 46) { id(u46).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 47) { id(u47).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 48) { id(u48).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 49) { id(u49).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 50) { id(u50).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 51) { id(u51).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 52) { id(u52).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 53) { id(u53).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 54) { id(u54).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 55) { id(u55).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 56) { id(u56).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 57) { id(u57).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 58) { id(u58).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 59) { id(u59).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 60) { id(u60).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 61) { id(u61).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 62) { id(u62).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 63) { id(u63).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 64) { id(u64).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 65) { id(u65).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 66) { id(u66).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 67) { id(u67).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 68) { id(u68).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 69) { id(u69).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 70) { id(u70).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 71) { id(u71).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 72) { id(u72).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 73) { id(u73).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 74) { id(u74).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 75) { id(u75).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 76) { id(u76).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 77) { id(u77).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 78) { id(u78).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 79) { id(u79).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 80) { id(u80).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 81) { id(u81).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 82) { id(u82).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 83) { id(u83).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 84) { id(u84).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 85) { id(u85).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 86) { id(u86).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 87) { id(u87).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 88) { id(u88).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 89) { id(u89).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 90) { id(u90).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 91) { id(u91).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 92) { id(u92).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 93) { id(u93).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 94) { id(u94).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 95) { id(u95).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 96) { id(u96).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 97) { id(u97).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 98) { id(u98).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 99) { id(u99).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 100) { id(u100).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 101) { id(u101).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 102) { id(u102).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 103) { id(u103).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 104) { id(u104).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 105) { id(u105).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 106) { id(u106).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 107) { id(u107).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 108) { id(u108).publish_state(voltage_v); sensor_updated = true; }
                           }
                         }
                         
@@ -1477,11 +1586,11 @@ interval:
           float avg_voltage = 0.0f;
           if (valid_cells > 0) {
             avg_voltage = cell_sum / valid_cells;
-            snprintf(buffer, sizeof(buffer), "Avg: %.3fV", avg_voltage);
+                                  snprintf(buffer, sizeof(buffer), "Cell Avg: %.3fV", avg_voltage);
           } else if (id(uavg).has_state() && id(uavg).state > 0.01f) {
-            snprintf(buffer, sizeof(buffer), "Avg: %.3fV", id(uavg).state);
+            snprintf(buffer, sizeof(buffer), "Cell Avg: %.3fV", id(uavg).state);
           } else {
-            snprintf(buffer, sizeof(buffer), "Avg: --.---V");
+            snprintf(buffer, sizeof(buffer), "Cell Avg: --.---V");
           }
           lv_label_set_text((lv_obj_t*)id(label_avg_display), buffer);
           
@@ -1508,6 +1617,35 @@ interval:
             snprintf(buffer, sizeof(buffer), "AS8510: --°C");
           }
           lv_label_set_text((lv_obj_t*)id(label_as8510_temp), buffer);
+          
+          // Update ADS1115 pack voltage displays
+          if (id(batt_pos).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Batt+: %.3fV", id(batt_pos).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Batt+: 0.000V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_batt_pos), buffer);
+          
+          if (id(batt_neg).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Batt-: %.3fV", id(batt_neg).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Batt-: 0.000V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_batt_neg), buffer);
+          
+          if (id(link_pos).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Link+: %.3fV", id(link_pos).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Link+: 0.000V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_link_pos), buffer);
+          
+          if (id(link_neg).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Link-: %.3fV", id(link_neg).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Link-: 0.000V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_link_neg), buffer);
           
           // Update loop info - check for valid data
           if (id(loopcnt).has_state() && id(loopstate).has_state()) {
@@ -1542,11 +1680,11 @@ interval:
           float details_avg_voltage = 0.0f;
           if (valid_cells > 0) {
             details_avg_voltage = cell_sum / valid_cells;
-            snprintf(buffer, sizeof(buffer), "Avg: %.3fV", details_avg_voltage);
+            snprintf(buffer, sizeof(buffer), "Cell Avg: %.3fV", details_avg_voltage);
           } else if (id(uavg).has_state() && id(uavg).state > 0.1f) {
-            snprintf(buffer, sizeof(buffer), "Avg: %.3fV", id(uavg).state);
+            snprintf(buffer, sizeof(buffer), "Cell Avg: %.3fV", id(uavg).state);
           } else {
-            snprintf(buffer, sizeof(buffer), "Avg: --.---V");
+            snprintf(buffer, sizeof(buffer), "Cell Avg: --.---V");
           }
           lv_label_set_text((lv_obj_t*)id(label_avg_voltage), buffer);
           
@@ -1666,20 +1804,19 @@ interval:
           lv_obj_t* container = (lv_obj_t*)id(cells_container);
           if (container && lv_obj_get_child_cnt(container) >= 108) {
             // Array of cell voltage sensors - collect all 108 cells, use actual BMS values (including 0V)
-            // NOTE: Cell numbering now properly aligned - Serial Monitor "Cell 1" = ESPHome u1
             std::vector<std::pair<int, float>> cell_data;
             
             // Cells 1-20 - Use NaN for uninitialized sensors to avoid showing misleading 0V or 5V values
-            cell_data.push_back({0, id(u1).has_state() ? id(u1).state : NAN});   // u1 = Cell 1 in serial monitor
-            cell_data.push_back({1, id(u2).has_state() ? id(u2).state : NAN});   // u2 = Cell 2 in serial monitor
-            cell_data.push_back({2, id(u3).has_state() ? id(u3).state : NAN});   // u3 = Cell 3 in serial monitor
-            cell_data.push_back({3, id(u4).has_state() ? id(u4).state : NAN});   // u4 = Cell 4 in serial monitor
-            cell_data.push_back({4, id(u5).has_state() ? id(u5).state : NAN});   // u5 = Cell 5 in serial monitor
-            cell_data.push_back({5, id(u6).has_state() ? id(u6).state : NAN});   // u6 = Cell 6 in serial monitor
-            cell_data.push_back({6, id(u7).has_state() ? id(u7).state : NAN});   // u7 = Cell 7 in serial monitor
-            cell_data.push_back({7, id(u8).has_state() ? id(u8).state : NAN});   // u8 = Cell 8 in serial monitor
-            cell_data.push_back({8, id(u9).has_state() ? id(u9).state : NAN});   // u9 = Cell 9 in serial monitor
-            cell_data.push_back({9, id(u10).has_state() ? id(u10).state : NAN}); // u10 = Cell 10 in serial monitor
+            cell_data.push_back({0, id(u1).has_state() ? id(u1).state : NAN});
+            cell_data.push_back({1, id(u2).has_state() ? id(u2).state : NAN});
+            cell_data.push_back({2, id(u3).has_state() ? id(u3).state : NAN});
+            cell_data.push_back({3, id(u4).has_state() ? id(u4).state : NAN});
+            cell_data.push_back({4, id(u5).has_state() ? id(u5).state : NAN});
+            cell_data.push_back({5, id(u6).has_state() ? id(u6).state : NAN});
+            cell_data.push_back({6, id(u7).has_state() ? id(u7).state : NAN});
+            cell_data.push_back({7, id(u8).has_state() ? id(u8).state : NAN});
+            cell_data.push_back({8, id(u9).has_state() ? id(u9).state : NAN});
+            cell_data.push_back({9, id(u10).has_state() ? id(u10).state : NAN});
             cell_data.push_back({10, id(u11).has_state() ? id(u11).state : 0.0f});
             cell_data.push_back({11, id(u12).has_state() ? id(u12).state : 0.0f});
             cell_data.push_back({12, id(u13).has_state() ? id(u13).state : 0.0f});
@@ -1814,7 +1951,6 @@ interval:
                   }
                 }
                 ESP_LOGI("DISPLAY", "Balance cells from BMS: %s", balance_list.c_str());
-                ESP_LOGI("DISPLAY", "Cell numbering: Now properly aligned - Serial Monitor Cell 1 = ESPHome u1");
               }
             }
             
