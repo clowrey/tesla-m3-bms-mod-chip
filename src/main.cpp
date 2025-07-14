@@ -58,12 +58,12 @@ BATMan batman;
 
 // PWM Configuration for PackContactors (moved to avoid conflict with Serial2)
 #define PACK_CONTACTORS_PWM_PIN 4  // Changed from 12 to 14 to avoid conflict with Serial2
-#define CP_CONTACTORS_PWM_PIN 21   // Charge Port contactors on pin 21
+#define PRE_CHARGE_RELAY_PWM_PIN 21   // Pre Charge Relay on pin 21
 #define PWM_FREQ 20000        // 20kHz PWM frequency
 #define PWM_RESOLUTION 8      // 8-bit resolution (0-255)
 #define PACK_CONTACTORS_DUTY 50   // Normal duty cycle (25%)
-#define CP_CONTACTORS_DUTY 50     // Normal duty cycle (25%)
-#define INITIAL_PULSE_TIME 100  // Initial 100% duty cycle time in milliseconds
+#define PRE_CHARGE_RELAY_DUTY 50     // Normal duty cycle (25%)
+#define INITIAL_PULSE_TIME 200  // Initial 100% duty cycle time in milliseconds
 
 // Button Configuration - REMOVED: Physical button control replaced with serial API
 
@@ -96,13 +96,13 @@ bool ads1115Initialized = false;
 // Balance control variable
 bool balanceEnabled = false;
 
-// PackContactors and CP Contactors state variables
+// PackContactors and Pre Charge Relay state variables
 bool packContactorsEnabled = false;
-bool cpContactorsEnabled = false;
+bool preChargeRelayEnabled = false;
 unsigned long packContactorsStartTime = 0;
-unsigned long cpContactorsStartTime = 0;
+unsigned long preChargeRelayStartTime = 0;
 bool initialPulseComplete = false;
-bool cpInitialPulseComplete = false;
+bool preChargeRelayInitialPulseComplete = false;
 
 // Add global variable for current duty cycle
 volatile uint8_t currentDutyCycle = 0;
@@ -128,7 +128,7 @@ void startAS8510NonBlocking(HardwareSerial& serialPort);
 void processSerialInputs();
 void sendAllParametersToESPHome();
 void setPackContactorsDutyCycle(uint8_t dutyCycle);
-void setCpContactorsDutyCycle(uint8_t dutyCycle);
+void setPreChargeRelayDutyCycle(uint8_t dutyCycle);
 
 // Function to process serial commands (now takes a HardwareSerial reference)
 void processSerialCommand(String command, HardwareSerial& serialPort) {
@@ -169,23 +169,23 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
     else if (lowerCommand == "pack contactors status" || lowerCommand == "pack contactors") {
         serialPort.printf("Pack Contactors are currently: %s\n", packContactorsEnabled ? "ENABLED" : "DISABLED");
     }
-    else if (lowerCommand == "cp contactors on" || lowerCommand == "cp contactors enable") {
-        if (!cpContactorsEnabled) {
-            cpContactorsEnabled = true;
-            setCpContactorsDutyCycle(100);
-            cpContactorsStartTime = millis();
-            cpInitialPulseComplete = false;
+    else if (lowerCommand == "pre charge relay on" || lowerCommand == "pre charge relay enable") {
+        if (!preChargeRelayEnabled) {
+            preChargeRelayEnabled = true;
+            setPreChargeRelayDutyCycle(100);
+            preChargeRelayStartTime = millis();
+            preChargeRelayInitialPulseComplete = false;
         }
-        serialPort.println("CP Contactors ENABLED");
+        serialPort.println("Pre Charge Relay ENABLED");
     }
-    else if (lowerCommand == "cp contactors off" || lowerCommand == "cp contactors disable") {
-        cpContactorsEnabled = false;
-        setCpContactorsDutyCycle(0);
-        cpInitialPulseComplete = false;
-        serialPort.println("CP Contactors DISABLED");
+    else if (lowerCommand == "pre charge relay off" || lowerCommand == "pre charge relay disable") {
+        preChargeRelayEnabled = false;
+        setPreChargeRelayDutyCycle(0);
+        preChargeRelayInitialPulseComplete = false;
+        serialPort.println("Pre Charge Relay DISABLED");
     }
-    else if (lowerCommand == "cp contactors status" || lowerCommand == "cp contactors") {
-        serialPort.printf("CP Contactors are currently: %s\n", cpContactorsEnabled ? "ENABLED" : "DISABLED");
+    else if (lowerCommand == "pre charge relay status" || lowerCommand == "pre charge relay") {
+        serialPort.printf("Pre Charge Relay is currently: %s\n", preChargeRelayEnabled ? "ENABLED" : "DISABLED");
     }
     else if (lowerCommand == "mapping" || lowerCommand == "debug") {
         batman.printHardwareMapping();
@@ -296,9 +296,9 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
         serialPort.println("  pack contactors on / pack contactors enable  - Enable pack contactors");
         serialPort.println("  pack contactors off / pack contactors disable - Disable pack contactors");
         serialPort.println("  pack contactors status / pack contactors      - Show pack contactors status");
-        serialPort.println("  cp contactors on / cp contactors enable       - Enable charge port contactors");
-        serialPort.println("  cp contactors off / cp contactors disable     - Disable charge port contactors");
-        serialPort.println("  cp contactors status / cp contactors          - Show charge port contactors status");
+        serialPort.println("  pre charge relay on / pre charge relay enable - Enable pre charge relay");
+        serialPort.println("  pre charge relay off / pre charge relay disable - Disable pre charge relay");
+        serialPort.println("  pre charge relay status / pre charge relay    - Show pre charge relay status");
         serialPort.println("  mapping / debug              - Show hardware register mapping");
         serialPort.println("  bmb registers / registers    - Show detailed BMB register analysis");
         serialPort.println("  bmb debug on/off             - Enable/disable live BMB register debugging");
@@ -339,14 +339,14 @@ void setPackContactorsDutyCycle(uint8_t dutyCycle) {
     currentDutyCycle = dutyCycle; // Always update global
 }
 
-// Function to set charge port contactors PWM duty cycle (0-100%)
-void setCpContactorsDutyCycle(uint8_t dutyCycle) {
+// Function to set pre charge relay PWM duty cycle (0-100%)
+void setPreChargeRelayDutyCycle(uint8_t dutyCycle) {
     // Convert percentage to 8-bit value (0-255)
     uint32_t pwmValue = (dutyCycle * 255) / 100;
-    ledcWrite(CP_CONTACTORS_PWM_PIN, pwmValue);
+    ledcWrite(PRE_CHARGE_RELAY_PWM_PIN, pwmValue);
     
     // Print duty cycle change to serial
-    Serial.print("CpContactors duty cycle: ");
+    Serial.print("PreChargeRelay duty cycle: ");
     Serial.print(dutyCycle);
     Serial.println("%");
 }
@@ -565,7 +565,7 @@ void sendAllParametersToESPHome() {
     
     // Contactor states
     Serial2.printf("packContactors=%d\n", packContactorsEnabled ? 1 : 0);
-    Serial2.printf("cpContactors=%d\n", cpContactorsEnabled ? 1 : 0);
+    Serial2.printf("preChargeRelay=%d\n", preChargeRelayEnabled ? 1 : 0);
     
     // Voltage statistics
     Serial2.printf("CellMax=%d\n", Param::GetInt(Param::CellMax));
@@ -630,9 +630,9 @@ void setup() {
     ledcAttach(PACK_CONTACTORS_PWM_PIN, PWM_FREQ, PWM_RESOLUTION);
     setPackContactorsDutyCycle(0);  // Start with pack contactors off
     
-    // Initialize PWM for charge port contactors using new ESP32 Arduino core 3.0 API
-    ledcAttach(CP_CONTACTORS_PWM_PIN, PWM_FREQ, PWM_RESOLUTION);
-    setCpContactorsDutyCycle(0);  // Start with charge port contactors off
+    // Initialize PWM for pre charge relay using new ESP32 Arduino core 3.0 API
+    ledcAttach(PRE_CHARGE_RELAY_PWM_PIN, PWM_FREQ, PWM_RESOLUTION);
+    setPreChargeRelayDutyCycle(0);  // Start with pre charge relay off
     
     // Button initialization removed - contactors now controlled via serial API
     
@@ -900,11 +900,11 @@ void loop() {
         }
     }
     
-    // Handle charge port contactors initial pulse timing
-    if (cpContactorsEnabled && !cpInitialPulseComplete) {
-        if ((millis() - cpContactorsStartTime) >= INITIAL_PULSE_TIME) {
-            setCpContactorsDutyCycle(CP_CONTACTORS_DUTY);  // Set to normal duty cycle
-            cpInitialPulseComplete = true;
+    // Handle pre charge relay initial pulse timing
+    if (preChargeRelayEnabled && !preChargeRelayInitialPulseComplete) {
+        if ((millis() - preChargeRelayStartTime) >= INITIAL_PULSE_TIME) {
+            setPreChargeRelayDutyCycle(PRE_CHARGE_RELAY_DUTY);  // Set to normal duty cycle
+            preChargeRelayInitialPulseComplete = true;
         }
     }
     
