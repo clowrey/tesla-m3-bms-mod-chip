@@ -37,6 +37,7 @@ public:
         deltaV,
         udc,
         uavg,
+        CellVoltageSum,  // Sum of all individual cell voltages
         chargeVlim,
         dischargeVlim,
         
@@ -76,11 +77,21 @@ public:
         current,
         as8510_temp,
         
+        // AS8510 Coulomb Counting parameters
+        PowerWatts,
+        EnergyWh,
+        EnergyKWh,
+        StateOfCharge,
+        RemainingCapacityAh,
+        BatteryCapacityAh,
+        FullyChargedVoltage,
+        CurrentEfficiency,
+        
         // ADS1115 Pack Voltage parameters
-        battPos,
-        battNeg,
-        linkPos,
-        linkNeg
+        battContactorPos,
+        battContactorNeg,
+        battLinkPos,
+        battLinkNeg
     };
 
     static int GetInt(PARAM_NUM param);

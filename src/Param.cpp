@@ -47,8 +47,11 @@ static const char* paramNames[] = {
     // AS8510 Current Sensor parameters
     "current", "as8510_temp",
     
+    // AS8510 Coulomb Counting parameters
+    "PowerWatts", "EnergyWh", "EnergyKWh", "StateOfCharge", "RemainingCapacityAh", "BatteryCapacityAh", "FullyChargedVoltage", "CurrentEfficiency",
+    
     // ADS1115 Pack Voltage parameters
-    "battPos", "battNeg", "linkPos", "linkNeg"
+            "battContactorPos", "battContactorNeg", "battLinkPos", "battLinkNeg"
 };
 
 // Initialize default values
@@ -114,11 +117,21 @@ static void initParams() {
     floatParams[Param::current] = 0.0f;
     floatParams[Param::as8510_temp] = 0.0f;
     
+    // Initialize AS8510 Coulomb Counting parameters
+    floatParams[Param::PowerWatts] = 0.0f;
+    floatParams[Param::EnergyWh] = 0.0f;
+    floatParams[Param::EnergyKWh] = 0.0f;
+    floatParams[Param::StateOfCharge] = 100.0f;  // Default to 100%
+    floatParams[Param::RemainingCapacityAh] = 75.0f;  // Default Tesla Model 3 capacity
+    floatParams[Param::BatteryCapacityAh] = 75.0f;  // Default Tesla Model 3 capacity
+    floatParams[Param::FullyChargedVoltage] = 4.2f;  // Default fully charged cell voltage
+    floatParams[Param::CurrentEfficiency] = 0.95f;  // Default 95% efficiency
+    
     // Initialize ADS1115 Pack Voltage parameters
-    floatParams[Param::battPos] = 0.0f;
-    floatParams[Param::battNeg] = 0.0f;
-    floatParams[Param::linkPos] = 0.0f;
-    floatParams[Param::linkNeg] = 0.0f;
+    floatParams[Param::battContactorPos] = 0.0f;
+    floatParams[Param::battContactorNeg] = 0.0f;
+    floatParams[Param::battLinkPos] = 0.0f;
+    floatParams[Param::battLinkNeg] = 0.0f;
 }
 
 int Param::GetInt(PARAM_NUM param) {
@@ -247,7 +260,7 @@ void Param::PrintParamHelp() {
     Serial.println("  Chip Voltages: ChipV1-ChipV8");
     Serial.println("  Chip Supplies: Chip1_5V, Chip2_5V");
     Serial.println("  Cell Counts: Chip1Cells, Chip2Cells, Chip3Cells, Chip4Cells");
-    Serial.println("  ADS1115 Pack Voltages: battPos, battNeg, linkPos, linkNeg");
+    Serial.println("  ADS1115 Pack Voltages: battContactorPos, battContactorNeg, battLinkPos, battLinkNeg");
     Serial.println("  AS8510 Current Sensor: current, as8510_temp");
     Serial.println("");
     Serial.println("Common Parameters:");
@@ -347,7 +360,7 @@ void Param::PrintParamHelp(HardwareSerial& serialPort) {
     serialPort.println("  Chip Voltages: ChipV1-ChipV8");
     serialPort.println("  Chip Supplies: Chip1_5V, Chip2_5V");
     serialPort.println("  Cell Counts: Chip1Cells, Chip2Cells, Chip3Cells, Chip4Cells");
-    serialPort.println("  ADS1115 Pack Voltages: battPos, battNeg, linkPos, linkNeg");
+    serialPort.println("  ADS1115 Pack Voltages: battContactorPos, battContactorNeg, battLinkPos, battLinkNeg");
     serialPort.println("  AS8510 Current Sensor: current, as8510_temp");
     serialPort.println("");
     serialPort.println("Common Parameters:");

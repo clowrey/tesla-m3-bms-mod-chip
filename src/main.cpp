@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "BatMan.h"
 #include <SPI.h>
-#include "../AS8510-library/as8510.h"
+#include "AS8510_CoulombCounter.h"
 #include <HardwareSerial.h>
 #include <cstdint>
 #include <Wire.h>
@@ -58,17 +58,17 @@ BATMan batman;
 
 // PWM Configuration for PackContactors (moved to avoid conflict with Serial2)
 #define PACK_CONTACTORS_PWM_PIN 4  // Changed from 12 to 14 to avoid conflict with Serial2
-#define PRE_CHARGE_RELAY_PWM_PIN 21   // Pre Charge Relay on pin 21
-#define PWM_FREQ 20000        // 20kHz PWM frequency
+#define PRE_CHARGE_RELAY_PWM_PIN 13   // Pre Charge Relay on pin 21
+#define PWM_FREQ 10000        // 20kHz PWM frequency
 #define PWM_RESOLUTION 8      // 8-bit resolution (0-255)
-#define PACK_CONTACTORS_DUTY 50   // Normal duty cycle (25%)
-#define PRE_CHARGE_RELAY_DUTY 50     // Normal duty cycle (25%)
+#define PACK_CONTACTORS_DUTY 15   // Normal duty cycle (25%)
+#define PRE_CHARGE_RELAY_DUTY 15     // Normal duty cycle (25%)
 #define INITIAL_PULSE_TIME 200  // Initial 100% duty cycle time in milliseconds
 
 // Button Configuration - REMOVED: Physical button control replaced with serial API
 
-// Current sensor instance - Updated for new Rust-based AS8510 library
-AS8510 currentSensor(AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, Gain::Gain100, Gain::Gain25);
+// AS8510 Coulomb Counter instance (manages AS8510 internally)
+AS8510_CoulombCounter coulombCounter(AS8510_CS_PIN, AS8510_MOSI_PIN, AS8510_MISO_PIN, AS8510_SCK_PIN, 100, 25);
 
 // ADS1115 ADC instance
 Adafruit_ADS1115 ads;
@@ -80,17 +80,14 @@ int prevMinCell = 0;
 int prevMaxCell = 0;
 uint8_t prevDutyCycle = 0;  // Track duty cycle changes
 
-// Current measurement variables
-float currentReading = 0;
-float prevCurrentReading = 0;
-bool currentSensorInitialized = false;
+
 
 // ADS1115 voltage measurement variables
-float battPos = 0;     // Channel 1: Batt-Pos
-float battNeg = 0;     // Channel 0: Batt-Neg
-float battSum = 0;     // Sum of absolute values: |battPos| + |battNeg|
-float linkPos = 0;     // Channel 2: Link-Pos (after contactors)
-float linkNeg = 0;     // Channel 3: Link-Neg (after contactors)
+float battContactorPos = 0;     // Channel 1: Batt-Pos
+float battContactorNeg = 0;     // Channel 0: Batt-Neg
+float battContactorSum = 0;     // Sum of absolute values: |battContactorPos| + |battContactorNeg|
+float battLinkPos = 0;     // Channel 2: Link-Pos (after contactors)
+float battLinkNeg = 0;     // Channel 3: Link-Neg (after contactors)
 bool ads1115Initialized = false;
 
 // Balance control variable
@@ -115,16 +112,7 @@ const unsigned long DISPLAY_UPDATE_INTERVAL = 500; // Update interval for value 
 String serialCommand = "";
 String serial2Command = "";
 
-// AS8510 diagnostic state machine variables
-bool diagnosticInProgress = false;
-int diagnosticStep = 0;
-unsigned long diagnosticStepTime = 0;
-const unsigned long DIAGNOSTIC_STEP_INTERVAL = 500; // 500ms between diagnostic steps
-HardwareSerial* diagnosticSerial = nullptr;
-
 // Function declarations
-void runDiagnosticStep();
-void startAS8510NonBlocking(HardwareSerial& serialPort);
 void processSerialInputs();
 void sendAllParametersToESPHome();
 void setPackContactorsDutyCycle(uint8_t dutyCycle);
@@ -207,39 +195,65 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
         serialPort.printf("BMB register debug is: %s\n", BATMan::getRegisterDebug() ? "ENABLED" : "DISABLED");
     }
     else if (lowerCommand == "current diag" || lowerCommand == "diag current") {
-        if (!diagnosticInProgress) {
-            diagnosticInProgress = true;
-            diagnosticStep = 0;
-            diagnosticStepTime = millis();
-            diagnosticSerial = &serialPort;
-            serialPort.println("Starting non-blocking AS8510 diagnostics...");
-        } else {
-            serialPort.println("Diagnostics already in progress. Please wait for completion.");
-        }
+        coulombCounter.startDiagnostics(serialPort);
     }
     else if (lowerCommand == "start as8510" || lowerCommand == "as8510 start") {
-        startAS8510NonBlocking(serialPort);
+        coulombCounter.startAS8510NonBlocking(serialPort);
     }
     else if (lowerCommand == "as8510 errors" || lowerCommand == "errors") {
-        serialPort.println("Reading AS8510 error codes...");
-        currentSensor.printErrorCodes();
+        serialPort.println("AS8510 error codes are included in 'coulomb status' or 'current diag'");
+        coulombCounter.printCurrentSensorStatus(serialPort);
     }
     else if (lowerCommand == "as8510 saturation" || lowerCommand == "saturation") {
-        serialPort.println("Reading AS8510 saturation flags...");
-        currentSensor.printSaturationFlags();
+        serialPort.println("AS8510 saturation flags are included in 'coulomb status' or 'current diag'");
+        coulombCounter.printCurrentSensorStatus(serialPort);
     }
     else if (lowerCommand == "as8510 diagnostics" || lowerCommand == "diagnostics") {
-        serialPort.println("Running complete AS8510 diagnostics...");
-        currentSensor.printAllDiagnostics();
+        serialPort.println("Running complete AS8510 diagnostics via coulomb counter...");
+        coulombCounter.startDiagnostics(serialPort);
+    }
+    else if (lowerCommand == "coulomb status" || lowerCommand == "coulomb") {
+        coulombCounter.printStatus(serialPort);
+    }
+    else if (lowerCommand == "coulomb reset" || lowerCommand == "reset coulomb") {
+        coulombCounter.resetEnergyCounters();
+        serialPort.println("Coulomb counters reset successfully");
+    }
+    else if (lowerCommand.startsWith("coulomb capacity ")) {
+        String capacityStr = lowerCommand.substring(17);
+        float capacity = capacityStr.toFloat();
+        if (capacity > 0) {
+            coulombCounter.setBatteryCapacity(capacity);
+        } else {
+            serialPort.println("Error: Invalid battery capacity. Must be positive number.");
+        }
+    }
+    else if (lowerCommand.startsWith("coulomb voltage ")) {
+        String voltageStr = lowerCommand.substring(16);
+        float voltage = voltageStr.toFloat();
+        if (voltage > 0) {
+            coulombCounter.setFullyChargedVoltage(voltage);
+        } else {
+            serialPort.println("Error: Invalid fully charged voltage. Must be positive number.");
+        }
+    }
+    else if (lowerCommand.startsWith("coulomb efficiency ")) {
+        String efficiencyStr = lowerCommand.substring(19);
+        float efficiency = efficiencyStr.toFloat();
+        if (efficiency > 0 && efficiency <= 1.0) {
+            coulombCounter.setCurrentEfficiency(efficiency);
+        } else {
+            serialPort.println("Error: Invalid efficiency. Must be between 0 and 1.0 (e.g., 0.95 for 95%).");
+        }
     }
     else if (lowerCommand == "ads1115 read" || lowerCommand == "pack voltages") {
         if (ads1115Initialized) {
             serialPort.println("=== ADS1115 Pack Voltage Readings ===");
-            serialPort.printf("Batt-Neg (Channel 0): %.3fV\n", battNeg);
-            serialPort.printf("Batt-Pos (Channel 1): %.3fV\n", battPos);
-            serialPort.printf("Batt-Sum (Absolute Total): %.3fV\n", battSum);
-            serialPort.printf("Link-Pos - Post-Contactors (Channel 2): %.3fV\n", linkPos);
-            serialPort.printf("Link-Neg - Post-Contactors (Channel 3): %.3fV\n", linkNeg);
+            serialPort.printf("Batt-Neg (Channel 0): %.3fV\n", battContactorNeg);
+            serialPort.printf("Batt-Pos (Channel 1): %.3fV\n", battContactorPos);
+            serialPort.printf("Batt-Sum (Absolute Total): %.3fV\n", battContactorSum);
+            serialPort.printf("Link-Pos - Post-Contactors (Channel 2): %.3fV\n", battLinkPos);
+            serialPort.printf("Link-Neg - Post-Contactors (Channel 3): %.3fV\n", battLinkNeg);
             serialPort.println("Note: Link voltages measured after contactor closure");
             serialPort.println("=============================================");
         } else {
@@ -307,6 +321,11 @@ void processSerialCommand(String command, HardwareSerial& serialPort) {
         serialPort.println("  as8510 errors / errors       - Show AS8510 error codes");
         serialPort.println("  as8510 saturation / saturation - Show AS8510 saturation flags");
         serialPort.println("  as8510 diagnostics / diagnostics - Complete AS8510 diagnostics");
+        serialPort.println("  coulomb status / coulomb     - Show coulomb counter status (power, energy, SOC)");
+        serialPort.println("  coulomb reset / reset coulomb - Reset energy counters and SOC to 100%");
+        serialPort.println("  coulomb capacity <Ah>        - Set battery capacity in Ah (e.g., 75)");
+        serialPort.println("  coulomb voltage <V>          - Set fully charged cell voltage (e.g., 4.2)");
+        serialPort.println("  coulomb efficiency <factor>  - Set current efficiency (0-1.0, e.g., 0.95)");
         serialPort.println("  ads1115 read / pack voltages - Read all ADS1115 pack voltages");
         serialPort.println("  ads1115 status / adc status  - Show ADS1115 ADC status");
         serialPort.println("  param list                   - List all parameters");
@@ -364,7 +383,6 @@ void updateDisplay(uint8_t currentDutyCycle) {
     prevMinCell = minCell;
     prevMaxCell = maxCell;
     prevDutyCycle = currentDutyCycle;
-    prevCurrentReading = currentReading;
 }
 
 // Function to update parameters from BATMan system data
@@ -404,12 +422,11 @@ void updateParametersFromBATMan() {
     // Update chip voltages (if available)
     // Note: This would need to be implemented based on actual chip voltage data from BATMan
     
-    // Update AS8510 current sensor data
-    Param::SetFloat(Param::current, currentReading);
+    // Update AS8510 current sensor data - handled by coulomb counter
     
-    // Update AS8510 temperature every time parameters are updated
-    if (currentSensor.isInitialized()) {
-        float internalTemp = currentSensor.getInternalTemperature();
+    // Update AS8510 temperature every time parameters are updated - handled by coulomb counter
+    if (coulombCounter.isInitialized()) {
+        float internalTemp = coulombCounter.getInternalTemperature();
         Param::SetFloat(Param::as8510_temp, internalTemp);
     } else {
         // If not initialized, set temperature to 0
@@ -419,11 +436,11 @@ void updateParametersFromBATMan() {
     // Update ADS1115 pack voltage data
     if (ads1115Initialized) {
         // Store pack voltages in dedicated ADS1115 parameters
-        Param::SetFloat(Param::battPos, battPos);  // Batt-Pos
-        Param::SetFloat(Param::battNeg, battNeg);  // Batt-Neg
-        Param::SetFloat(Param::udc, battSum);      // Battery sum (absolute values, total pack voltage)
-        Param::SetFloat(Param::linkPos, linkPos);  // Link-Pos (after contactors)
-        Param::SetFloat(Param::linkNeg, linkNeg);  // Link-Neg (after contactors)
+        Param::SetFloat(Param::battContactorPos, battContactorPos);  // Batt-Pos
+        Param::SetFloat(Param::battContactorNeg, battContactorNeg);  // Batt-Neg
+        Param::SetFloat(Param::udc, battContactorSum);      // Battery sum (absolute values, total pack voltage)
+        Param::SetFloat(Param::battLinkPos, battLinkPos);  // Link-Pos (after contactors)
+        Param::SetFloat(Param::battLinkNeg, battLinkNeg);  // Link-Neg (after contactors)
     }
 }
 
@@ -431,124 +448,9 @@ void updateParametersFromBATMan() {
 static unsigned long lastMainLoopTime = 0;
 static const unsigned long MAIN_LOOP_INTERVAL = 50; // 50ms interval without blocking delay
 
-// Non-blocking diagnostic function
-void runDiagnosticStep() {
-    if (!diagnosticInProgress || !diagnosticSerial) return;
-    
-    unsigned long currentTime = millis();
-    if (currentTime - diagnosticStepTime < DIAGNOSTIC_STEP_INTERVAL) return;
-    
-    switch (diagnosticStep) {
-        case 0:
-            diagnosticSerial->println("\n=== AS8510 Current Sensor Diagnostics (Rust-based) ===");
-            diagnosticSerial->println();
-            
-            if (!currentSensor.isInitialized()) {
-                diagnosticSerial->println("ERROR: AS8510 not initialized!");
-                diagnosticSerial->println("Attempting to initialize...");
-                if (currentSensor.begin()) {
-                    diagnosticSerial->println("AS8510 initialized successfully!");
-                } else {
-                    diagnosticSerial->println("AS8510 initialization failed!");
-                    diagnosticInProgress = false;
-                    return;
-                }
-            }
-            break;
-            
-        case 1:
-            diagnosticSerial->printf("Shunt Resistance: %.9f ohms\n", currentSensor.getShuntResistance());
-            diagnosticSerial->printf("Device Present: %s\n", currentSensor.isDevicePresent() ? "YES" : "NO");
-            diagnosticSerial->printf("Device Awake: %s\n", currentSensor.isAwake() ? "YES" : "NO");
-            diagnosticSerial->printf("Data Ready: %s\n", currentSensor.isDataReady() ? "YES" : "NO");
-            break;
-            
-        case 2:
-            diagnosticSerial->println("\n--- Key Registers ---");
-            diagnosticSerial->println();
-            diagnosticSerial->printf("Mode Control (0x0A): 0x%02X\n", currentSensor.readRegister(0x0A));
-            diagnosticSerial->printf("Status (0x04): 0x%02X\n", currentSensor.readRegister(0x04));
-            diagnosticSerial->printf("PGA Control (0x13): 0x%02X\n", currentSensor.readRegister(0x13));
-            break;
-            
-        case 3:
-            diagnosticSerial->printf("Power Control 1 (0x14): 0x%02X\n", currentSensor.readRegister(0x14));
-            diagnosticSerial->printf("Power Control 2 (0x15): 0x%02X\n", currentSensor.readRegister(0x15));
-            diagnosticSerial->printf("Clock Control (0x08): 0x%02X\n", currentSensor.readRegister(0x08));
-            break;
-            
-        case 4:
-            diagnosticSerial->println("\n--- Data Registers ---");
-            diagnosticSerial->println();
-            diagnosticSerial->printf("Current Data 1 (0x00): 0x%02X\n", currentSensor.readRegister(0x00));
-            diagnosticSerial->printf("Current Data 2 (0x01): 0x%02X\n", currentSensor.readRegister(0x01));
-            break;
-            
-        case 5:
-        case 6:
-        case 7:
-        case 8:
-        case 9:
-            if (diagnosticStep == 5) {
-                diagnosticSerial->println("\n--- Current Measurement Test ---");
-                diagnosticSerial->println();
-            }
-            {
-                int measurementNum = diagnosticStep - 4;
-                int16_t rawADC = currentSensor.readRawADC(1);
-                float current = currentSensor.readCurrent(1);
-                
-                diagnosticSerial->printf("Measurement %d: Raw ADC = %d, Current = %.6f A\n", 
-                                      measurementNum, rawADC, current);
-            }
-            break;
-            
-        case 10:
-            diagnosticSerial->println("\n--- Status Information ---");
-            diagnosticSerial->println();
-            currentSensor.printStatus();
-            diagnosticSerial->println("=== End AS8510 Diagnostics ===");
-            diagnosticInProgress = false;
-            diagnosticSerial = nullptr;
-            break;
-            
-        default:
-            diagnosticInProgress = false;
-            diagnosticSerial = nullptr;
-            break;
-    }
-    
-    diagnosticStep++;
-    diagnosticStepTime = currentTime;
-}
 
-// Non-blocking AS8510 start command
-void startAS8510NonBlocking(HardwareSerial& serialPort) {
-    static bool startInProgress = false;
-    static unsigned long startTime = 0;
-    static int startStep = 0;
-    
-    if (!startInProgress) {
-        serialPort.println("Explicitly starting AS8510 device...");
-        currentSensor.startDevice();
-        startInProgress = true;
-        startTime = millis();
-        startStep = 0;
-        return;
-    }
-    
-    unsigned long currentTime = millis();
-    if (currentTime - startTime >= 100) { // 100ms delay equivalent
-        uint8_t modCtl = currentSensor.readRegister(0x0A);
-        serialPort.printf("Mode Control after start: 0x%02X\n", modCtl);
-        if (modCtl & 0x01) {
-            serialPort.println("START bit is SET - device should be running");
-        } else {
-            serialPort.println("START bit is NOT SET - device is not running");
-        }
-        startInProgress = false;
-    }
-}
+
+
 
 void sendAllParametersToESPHome() {
     // Send all parameters in param=value format to Serial2 (ESPHome)
@@ -575,6 +477,7 @@ void sendAllParametersToESPHome() {
     Serial2.printf("deltaV=%d\n", Param::GetInt(Param::deltaV));
     Serial2.printf("uavg=%.3f\n", Param::GetFloat(Param::uavg));
     Serial2.printf("udc=%.2f\n", Param::GetFloat(Param::udc));
+    Serial2.printf("CellVoltageSum=%.2f\n", Param::GetFloat(Param::CellVoltageSum));
     
     // Temperature parameters
     Serial2.printf("Chipt0=%d\n", Param::GetInt(Param::Chipt0));
@@ -584,14 +487,24 @@ void sendAllParametersToESPHome() {
     Serial2.printf("TempMin=%d\n", Param::GetInt(Param::TempMin));
     
     // ADS1115 pack voltages
-    Serial2.printf("battPos=%.3f\n", Param::GetFloat(Param::battPos));  // Batt-Pos
-    Serial2.printf("battNeg=%.3f\n", Param::GetFloat(Param::battNeg));  // Batt-Neg
-    Serial2.printf("linkPos=%.3f\n", Param::GetFloat(Param::linkPos));  // Link-Pos
-    Serial2.printf("linkNeg=%.3f\n", Param::GetFloat(Param::linkNeg));  // Link-Neg
+    Serial2.printf("battContactorPos=%.3f\n", Param::GetFloat(Param::battContactorPos));  // Batt-Pos
+    Serial2.printf("battContactorNeg=%.3f\n", Param::GetFloat(Param::battContactorNeg));  // Batt-Neg
+    Serial2.printf("battLinkPos=%.3f\n", Param::GetFloat(Param::battLinkPos));  // Link-Pos
+    Serial2.printf("battLinkNeg=%.3f\n", Param::GetFloat(Param::battLinkNeg));  // Link-Neg
     
     // AS8510 Current and Temperature
     Serial2.printf("current=%.3f\n", Param::GetFloat(Param::current));
     Serial2.printf("as8510_temp=%.1f\n", Param::GetFloat(Param::as8510_temp));
+    
+    // AS8510 Coulomb Counting
+    Serial2.printf("PowerWatts=%.3f\n", Param::GetFloat(Param::PowerWatts));
+    Serial2.printf("EnergyWh=%.2f\n", Param::GetFloat(Param::EnergyWh));
+    Serial2.printf("EnergyKWh=%.3f\n", Param::GetFloat(Param::EnergyKWh));
+    Serial2.printf("StateOfCharge=%.1f\n", Param::GetFloat(Param::StateOfCharge));
+    Serial2.printf("RemainingCapacityAh=%.1f\n", Param::GetFloat(Param::RemainingCapacityAh));
+    Serial2.printf("BatteryCapacityAh=%.1f\n", Param::GetFloat(Param::BatteryCapacityAh));
+    Serial2.printf("FullyChargedVoltage=%.2f\n", Param::GetFloat(Param::FullyChargedVoltage));
+    Serial2.printf("CurrentEfficiency=%.2f\n", Param::GetFloat(Param::CurrentEfficiency));
     
     // Individual cell voltages (u1-u108) - Use numeric IDs for faster/more reliable transmission
     // Format: cellID=voltage (e.g., 1=3770, 2=3814, etc.)
@@ -696,16 +609,13 @@ void setup() {
     // Allow BMB to settle before initializing AS8510
     delay(1000);
     
-    // Initialize current sensor with new Rust-based library AFTER BMB
-    Serial.println("Initializing AS8510 current sensor with Rust-based library...");
-    if (currentSensor.begin()) {
-        Serial.println("AS8510 initialized successfully!");
+    // Initialize AS8510 Coulomb Counter (handles AS8510 initialization internally)
+    Serial.println("Initializing AS8510 Coulomb Counter...");
+    if (coulombCounter.initialize()) {
+        Serial.println("AS8510 Coulomb Counter initialized successfully!");
     } else {
-        Serial.println("AS8510 initialization failed!");
+        Serial.println("AS8510 Coulomb Counter initialization failed!");
     }
-    
-    // Set verbose logging to false to disable detailed debug output
-    currentSensor.setVerboseLogging(false);
     
     Serial.println("System ready. Commands available on both Serial and Serial2 (pins 22/23)");
     Serial.printf("AS8510 on VSPI bus - BMB on HSPI - ADS1115 on I2C (%s) - All systems enabled\n", 
@@ -730,7 +640,7 @@ void loop() {
         processSerialInputs();
         
         // Run non-blocking diagnostic steps if in progress
-        runDiagnosticStep();
+        coulombCounter.runDiagnosticStep();
         
         return;
     }
@@ -809,29 +719,22 @@ void loop() {
     //     lastForcedRead = currentMillis;
     // }
     
-    // RUST-BASED AS8510 CURRENT MEASUREMENT - Every 2 seconds (reduced frequency for faster main loop)
-    static unsigned long lastCurrentRead = 0;
-    if (currentMillis - lastCurrentRead >= 2000) {
-        lastCurrentRead = currentMillis;
-        
-        if (currentSensor.isInitialized()) {
-            // Get current measurement and update global variable
-            currentReading = currentSensor.getCurrent();
-            
-            // Get internal temperature measurement
-            float internalTemp = currentSensor.getInternalTemperature();
-            
-            // Get average cell voltage
-            float avgVoltage = Param::GetFloat(Param::uavg) / 1000.0;
-            
-            // Display current, temperature, and average cell voltage on one line
-            Serial.printf("AS8510: %.3fA    %.1f°C    Avg Cell: %.3fV\n", 
-                         currentReading, internalTemp, avgVoltage);
-            
-        } else {
-            Serial.println("AS8510 not initialized - attempting restart...");
-            currentSensor.startDevice();
-        }
+    // AS8510 COULOMB COUNTER UPDATE - Uses cell sum voltage for power calculation
+    // Update coulomb counter with battery voltage (use cell sum voltage as pack voltage)
+    float cellSumVoltage = Param::GetFloat(Param::CellVoltageSum) / 1000.0;  // Convert mV to V
+    coulombCounter.update(cellSumVoltage);
+    
+    // Display coulomb counter data every 5 seconds
+    static unsigned long lastCoulombDisplay = 0;
+    if (currentMillis - lastCoulombDisplay >= 5000) {
+        lastCoulombDisplay = currentMillis;
+        Serial.printf("Coulomb: %.2fA | %.1fW | %.1fWh | %.2fkWh | SOC: %.1f%% | Remaining: %.1fAh\n", 
+                     Param::GetFloat(Param::current), 
+                     Param::GetFloat(Param::PowerWatts), 
+                     Param::GetFloat(Param::EnergyWh), 
+                     Param::GetFloat(Param::EnergyKWh), 
+                     Param::GetFloat(Param::StateOfCharge), 
+                     Param::GetFloat(Param::RemainingCapacityAh));
     }
     
     // ADS1115 PACK VOLTAGE MEASUREMENT - Every 3 seconds
@@ -849,15 +752,15 @@ void loop() {
             // Convert to voltages (±0.512V range, 1 bit = 0.015625mV)
             // Apply scaling factor: 25V input = 0.067V ADC, so scale factor = 373.13
             const float VOLTAGE_SCALE_FACTOR = 25.0 / 0.067;  // 373.13
-            battPos = ads.computeVolts(adc1) * VOLTAGE_SCALE_FACTOR;  // A1 = Batt positive
-            battNeg = ads.computeVolts(adc0) * VOLTAGE_SCALE_FACTOR;  // A0 = Batt negative
-            battSum = fabs(battPos) + fabs(battNeg);  // Calculate sum of absolute battery voltages
-            linkPos = ads.computeVolts(adc2) * VOLTAGE_SCALE_FACTOR;
-            linkNeg = ads.computeVolts(adc3) * VOLTAGE_SCALE_FACTOR;
+            battContactorPos = ads.computeVolts(adc1) * VOLTAGE_SCALE_FACTOR;  // A1 = Batt positive
+            battContactorNeg = ads.computeVolts(adc0) * VOLTAGE_SCALE_FACTOR;  // A0 = Batt negative
+            battContactorSum = fabs(battContactorPos) + fabs(battContactorNeg);  // Calculate sum of absolute battery voltages
+            battLinkPos = ads.computeVolts(adc2) * VOLTAGE_SCALE_FACTOR;
+            battLinkNeg = ads.computeVolts(adc3) * VOLTAGE_SCALE_FACTOR;
             
             // Display pack voltages with descriptive labels
             Serial.printf("ADS1115 Pack Voltages: Batt-Neg=%.3fV Batt-Pos=%.3fV Batt-Sum(abs)=%.3fV Link-Pos(post-contactors)=%.3fV Link-Neg(post-contactors)=%.3fV\n", 
-                         battNeg, battPos, battSum, linkPos, linkNeg);
+                         battContactorNeg, battContactorPos, battContactorSum, battLinkPos, battLinkNeg);
             
         } else {
             Serial.println("ADS1115 ADC not initialized - pack voltage readings unavailable");
@@ -914,7 +817,7 @@ void loop() {
     processSerialInputs();
     
     // Run non-blocking diagnostic steps if in progress
-    runDiagnosticStep();
+    coulombCounter.runDiagnosticStep();
 }
 
 // Separate function to process serial inputs (can be called more frequently)

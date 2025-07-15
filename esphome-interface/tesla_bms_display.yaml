@@ -266,6 +266,7 @@ lvgl:
                   align: LEFT_MID
                   text: "Max: 0.000V (Cell 0)"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 2
@@ -275,6 +276,7 @@ lvgl:
                   align: RIGHT_MID
                   text: "Min: 0.000V (Cell 0)"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 3
@@ -284,6 +286,7 @@ lvgl:
                   align: LEFT_MID
                   text: "Delta: 0.000V"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 3
@@ -293,6 +296,7 @@ lvgl:
                   align: RIGHT_MID
                   text: "Cell Avg: 0.000V"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 4
@@ -302,6 +306,7 @@ lvgl:
                   align: LEFT_MID
                   text: "Pack: 0.00V"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 1
                   grid_cell_row_pos: 4
@@ -311,6 +316,27 @@ lvgl:
                   align: RIGHT_MID
                   text: "Current: 0.00A"
                   text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 5
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_power
+                  align: LEFT_MID
+                  text: "Power: 0.0W"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 5
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_energy_kwh
+                  align: RIGHT_MID
+                  text: "Energy: 0.000kWh"
+                  text_color: white
+                  text_font: montserrat_12
 
               - button:
                   grid_cell_column_pos: 0
@@ -354,13 +380,14 @@ lvgl:
                         }
               - label:
                   grid_cell_column_pos: 1
-                  grid_cell_row_pos: 5
+                  grid_cell_row_pos: 6
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
                   id: label_as8510_temp
                   align: RIGHT_MID
                   text: "AS8510: 0.0°C"
                   text_color: white
+                  text_font: montserrat_12
               - label:
                   grid_cell_column_pos: 0
                   grid_cell_row_pos: 6
@@ -369,16 +396,6 @@ lvgl:
                   id: label_loop
                   align: LEFT_MID
                   text: "Loop: 0 (State: 0)"
-                  text_color: white
-                  text_font: montserrat_12
-              - label:
-                  grid_cell_column_pos: 1
-                  grid_cell_row_pos: 6
-                  grid_cell_x_align: STRETCH
-                  grid_cell_y_align: STRETCH
-                  id: label_temp
-                  align: RIGHT_MID
-                  text: "Temp: 0.0°C"
                   text_color: white
                   text_font: montserrat_12
               - button:
@@ -1184,6 +1201,59 @@ sensor:
     unit_of_measurement: "°C"
     accuracy_decimals: 1
 
+  # AS8510 Coulomb Counter sensors
+  - platform: template
+    name: "BMS Power"
+    id: bms_power
+    unit_of_measurement: "W"
+    accuracy_decimals: 1
+    device_class: power
+    
+  - platform: template
+    name: "BMS Energy Wh"
+    id: bms_energy_wh
+    unit_of_measurement: "Wh"
+    accuracy_decimals: 1
+    device_class: energy
+    
+  - platform: template
+    name: "BMS Energy kWh"
+    id: bms_energy_kwh
+    unit_of_measurement: "kWh"
+    accuracy_decimals: 3
+    device_class: energy
+    
+  - platform: template
+    name: "BMS State of Charge"
+    id: bms_soc
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+    device_class: battery
+    
+  - platform: template
+    name: "BMS Remaining Capacity"
+    id: bms_remaining_capacity
+    unit_of_measurement: "Ah"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "BMS Battery Capacity"
+    id: bms_battery_capacity
+    unit_of_measurement: "Ah"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "BMS Fully Charged Voltage"
+    id: bms_fully_charged_voltage
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "BMS Current Efficiency"
+    id: bms_current_efficiency
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+
 # Text sensor for balance cell list
 text_sensor:
   - platform: template
@@ -1333,6 +1403,46 @@ interval:
                         else if (param == "cpContactors") { 
                           ESP_LOGI("BMS", "DEBUG: UPDATING cpContactors = %f", value);
                           id(cp_contactors_status).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "PowerWatts") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING PowerWatts = %f", value);
+                          id(bms_power).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "EnergyWh") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING EnergyWh = %f", value);
+                          id(bms_energy_wh).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "EnergyKWh") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING EnergyKWh = %f", value);
+                          id(bms_energy_kwh).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "StateOfCharge") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING StateOfCharge = %f", value);
+                          id(bms_soc).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "RemainingCapacityAh") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING RemainingCapacityAh = %f", value);
+                          id(bms_remaining_capacity).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "BatteryCapacityAh") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING BatteryCapacityAh = %f", value);
+                          id(bms_battery_capacity).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "FullyChargedVoltage") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING FullyChargedVoltage = %f", value);
+                          id(bms_fully_charged_voltage).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "CurrentEfficiency") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING CurrentEfficiency = %f", value);
+                          id(bms_current_efficiency).publish_state(value * 100.0); // Convert to percentage
                           sensor_updated = true; 
                         }
                         
@@ -1559,14 +1669,7 @@ interval:
           }
           lv_label_set_text((lv_obj_t*)id(label_delta), buffer);
           
-          // Update temperature - check for valid data
-          if (id(chipt0).has_state()) {
-            snprintf(buffer, sizeof(buffer), "Temp: %.1f°C", 
-                     id(chipt0).state);
-          } else {
-            snprintf(buffer, sizeof(buffer), "Temp: --.--°C");
-          }
-          lv_label_set_text((lv_obj_t*)id(label_temp), buffer);
+
           
           // Calculate and update cell sum voltage
           float cell_sum = 0.0f;
@@ -1722,6 +1825,22 @@ interval:
             snprintf(buffer, sizeof(buffer), "AS8510: --°C");
           }
           lv_label_set_text((lv_obj_t*)id(label_as8510_temp), buffer);
+          
+          // Update power display
+          if (id(bms_power).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Power: %.1fW", id(bms_power).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Power: --.--W");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_power), buffer);
+          
+          // Update energy kWh display
+          if (id(bms_energy_kwh).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Energy: %.3fkWh", id(bms_energy_kwh).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Energy: -.---kWh");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_energy_kwh), buffer);
           
           // Update ADS1115 pack voltage displays
           if (id(batt_pos).has_state()) {

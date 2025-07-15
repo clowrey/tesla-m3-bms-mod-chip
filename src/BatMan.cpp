@@ -1040,6 +1040,8 @@ void BATMan::upDateCellVolts(void)
             }
         }
     }
+    // Store the cell voltage sum in the parameter system (in mV)
+    Param::SetFloat(Param::CellVoltageSum, totalCellVoltage);
     Serial.printf("Total Cell Voltage Sum: %.3fV\n", totalCellVoltage/1000.0);
     
     // Debug: Show cell count discrepancy if any
@@ -1162,6 +1164,8 @@ void BATMan::upDateAuxVolts(void)
             }
         }
     }
+    // Store the cell voltage sum in the parameter system (in mV)
+    Param::SetFloat(Param::CellVoltageSum, totalCellVoltage);
     // Calculate average and store in mV
     if (cellCount > 0) {
         float avgVoltage = totalCellVoltage / cellCount;
