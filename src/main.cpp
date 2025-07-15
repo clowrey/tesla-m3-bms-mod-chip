@@ -59,7 +59,7 @@ BATMan batman;
 // PWM Configuration for PackContactors (moved to avoid conflict with Serial2)
 #define PACK_CONTACTORS_PWM_PIN 4  // Changed from 12 to 14 to avoid conflict with Serial2
 #define PRE_CHARGE_RELAY_PWM_PIN 13   // Pre Charge Relay on pin 21
-#define PWM_FREQ 10000        // 20kHz PWM frequency
+#define PWM_FREQ 10000        // 10kHz PWM frequency
 #define PWM_RESOLUTION 8      // 8-bit resolution (0-255)
 #define PACK_CONTACTORS_DUTY 15   // Normal duty cycle (25%)
 #define PRE_CHARGE_RELAY_DUTY 15     // Normal duty cycle (25%)
@@ -464,6 +464,11 @@ void sendAllParametersToESPHome() {
     Serial2.printf("CellsBalancing=%d\n", Param::GetInt(Param::CellsBalancing));
     Serial2.printf("balance=%d\n", Param::GetInt(Param::balance));
     Serial2.printf("BalanceCellList=%s\n", Param::GetString(Param::BalanceCellList).c_str());
+    
+    // BMB Connectivity parameters
+    Serial2.printf("ActualBmbCount=%d\n", Param::GetInt(Param::ActualBmbCount));
+    Serial2.printf("ExpectedBmbCount=%d\n", Param::GetInt(Param::ExpectedBmbCount));
+    Serial2.printf("BmbConnectedMask=%d\n", Param::GetInt(Param::BmbConnectedMask));
     
     // Contactor states
     Serial2.printf("packContactors=%d\n", packContactorsEnabled ? 1 : 0);

@@ -175,6 +175,17 @@ private:
     uint16_t LastCellBalancing;  // Preserve balancing count across phases
     float Cell1start;
     float Cell2start;
+    
+    // BMB Connectivity Monitoring
+    bool BmbConnected[8];           // Track which BMBs are currently responding
+    unsigned long LastBmbResponse[8]; // Timestamp of last valid response from each BMB
+    uint8_t ActualBmbCount;         // Actual number of responding BMBs
+    static const unsigned long BMB_TIMEOUT_MS = 5000; // 5 second timeout for BMB responses
+    
+    // Private methods for connectivity monitoring
+    bool validateBmbResponse(uint8_t chipIndex, uint8_t reqID);
+    void updateBmbConnectivity();
+    void markBmbDataAsStale(uint8_t chipIndex);
 };
 
 #endif // BATMAN_H 

@@ -51,7 +51,10 @@ static const char* paramNames[] = {
     "PowerWatts", "EnergyWh", "EnergyKWh", "StateOfCharge", "RemainingCapacityAh", "BatteryCapacityAh", "FullyChargedVoltage", "CurrentEfficiency",
     
     // ADS1115 Pack Voltage parameters
-            "battContactorPos", "battContactorNeg", "battLinkPos", "battLinkNeg"
+    "battContactorPos", "battContactorNeg", "battLinkPos", "battLinkNeg",
+    
+    // BMB Connectivity parameters
+    "ActualBmbCount", "ExpectedBmbCount", "BmbConnectedMask"
 };
 
 // Initialize default values
@@ -132,6 +135,11 @@ static void initParams() {
     floatParams[Param::battContactorNeg] = 0.0f;
     floatParams[Param::battLinkPos] = 0.0f;
     floatParams[Param::battLinkNeg] = 0.0f;
+    
+    // Initialize BMB Connectivity parameters
+    intParams[Param::ActualBmbCount] = 0;
+    intParams[Param::ExpectedBmbCount] = 0;
+    intParams[Param::BmbConnectedMask] = 0;
 }
 
 int Param::GetInt(PARAM_NUM param) {

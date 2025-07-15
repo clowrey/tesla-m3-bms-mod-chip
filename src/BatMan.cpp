@@ -215,6 +215,13 @@ BATMan::BATMan() {
     Cell2start = 0;
     BalancePhase = 0;  // Start with measurement only phase
     LastCellBalancing = 0;  // Initialize balancing count
+    
+    // Initialize BMB connectivity tracking
+    ActualBmbCount = 0;
+    for(int i = 0; i < 8; i++) {
+        BmbConnected[i] = false;
+        LastBmbResponse[i] = 0;
+    }
 }
 
 void BATMan::BatStart()
@@ -496,6 +503,9 @@ void BATMan::StateMachine()
 
     }
 
+    // Update BMB connectivity status and check for timeouts
+    updateBmbConnectivity();
+    
     Param::SetInt(Param::LoopState, LoopState);
     Param::SetInt(Param::BalancePhase, BalancePhase);  // Expose current balance phase
 }
@@ -593,6 +603,14 @@ void BATMan::GetData(uint8_t ReqID)
             }
         }
         if (_registerDebugEnabled) Serial.println();
+        
+        // Validate BMB connectivity for voltage register
+        for (int h = 0; h < ChipNum; h++) {
+            if (validateBmbResponse(h, ReqID)) {
+                BmbConnected[h] = true;
+                LastBmbResponse[h] = millis();
+            }
+        }
         break;
 
     case 0x48:
@@ -619,6 +637,14 @@ void BATMan::GetData(uint8_t ReqID)
             }
         }
         if (_registerDebugEnabled) Serial.println();
+        
+        // Validate BMB connectivity for voltage register
+        for (int h = 0; h < ChipNum; h++) {
+            if (validateBmbResponse(h, ReqID)) {
+                BmbConnected[h] = true;
+                LastBmbResponse[h] = millis();
+            }
+        }
         break;
 
     case 0x49:
@@ -645,6 +671,14 @@ void BATMan::GetData(uint8_t ReqID)
             }
         }
         if (_registerDebugEnabled) Serial.println();
+        
+        // Validate BMB connectivity for voltage register
+        for (int h = 0; h < ChipNum; h++) {
+            if (validateBmbResponse(h, ReqID)) {
+                BmbConnected[h] = true;
+                LastBmbResponse[h] = millis();
+            }
+        }
         break;
 
     case 0x4A:
@@ -671,6 +705,14 @@ void BATMan::GetData(uint8_t ReqID)
             }
         }
         if (_registerDebugEnabled) Serial.println();
+        
+        // Validate BMB connectivity for voltage register
+        for (int h = 0; h < ChipNum; h++) {
+            if (validateBmbResponse(h, ReqID)) {
+                BmbConnected[h] = true;
+                LastBmbResponse[h] = millis();
+            }
+        }
         break;
 
     case 0x4B:
@@ -697,6 +739,14 @@ void BATMan::GetData(uint8_t ReqID)
             }
         }
         if (_registerDebugEnabled) Serial.println();
+        
+        // Validate BMB connectivity for voltage register
+        for (int h = 0; h < ChipNum; h++) {
+            if (validateBmbResponse(h, ReqID)) {
+                BmbConnected[h] = true;
+                LastBmbResponse[h] = millis();
+            }
+        }
         break;
 
     case 0x4C:
@@ -709,6 +759,14 @@ void BATMan::GetData(uint8_t ReqID)
             if (tempvol != 0xffff)
             {
                 ChipV[h] = tempvol;
+            }
+        }
+        
+        // Validate BMB connectivity for chip voltage register
+        for (int h = 0; h < ChipNum; h++) {
+            if (validateBmbResponse(h, ReqID)) {
+                BmbConnected[h] = true;
+                LastBmbResponse[h] = millis();
             }
         }
         break;
@@ -757,6 +815,14 @@ void BATMan::GetData(uint8_t ReqID)
                 Temp2[h] = tempvol;  // Store raw temperature value
             }
         }
+        
+        // Validate BMB connectivity for auxiliary register
+        for (int h = 0; h < ChipNum; h++) {
+            if (validateBmbResponse(h, ReqID)) {
+                BmbConnected[h] = true;
+                LastBmbResponse[h] = millis();
+            }
+        }
         break;
 
     case 0x50:
@@ -777,6 +843,14 @@ void BATMan::GetData(uint8_t ReqID)
             if (tempvol != 0xffff)
             {
                 Cfg[h][1] =  tempvol;
+            }
+        }
+        
+        // Validate BMB connectivity for configuration register
+        for (int h = 0; h < ChipNum; h++) {
+            if (validateBmbResponse(h, ReqID)) {
+                BmbConnected[h] = true;
+                LastBmbResponse[h] = millis();
             }
         }
         break;
@@ -1533,5 +1607,141 @@ void BATMan::updateIndividualCellVoltageParameters(void)
             break;
         }
     }
+}
+
+// BMB Connectivity Monitoring Functions
+bool BATMan::validateBmbResponse(uint8_t chipIndex, uint8_t reqID) {
+    // Check if the response data for this chip contains valid information
+    // Look at the data pattern to determine if the BMB actually responded
+    
+    bool hasValidData = false;
+    int validReadings = 0;
+    int totalReadings = 0;
+    
+    // For voltage registers (0x47-0x4B), check if we have reasonable voltage readings
+    if (reqID >= 0x47 && reqID <= 0x4B) {
+        // Check voltage readings for this chip
+        for (int reg = 0; reg < 15; reg++) {
+            totalReadings++;
+            uint16_t voltage = Voltage[chipIndex][reg];
+            
+            // Valid voltage reading criteria:
+            // - Not 0xFFFF (invalid marker)
+            // - Not 0x0000 (likely no response)  
+            // - Within reasonable battery cell voltage range (1V to 5V = 1000mV to 5000mV)
+            if (voltage != 0xFFFF && voltage != 0x0000 && voltage >= 800 && voltage <= 5200) {
+                validReadings++;
+            }
+        }
+        
+        // Consider BMB connected if we have at least 3 valid voltage readings
+        // (Tesla modules have 23-25 cells, so expect multiple valid readings)
+        hasValidData = (validReadings >= 3);
+    }
+    // For auxiliary registers (0x4D, 0x4E), check 5V supply and temperatures
+    else if (reqID == 0x4D || reqID == 0x4E) {
+        // Check 5V supply voltage (should be around 5000mV)
+        uint16_t supply5v = Volts5v[chipIndex];
+        if (supply5v != 0xFFFF && supply5v != 0x0000 && supply5v >= 4000 && supply5v <= 6000) {
+            hasValidData = true;
+        }
+    }
+    // For configuration registers (0x50), just check if not all 0xFF or 0x00
+    else if (reqID == 0x50) {
+        if (Cfg[chipIndex][0] != 0xFFFF && Cfg[chipIndex][0] != 0x0000 &&
+            Cfg[chipIndex][1] != 0xFFFF && Cfg[chipIndex][1] != 0x0000) {
+            hasValidData = true;
+        }
+    }
+    
+    // Debug output for connectivity validation
+    if (_registerDebugEnabled) {
+        Serial.printf("BMB %d validation for reg 0x%02X: %s", chipIndex, reqID, 
+                     hasValidData ? "CONNECTED" : "NO RESPONSE");
+        if (reqID >= 0x47 && reqID <= 0x4B) {
+            Serial.printf(" (%d/%d valid voltages)", validReadings, totalReadings);
+        }
+        Serial.println();
+    }
+    
+    return hasValidData;
+}
+
+void BATMan::updateBmbConnectivity() {
+    unsigned long currentTime = millis();
+    ActualBmbCount = 0;
+    bool anyBmbConnected = false;
+    uint16_t connectedMask = 0;
+    
+    // Check each BMB for timeout and count actually connected ones
+    for (int chip = 0; chip < ChipNum; chip++) {
+        // Check if this BMB has timed out
+        if (BmbConnected[chip] && (currentTime - LastBmbResponse[chip]) > BMB_TIMEOUT_MS) {
+            BmbConnected[chip] = false;
+            markBmbDataAsStale(chip);
+            
+            Serial.printf("WARNING: BMB %d disconnected (timeout after %lu ms)\n", 
+                         chip, currentTime - LastBmbResponse[chip]);
+        }
+        
+        if (BmbConnected[chip]) {
+            ActualBmbCount++;
+            anyBmbConnected = true;
+            connectedMask |= (1 << chip);  // Set bit for this chip
+        }
+    }
+    
+    // Update the numbmbs parameter to reflect actual connected BMBs
+    // Convert chip count back to module count (divide by 2)
+    uint8_t actualModules = ActualBmbCount / 2;
+    Param::SetInt(Param::numbmbs, actualModules);
+    
+    // Update BMB connectivity parameters for monitoring
+    Param::SetInt(Param::ActualBmbCount, ActualBmbCount);
+    Param::SetInt(Param::ExpectedBmbCount, ChipNum);
+    Param::SetInt(Param::BmbConnectedMask, connectedMask);
+    
+    // Update BmbTimeout flag - if no BMBs are responding, we need to wake them
+    BmbTimeout = !anyBmbConnected;
+    
+    // Log connectivity status periodically
+    static unsigned long lastConnectivityReport = 0;
+    if (currentTime - lastConnectivityReport >= 10000) { // Every 10 seconds
+        Serial.printf("BMB Connectivity: %d/%d chips connected (Expected: %d, Mask: 0x%04X)\n", 
+                     ActualBmbCount, ChipNum, ChipNum, connectedMask);
+        
+        for (int chip = 0; chip < ChipNum; chip++) {
+            if (BmbConnected[chip]) {
+                Serial.printf("  Chip %d: ONLINE (last response %lu ms ago)\n", 
+                             chip, currentTime - LastBmbResponse[chip]);
+            } else {
+                Serial.printf("  Chip %d: OFFLINE\n", chip);
+            }
+        }
+        lastConnectivityReport = currentTime;
+    }
+}
+
+void BATMan::markBmbDataAsStale(uint8_t chipIndex) {
+    // Clear voltage data for disconnected BMB
+    for (int reg = 0; reg < 15; reg++) {
+        Voltage[chipIndex][reg] = 0; // Mark as no data
+    }
+    
+    // Clear auxiliary data
+    Volts5v[chipIndex] = 0;
+    ChipV[chipIndex] = 0;
+    Temps[chipIndex] = 0;
+    Temp1[chipIndex] = 0;
+    Temp2[chipIndex] = 0;
+    
+    // Clear configuration data
+    Cfg[chipIndex][0] = 0;
+    Cfg[chipIndex][1] = 0;
+    
+    // Clear balancing commands for this chip
+    CellBalCmd[chipIndex] = 0;
+    
+    Serial.printf("Marked data as stale for disconnected BMB chip %d\n", chipIndex);
 }
 

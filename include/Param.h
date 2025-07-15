@@ -91,7 +91,12 @@ public:
         battContactorPos,
         battContactorNeg,
         battLinkPos,
-        battLinkNeg
+        battLinkNeg,
+        
+        // BMB Connectivity parameters
+        ActualBmbCount,      // Number of BMB chips actually responding
+        ExpectedBmbCount,    // Number of BMB chips expected (numbmbs * 2)
+        BmbConnectedMask     // Bitmask showing which BMBs are connected (bit 0 = chip 0, etc.)
     };
 
     static int GetInt(PARAM_NUM param);
