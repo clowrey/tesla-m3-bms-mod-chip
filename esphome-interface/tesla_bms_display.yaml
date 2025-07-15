@@ -1363,8 +1363,8 @@ interval:
                         }
                         else if (param == "udc") { id(udc).publish_state(value); sensor_updated = true; }
                         else if (param == "CellVoltageSum") { 
-                          ESP_LOGI("BMS", "DEBUG: UPDATING CellVoltageSum = %f V", value);
-                          id(cell_sum_voltage).publish_state(value); 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING CellVoltageSum = %f mV -> %f V", value, value / 1000.0);
+                          id(cell_sum_voltage).publish_state(value / 1000.0); 
                           sensor_updated = true; 
                         }
                         else if (param == "Chipt0") { id(chipt0).publish_state(value); sensor_updated = true; }
@@ -1493,114 +1493,114 @@ interval:
                             float voltage_v = value / 1000.0;
                             
                             // Update individual cell sensors (cells 1-108)
-                            if (cell_num == 1) { id(u1).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 2) { id(u2).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 3) { id(u3).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 4) { id(u4).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 5) { id(u5).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 6) { id(u6).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 7) { id(u7).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 8) { id(u8).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 9) { id(u9).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 10) { id(u10).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 11) { id(u11).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 12) { id(u12).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 13) { id(u13).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 14) { id(u14).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 15) { id(u15).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 16) { id(u16).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 17) { id(u17).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 18) { id(u18).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 19) { id(u19).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 20) { id(u20).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 21) { id(u21).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 22) { id(u22).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 23) { id(u23).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 24) { id(u24).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 25) { id(u25).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 26) { id(u26).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 27) { id(u27).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 28) { id(u28).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 29) { id(u29).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 30) { id(u30).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 31) { id(u31).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 32) { id(u32).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 33) { id(u33).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 34) { id(u34).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 35) { id(u35).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 36) { id(u36).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 37) { id(u37).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 38) { id(u38).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 39) { id(u39).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 40) { id(u40).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 41) { id(u41).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 42) { id(u42).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 43) { id(u43).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 44) { id(u44).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 45) { id(u45).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 46) { id(u46).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 47) { id(u47).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 48) { id(u48).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 49) { id(u49).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 50) { id(u50).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 51) { id(u51).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 52) { id(u52).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 53) { id(u53).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 54) { id(u54).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 55) { id(u55).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 56) { id(u56).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 57) { id(u57).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 58) { id(u58).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 59) { id(u59).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 60) { id(u60).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 61) { id(u61).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 62) { id(u62).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 63) { id(u63).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 64) { id(u64).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 65) { id(u65).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 66) { id(u66).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 67) { id(u67).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 68) { id(u68).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 69) { id(u69).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 70) { id(u70).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 71) { id(u71).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 72) { id(u72).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 73) { id(u73).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 74) { id(u74).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 75) { id(u75).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 76) { id(u76).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 77) { id(u77).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 78) { id(u78).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 79) { id(u79).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 80) { id(u80).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 81) { id(u81).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 82) { id(u82).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 83) { id(u83).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 84) { id(u84).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 85) { id(u85).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 86) { id(u86).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 87) { id(u87).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 88) { id(u88).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 89) { id(u89).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 90) { id(u90).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 91) { id(u91).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 92) { id(u92).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 93) { id(u93).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 94) { id(u94).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 95) { id(u95).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 96) { id(u96).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 97) { id(u97).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 98) { id(u98).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 99) { id(u99).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 100) { id(u100).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 101) { id(u101).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 102) { id(u102).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 103) { id(u103).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 104) { id(u104).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 105) { id(u105).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 106) { id(u106).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 107) { id(u107).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 108) { id(u108).publish_state(voltage_v); sensor_updated = true; }
+                            if (cell_num == 1) { id(u001).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 2) { id(u002).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 3) { id(u003).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 4) { id(u004).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 5) { id(u005).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 6) { id(u006).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 7) { id(u007).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 8) { id(u008).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 9) { id(u009).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 10) { id(u010).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 11) { id(u011).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 12) { id(u012).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 13) { id(u013).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 14) { id(u014).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 15) { id(u015).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 16) { id(u016).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 17) { id(u017).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 18) { id(u018).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 19) { id(u019).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 20) { id(u020).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 21) { id(u021).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 22) { id(u022).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 23) { id(u023).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 24) { id(u024).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 25) { id(u025).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 26) { id(u026).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 27) { id(u027).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 28) { id(u028).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 29) { id(u029).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 30) { id(u030).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 31) { id(u031).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 32) { id(u032).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 33) { id(u033).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 34) { id(u034).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 35) { id(u035).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 36) { id(u036).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 37) { id(u037).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 38) { id(u038).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 39) { id(u039).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 40) { id(u040).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 41) { id(u041).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 42) { id(u042).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 43) { id(u043).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 44) { id(u044).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 45) { id(u045).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 46) { id(u046).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 47) { id(u047).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 48) { id(u048).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 49) { id(u049).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 50) { id(u050).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 51) { id(u051).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 52) { id(u052).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 53) { id(u053).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 54) { id(u054).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 55) { id(u055).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 56) { id(u056).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 57) { id(u057).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 58) { id(u058).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 59) { id(u059).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 60) { id(u060).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 61) { id(u061).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 62) { id(u062).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 63) { id(u063).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 64) { id(u064).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 65) { id(u065).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 66) { id(u066).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 67) { id(u067).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 68) { id(u068).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 69) { id(u069).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 70) { id(u070).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 71) { id(u071).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 72) { id(u072).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 73) { id(u073).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 74) { id(u074).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 75) { id(u075).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 76) { id(u076).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 77) { id(u077).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 78) { id(u078).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 79) { id(u079).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 80) { id(u080).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 81) { id(u081).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 82) { id(u082).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 83) { id(u083).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 84) { id(u084).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 85) { id(u085).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 86) { id(u086).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 87) { id(u087).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 88) { id(u088).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 89) { id(u089).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 90) { id(u090).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 91) { id(u091).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 92) { id(u092).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 93) { id(u093).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 94) { id(u094).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 95) { id(u095).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 96) { id(u096).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 97) { id(u097).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 98) { id(u098).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 99) { id(u099).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 100) { id(u00100).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 101) { id(u00101).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 102) { id(u00102).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 103) { id(u00103).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 104) { id(u00104).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 105) { id(u00105).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 106) { id(u00106).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 107) { id(u00107).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 108) { id(u00108).publish_state(voltage_v); sensor_updated = true; }
                           }
                         }
                         
@@ -1981,124 +1981,124 @@ interval:
             std::vector<std::pair<int, float>> cell_data;
             
             // Cells 1-20 - Use NaN for uninitialized sensors to avoid showing misleading 0V or 5V values
-            cell_data.push_back({0, id(u1).has_state() ? id(u1).state : NAN});
-            cell_data.push_back({1, id(u2).has_state() ? id(u2).state : NAN});
-            cell_data.push_back({2, id(u3).has_state() ? id(u3).state : NAN});
-            cell_data.push_back({3, id(u4).has_state() ? id(u4).state : NAN});
-            cell_data.push_back({4, id(u5).has_state() ? id(u5).state : NAN});
-            cell_data.push_back({5, id(u6).has_state() ? id(u6).state : NAN});
-            cell_data.push_back({6, id(u7).has_state() ? id(u7).state : NAN});
-            cell_data.push_back({7, id(u8).has_state() ? id(u8).state : NAN});
-            cell_data.push_back({8, id(u9).has_state() ? id(u9).state : NAN});
-            cell_data.push_back({9, id(u10).has_state() ? id(u10).state : NAN});
-            cell_data.push_back({10, id(u11).has_state() ? id(u11).state : 0.0f});
-            cell_data.push_back({11, id(u12).has_state() ? id(u12).state : 0.0f});
-            cell_data.push_back({12, id(u13).has_state() ? id(u13).state : 0.0f});
-            cell_data.push_back({13, id(u14).has_state() ? id(u14).state : 0.0f});
-            cell_data.push_back({14, id(u15).has_state() ? id(u15).state : 0.0f});
-            cell_data.push_back({15, id(u16).has_state() ? id(u16).state : 0.0f});
-            cell_data.push_back({16, id(u17).has_state() ? id(u17).state : 0.0f});
-            cell_data.push_back({17, id(u18).has_state() ? id(u18).state : 0.0f});
-            cell_data.push_back({18, id(u19).has_state() ? id(u19).state : 0.0f});
-            cell_data.push_back({19, id(u20).has_state() ? id(u20).state : 0.0f});
+            cell_data.push_back({0, id(u001).has_state() ? id(u001).state : NAN});
+            cell_data.push_back({1, id(u002).has_state() ? id(u002).state : NAN});
+            cell_data.push_back({2, id(u003).has_state() ? id(u003).state : NAN});
+            cell_data.push_back({3, id(u004).has_state() ? id(u004).state : NAN});
+            cell_data.push_back({4, id(u005).has_state() ? id(u005).state : NAN});
+            cell_data.push_back({5, id(u006).has_state() ? id(u006).state : NAN});
+            cell_data.push_back({6, id(u007).has_state() ? id(u007).state : NAN});
+            cell_data.push_back({7, id(u008).has_state() ? id(u008).state : NAN});
+            cell_data.push_back({8, id(u009).has_state() ? id(u009).state : NAN});
+            cell_data.push_back({9, id(u010).has_state() ? id(u010).state : NAN});
+            cell_data.push_back({10, id(u011).has_state() ? id(u011).state : 0.0f});
+            cell_data.push_back({11, id(u012).has_state() ? id(u012).state : 0.0f});
+            cell_data.push_back({12, id(u013).has_state() ? id(u013).state : 0.0f});
+            cell_data.push_back({13, id(u014).has_state() ? id(u014).state : 0.0f});
+            cell_data.push_back({14, id(u015).has_state() ? id(u015).state : 0.0f});
+            cell_data.push_back({15, id(u016).has_state() ? id(u016).state : 0.0f});
+            cell_data.push_back({16, id(u017).has_state() ? id(u017).state : 0.0f});
+            cell_data.push_back({17, id(u018).has_state() ? id(u018).state : 0.0f});
+            cell_data.push_back({18, id(u019).has_state() ? id(u019).state : 0.0f});
+            cell_data.push_back({19, id(u020).has_state() ? id(u020).state : 0.0f});
             
             // Cells 21-40
-            cell_data.push_back({20, id(u21).has_state() ? id(u21).state : 0.0f});
-            cell_data.push_back({21, id(u22).has_state() ? id(u22).state : 0.0f});
-            cell_data.push_back({22, id(u23).has_state() ? id(u23).state : 0.0f});
-            cell_data.push_back({23, id(u24).has_state() ? id(u24).state : 0.0f});
-            cell_data.push_back({24, id(u25).has_state() ? id(u25).state : 0.0f});
-            cell_data.push_back({25, id(u26).has_state() ? id(u26).state : 0.0f});
-            cell_data.push_back({26, id(u27).has_state() ? id(u27).state : 0.0f});
-            cell_data.push_back({27, id(u28).has_state() ? id(u28).state : 0.0f});
-            cell_data.push_back({28, id(u29).has_state() ? id(u29).state : 0.0f});
-            cell_data.push_back({29, id(u30).has_state() ? id(u30).state : 0.0f});
-            cell_data.push_back({30, id(u31).has_state() ? id(u31).state : 0.0f});
-            cell_data.push_back({31, id(u32).has_state() ? id(u32).state : 0.0f});
-            cell_data.push_back({32, id(u33).has_state() ? id(u33).state : 0.0f});
-            cell_data.push_back({33, id(u34).has_state() ? id(u34).state : 0.0f});
-            cell_data.push_back({34, id(u35).has_state() ? id(u35).state : 0.0f});
-            cell_data.push_back({35, id(u36).has_state() ? id(u36).state : 0.0f});
-            cell_data.push_back({36, id(u37).has_state() ? id(u37).state : 0.0f});
-            cell_data.push_back({37, id(u38).has_state() ? id(u38).state : 0.0f});
-            cell_data.push_back({38, id(u39).has_state() ? id(u39).state : 0.0f});
-            cell_data.push_back({39, id(u40).has_state() ? id(u40).state : 0.0f});
+            cell_data.push_back({20, id(u021).has_state() ? id(u021).state : 0.0f});
+            cell_data.push_back({21, id(u022).has_state() ? id(u022).state : 0.0f});
+            cell_data.push_back({22, id(u023).has_state() ? id(u023).state : 0.0f});
+            cell_data.push_back({23, id(u024).has_state() ? id(u024).state : 0.0f});
+            cell_data.push_back({24, id(u025).has_state() ? id(u025).state : 0.0f});
+            cell_data.push_back({25, id(u026).has_state() ? id(u026).state : 0.0f});
+            cell_data.push_back({26, id(u027).has_state() ? id(u027).state : 0.0f});
+            cell_data.push_back({27, id(u028).has_state() ? id(u028).state : 0.0f});
+            cell_data.push_back({28, id(u029).has_state() ? id(u029).state : 0.0f});
+            cell_data.push_back({29, id(u030).has_state() ? id(u030).state : 0.0f});
+            cell_data.push_back({30, id(u031).has_state() ? id(u031).state : 0.0f});
+            cell_data.push_back({31, id(u032).has_state() ? id(u032).state : 0.0f});
+            cell_data.push_back({32, id(u033).has_state() ? id(u033).state : 0.0f});
+            cell_data.push_back({33, id(u034).has_state() ? id(u034).state : 0.0f});
+            cell_data.push_back({34, id(u035).has_state() ? id(u035).state : 0.0f});
+            cell_data.push_back({35, id(u036).has_state() ? id(u036).state : 0.0f});
+            cell_data.push_back({36, id(u037).has_state() ? id(u037).state : 0.0f});
+            cell_data.push_back({37, id(u038).has_state() ? id(u038).state : 0.0f});
+            cell_data.push_back({38, id(u039).has_state() ? id(u039).state : 0.0f});
+            cell_data.push_back({39, id(u040).has_state() ? id(u040).state : 0.0f});
             
             // Cells 41-60
-            cell_data.push_back({40, id(u41).has_state() ? id(u41).state : 0.0f});
-            cell_data.push_back({41, id(u42).has_state() ? id(u42).state : 0.0f});
-            cell_data.push_back({42, id(u43).has_state() ? id(u43).state : 0.0f});
-            cell_data.push_back({43, id(u44).has_state() ? id(u44).state : 0.0f});
-            cell_data.push_back({44, id(u45).has_state() ? id(u45).state : 0.0f});
-            cell_data.push_back({45, id(u46).has_state() ? id(u46).state : 0.0f});
-            cell_data.push_back({46, id(u47).has_state() ? id(u47).state : 0.0f});
-            cell_data.push_back({47, id(u48).has_state() ? id(u48).state : 0.0f});
-            cell_data.push_back({48, id(u49).has_state() ? id(u49).state : 0.0f});
-            cell_data.push_back({49, id(u50).has_state() ? id(u50).state : 0.0f});
-            cell_data.push_back({50, id(u51).has_state() ? id(u51).state : 0.0f});
-            cell_data.push_back({51, id(u52).has_state() ? id(u52).state : 0.0f});
-            cell_data.push_back({52, id(u53).has_state() ? id(u53).state : 0.0f});
-            cell_data.push_back({53, id(u54).has_state() ? id(u54).state : 0.0f});
-            cell_data.push_back({54, id(u55).has_state() ? id(u55).state : 0.0f});
-            cell_data.push_back({55, id(u56).has_state() ? id(u56).state : 0.0f});
-            cell_data.push_back({56, id(u57).has_state() ? id(u57).state : 0.0f});
-            cell_data.push_back({57, id(u58).has_state() ? id(u58).state : 0.0f});
-            cell_data.push_back({58, id(u59).has_state() ? id(u59).state : 0.0f});
-            cell_data.push_back({59, id(u60).has_state() ? id(u60).state : 0.0f});
+            cell_data.push_back({40, id(u041).has_state() ? id(u041).state : 0.0f});
+            cell_data.push_back({41, id(u042).has_state() ? id(u042).state : 0.0f});
+            cell_data.push_back({42, id(u043).has_state() ? id(u043).state : 0.0f});
+            cell_data.push_back({43, id(u044).has_state() ? id(u044).state : 0.0f});
+            cell_data.push_back({44, id(u045).has_state() ? id(u045).state : 0.0f});
+            cell_data.push_back({45, id(u046).has_state() ? id(u046).state : 0.0f});
+            cell_data.push_back({46, id(u047).has_state() ? id(u047).state : 0.0f});
+            cell_data.push_back({47, id(u048).has_state() ? id(u048).state : 0.0f});
+            cell_data.push_back({48, id(u049).has_state() ? id(u049).state : 0.0f});
+            cell_data.push_back({49, id(u050).has_state() ? id(u050).state : 0.0f});
+            cell_data.push_back({50, id(u051).has_state() ? id(u051).state : 0.0f});
+            cell_data.push_back({51, id(u052).has_state() ? id(u052).state : 0.0f});
+            cell_data.push_back({52, id(u053).has_state() ? id(u053).state : 0.0f});
+            cell_data.push_back({53, id(u054).has_state() ? id(u054).state : 0.0f});
+            cell_data.push_back({54, id(u055).has_state() ? id(u055).state : 0.0f});
+            cell_data.push_back({55, id(u056).has_state() ? id(u056).state : 0.0f});
+            cell_data.push_back({56, id(u057).has_state() ? id(u057).state : 0.0f});
+            cell_data.push_back({57, id(u058).has_state() ? id(u058).state : 0.0f});
+            cell_data.push_back({58, id(u059).has_state() ? id(u059).state : 0.0f});
+            cell_data.push_back({59, id(u060).has_state() ? id(u060).state : 0.0f});
             
             // Cells 61-80
-            cell_data.push_back({60, id(u61).has_state() ? id(u61).state : 0.0f});
-            cell_data.push_back({61, id(u62).has_state() ? id(u62).state : 0.0f});
-            cell_data.push_back({62, id(u63).has_state() ? id(u63).state : 0.0f});
-            cell_data.push_back({63, id(u64).has_state() ? id(u64).state : 0.0f});
-            cell_data.push_back({64, id(u65).has_state() ? id(u65).state : 0.0f});
-            cell_data.push_back({65, id(u66).has_state() ? id(u66).state : 0.0f});
-            cell_data.push_back({66, id(u67).has_state() ? id(u67).state : 0.0f});
-            cell_data.push_back({67, id(u68).has_state() ? id(u68).state : 0.0f});
-            cell_data.push_back({68, id(u69).has_state() ? id(u69).state : 0.0f});
-            cell_data.push_back({69, id(u70).has_state() ? id(u70).state : 0.0f});
-            cell_data.push_back({70, id(u71).has_state() ? id(u71).state : 0.0f});
-            cell_data.push_back({71, id(u72).has_state() ? id(u72).state : 0.0f});
-            cell_data.push_back({72, id(u73).has_state() ? id(u73).state : 0.0f});
-            cell_data.push_back({73, id(u74).has_state() ? id(u74).state : 0.0f});
-            cell_data.push_back({74, id(u75).has_state() ? id(u75).state : 0.0f});
-            cell_data.push_back({75, id(u76).has_state() ? id(u76).state : 0.0f});
-            cell_data.push_back({76, id(u77).has_state() ? id(u77).state : 0.0f});
-            cell_data.push_back({77, id(u78).has_state() ? id(u78).state : 0.0f});
-            cell_data.push_back({78, id(u79).has_state() ? id(u79).state : 0.0f});
-            cell_data.push_back({79, id(u80).has_state() ? id(u80).state : 0.0f});
+            cell_data.push_back({60, id(u061).has_state() ? id(u061).state : 0.0f});
+            cell_data.push_back({61, id(u062).has_state() ? id(u062).state : 0.0f});
+            cell_data.push_back({62, id(u063).has_state() ? id(u063).state : 0.0f});
+            cell_data.push_back({63, id(u064).has_state() ? id(u064).state : 0.0f});
+            cell_data.push_back({64, id(u065).has_state() ? id(u065).state : 0.0f});
+            cell_data.push_back({65, id(u066).has_state() ? id(u066).state : 0.0f});
+            cell_data.push_back({66, id(u067).has_state() ? id(u067).state : 0.0f});
+            cell_data.push_back({67, id(u068).has_state() ? id(u068).state : 0.0f});
+            cell_data.push_back({68, id(u069).has_state() ? id(u069).state : 0.0f});
+            cell_data.push_back({69, id(u070).has_state() ? id(u070).state : 0.0f});
+            cell_data.push_back({70, id(u071).has_state() ? id(u071).state : 0.0f});
+            cell_data.push_back({71, id(u072).has_state() ? id(u072).state : 0.0f});
+            cell_data.push_back({72, id(u073).has_state() ? id(u073).state : 0.0f});
+            cell_data.push_back({73, id(u074).has_state() ? id(u074).state : 0.0f});
+            cell_data.push_back({74, id(u075).has_state() ? id(u075).state : 0.0f});
+            cell_data.push_back({75, id(u076).has_state() ? id(u076).state : 0.0f});
+            cell_data.push_back({76, id(u077).has_state() ? id(u077).state : 0.0f});
+            cell_data.push_back({77, id(u078).has_state() ? id(u078).state : 0.0f});
+            cell_data.push_back({78, id(u079).has_state() ? id(u079).state : 0.0f});
+            cell_data.push_back({79, id(u080).has_state() ? id(u080).state : 0.0f});
             
             // Cells 81-100
-            cell_data.push_back({80, id(u81).has_state() ? id(u81).state : 0.0f});
-            cell_data.push_back({81, id(u82).has_state() ? id(u82).state : 0.0f});
-            cell_data.push_back({82, id(u83).has_state() ? id(u83).state : 0.0f});
-            cell_data.push_back({83, id(u84).has_state() ? id(u84).state : 0.0f});
-            cell_data.push_back({84, id(u85).has_state() ? id(u85).state : 0.0f});
-            cell_data.push_back({85, id(u86).has_state() ? id(u86).state : 0.0f});
-            cell_data.push_back({86, id(u87).has_state() ? id(u87).state : 0.0f});
-            cell_data.push_back({87, id(u88).has_state() ? id(u88).state : 0.0f});
-            cell_data.push_back({88, id(u89).has_state() ? id(u89).state : 0.0f});
-            cell_data.push_back({89, id(u90).has_state() ? id(u90).state : 0.0f});
-            cell_data.push_back({90, id(u91).has_state() ? id(u91).state : 0.0f});
-            cell_data.push_back({91, id(u92).has_state() ? id(u92).state : 0.0f});
-            cell_data.push_back({92, id(u93).has_state() ? id(u93).state : 0.0f});
-            cell_data.push_back({93, id(u94).has_state() ? id(u94).state : 0.0f});
-            cell_data.push_back({94, id(u95).has_state() ? id(u95).state : 0.0f});
-            cell_data.push_back({95, id(u96).has_state() ? id(u96).state : 0.0f});
-            cell_data.push_back({96, id(u97).has_state() ? id(u97).state : 0.0f});
-            cell_data.push_back({97, id(u98).has_state() ? id(u98).state : 0.0f});
-            cell_data.push_back({98, id(u99).has_state() ? id(u99).state : 0.0f});
-            cell_data.push_back({99, id(u100).has_state() ? id(u100).state : 0.0f});
+            cell_data.push_back({80, id(u081).has_state() ? id(u081).state : 0.0f});
+            cell_data.push_back({81, id(u082).has_state() ? id(u082).state : 0.0f});
+            cell_data.push_back({82, id(u083).has_state() ? id(u083).state : 0.0f});
+            cell_data.push_back({83, id(u084).has_state() ? id(u084).state : 0.0f});
+            cell_data.push_back({84, id(u085).has_state() ? id(u085).state : 0.0f});
+            cell_data.push_back({85, id(u086).has_state() ? id(u086).state : 0.0f});
+            cell_data.push_back({86, id(u087).has_state() ? id(u087).state : 0.0f});
+            cell_data.push_back({87, id(u088).has_state() ? id(u088).state : 0.0f});
+            cell_data.push_back({88, id(u089).has_state() ? id(u089).state : 0.0f});
+            cell_data.push_back({89, id(u090).has_state() ? id(u090).state : 0.0f});
+            cell_data.push_back({90, id(u091).has_state() ? id(u091).state : 0.0f});
+            cell_data.push_back({91, id(u092).has_state() ? id(u092).state : 0.0f});
+            cell_data.push_back({92, id(u093).has_state() ? id(u093).state : 0.0f});
+            cell_data.push_back({93, id(u094).has_state() ? id(u094).state : 0.0f});
+            cell_data.push_back({94, id(u095).has_state() ? id(u095).state : 0.0f});
+            cell_data.push_back({95, id(u096).has_state() ? id(u096).state : 0.0f});
+            cell_data.push_back({96, id(u097).has_state() ? id(u097).state : 0.0f});
+            cell_data.push_back({97, id(u098).has_state() ? id(u098).state : 0.0f});
+            cell_data.push_back({98, id(u099).has_state() ? id(u099).state : 0.0f});
+            cell_data.push_back({99, id(u00100).has_state() ? id(u00100).state : 0.0f});
             
             // Cells 101-108
-            cell_data.push_back({100, id(u101).has_state() ? id(u101).state : 0.0f});
-            cell_data.push_back({101, id(u102).has_state() ? id(u102).state : 0.0f});
-            cell_data.push_back({102, id(u103).has_state() ? id(u103).state : 0.0f});
-            cell_data.push_back({103, id(u104).has_state() ? id(u104).state : 0.0f});
-            cell_data.push_back({104, id(u105).has_state() ? id(u105).state : 0.0f});
-            cell_data.push_back({105, id(u106).has_state() ? id(u106).state : 0.0f});
-            cell_data.push_back({106, id(u107).has_state() ? id(u107).state : 0.0f});
-            cell_data.push_back({107, id(u108).has_state() ? id(u108).state : 0.0f});
+            cell_data.push_back({100, id(u00101).has_state() ? id(u00101).state : 0.0f});
+            cell_data.push_back({101, id(u00102).has_state() ? id(u00102).state : 0.0f});
+            cell_data.push_back({102, id(u00103).has_state() ? id(u00103).state : 0.0f});
+            cell_data.push_back({103, id(u00104).has_state() ? id(u00104).state : 0.0f});
+            cell_data.push_back({104, id(u00105).has_state() ? id(u00105).state : 0.0f});
+            cell_data.push_back({105, id(u00106).has_state() ? id(u00106).state : 0.0f});
+            cell_data.push_back({106, id(u00107).has_state() ? id(u00107).state : 0.0f});
+            cell_data.push_back({107, id(u00108).has_state() ? id(u00108).state : 0.0f});
             
             // Get balance cell list from the BMS (exact cell numbers being balanced)
             std::vector<int> balancing_cells;
