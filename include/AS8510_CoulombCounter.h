@@ -31,7 +31,7 @@ private:
     unsigned long lastStatusDisplayTime;
     
     // Configuration constants
-    static const unsigned long CURRENT_READ_INTERVAL = 2000;  // 2 seconds
+    static const unsigned long CURRENT_READ_INTERVAL = 100;  // 100ms for more accurate coulomb counting
     static const unsigned long STATUS_DISPLAY_INTERVAL = 10000; // 10 seconds
     
     // Diagnostic state machine

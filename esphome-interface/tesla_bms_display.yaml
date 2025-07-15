@@ -95,6 +95,15 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  # Display update synchronization
+  - id: last_data_received
+    type: unsigned long
+    restore_value: no
+    initial_value: '0'
+  - id: display_needs_update
+    type: bool
+    restore_value: no
+    initial_value: 'false'
   # Alternative: Parameter request queue for more sophisticated control
   # - id: param_request_queue
   #   type: std::vector<std::string>
@@ -383,9 +392,9 @@ lvgl:
                   grid_cell_row_pos: 6
                   grid_cell_x_align: STRETCH
                   grid_cell_y_align: STRETCH
-                  id: label_as8510_temp
+                  id: label_soc
                   align: RIGHT_MID
-                  text: "AS8510: 0.0°C"
+                  text: "SOC: --.-%"
                   text_color: white
                   text_font: montserrat_12
               - label:
@@ -1278,6 +1287,12 @@ interval:
                 
                 // Skip the end marker and comments
                 if (buffer == "DATA_COMPLETE" || buffer.find("#") != std::string::npos) {
+                  if (buffer == "DATA_COMPLETE") {
+                    // Mark that we received a complete data packet
+                    id(last_data_received) = millis();
+                    id(display_needs_update) = true;
+                    ESP_LOGI("BMS", "DATA_COMPLETE received - triggering display update");
+                  }
                   ESP_LOGV("BMS", "Skipping marker/comment line: %s", buffer.c_str());
                 } else {
                   // Parse the line in format "param=value"
@@ -1620,10 +1635,28 @@ interval:
             }
           }
 
-  # Display update interval (no more parameter requests needed!)
-  - interval: 500ms
+  # Synchronized display update - triggers on data arrival or timeout
+  - interval: 100ms
     then:
       - lambda: |-
+          // Check if we should update display
+          unsigned long now = millis();
+          bool data_timeout = (now - id(last_data_received)) > 2000;  // 2 second timeout
+          bool data_ready = id(display_needs_update);
+          
+          // Only update if we have new data or timeout occurred
+          if (!data_ready && !data_timeout) {
+            return;  // Skip update this cycle
+          }
+          
+          // Reset the update flag
+          id(display_needs_update) = false;
+          
+          if (data_timeout) {
+            ESP_LOGW("BMS", "Display update triggered by timeout (no data for >2s)");
+          } else {
+            ESP_LOGD("BMS", "Display update triggered by new data");
+          }
           // Update display labels with current sensor values
           char buffer[64];
           
@@ -1818,13 +1851,13 @@ interval:
           }
           lv_label_set_text((lv_obj_t*)id(label_current), buffer);
           
-          // Update AS8510 temperature display
-          if (id(as8510_temp).has_state()) {
-            snprintf(buffer, sizeof(buffer), "AS8510: %.1f°C", id(as8510_temp).state);
+          // Update SOC display
+          if (id(bms_soc).has_state()) {
+            snprintf(buffer, sizeof(buffer), "SOC: %.1f%%", id(bms_soc).state);
           } else {
-            snprintf(buffer, sizeof(buffer), "AS8510: --°C");
+            snprintf(buffer, sizeof(buffer), "SOC: --.-%");
           }
-          lv_label_set_text((lv_obj_t*)id(label_as8510_temp), buffer);
+          lv_label_set_text((lv_obj_t*)id(label_soc), buffer);
           
           // Update power display
           if (id(bms_power).has_state()) {
