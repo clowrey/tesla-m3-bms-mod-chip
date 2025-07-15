@@ -1592,15 +1592,15 @@ interval:
                             else if (cell_num == 97) { id(u097).publish_state(voltage_v); sensor_updated = true; }
                             else if (cell_num == 98) { id(u098).publish_state(voltage_v); sensor_updated = true; }
                             else if (cell_num == 99) { id(u099).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 100) { id(u00100).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 101) { id(u00101).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 102) { id(u00102).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 103) { id(u00103).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 104) { id(u00104).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 105) { id(u00105).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 106) { id(u00106).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 107) { id(u00107).publish_state(voltage_v); sensor_updated = true; }
-                            else if (cell_num == 108) { id(u00108).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 100) { id(u100).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 101) { id(u101).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 102) { id(u102).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 103) { id(u103).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 104) { id(u104).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 105) { id(u105).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 106) { id(u106).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 107) { id(u107).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 108) { id(u108).publish_state(voltage_v); sensor_updated = true; }
                           }
                         }
                         
@@ -2088,17 +2088,17 @@ interval:
             cell_data.push_back({96, id(u097).has_state() ? id(u097).state : 0.0f});
             cell_data.push_back({97, id(u098).has_state() ? id(u098).state : 0.0f});
             cell_data.push_back({98, id(u099).has_state() ? id(u099).state : 0.0f});
-            cell_data.push_back({99, id(u00100).has_state() ? id(u00100).state : 0.0f});
+            cell_data.push_back({99, id(u100).has_state() ? id(u100).state : 0.0f});
             
             // Cells 101-108
-            cell_data.push_back({100, id(u00101).has_state() ? id(u00101).state : 0.0f});
-            cell_data.push_back({101, id(u00102).has_state() ? id(u00102).state : 0.0f});
-            cell_data.push_back({102, id(u00103).has_state() ? id(u00103).state : 0.0f});
-            cell_data.push_back({103, id(u00104).has_state() ? id(u00104).state : 0.0f});
-            cell_data.push_back({104, id(u00105).has_state() ? id(u00105).state : 0.0f});
-            cell_data.push_back({105, id(u00106).has_state() ? id(u00106).state : 0.0f});
-            cell_data.push_back({106, id(u00107).has_state() ? id(u00107).state : 0.0f});
-            cell_data.push_back({107, id(u00108).has_state() ? id(u00108).state : 0.0f});
+            cell_data.push_back({100, id(u101).has_state() ? id(u101).state : 0.0f});
+            cell_data.push_back({101, id(u102).has_state() ? id(u102).state : 0.0f});
+            cell_data.push_back({102, id(u103).has_state() ? id(u103).state : 0.0f});
+            cell_data.push_back({103, id(u104).has_state() ? id(u104).state : 0.0f});
+            cell_data.push_back({104, id(u105).has_state() ? id(u105).state : 0.0f});
+            cell_data.push_back({105, id(u106).has_state() ? id(u106).state : 0.0f});
+            cell_data.push_back({106, id(u107).has_state() ? id(u107).state : 0.0f});
+            cell_data.push_back({107, id(u108).has_state() ? id(u108).state : 0.0f});
             
             // Get balance cell list from the BMS (exact cell numbers being balanced)
             std::vector<int> balancing_cells;

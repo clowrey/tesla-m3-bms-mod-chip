@@ -6,605 +6,605 @@
 sensor:
   # Cell 1-10
   - platform: template
-    name: "u1"
-    id: u1
+    name: "u001"
+    id: u001
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u2"
-    id: u2
+    name: "u002"
+    id: u002
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u3"
-    id: u3
+    name: "u003"
+    id: u003
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u4"
-    id: u4
+    name: "u004"
+    id: u004
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u5"
-    id: u5
+    name: "u005"
+    id: u005
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u6"
-    id: u6
+    name: "u006"
+    id: u006
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u7"
-    id: u7
+    name: "u007"
+    id: u007
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u8"
-    id: u8
+    name: "u008"
+    id: u008
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u9"
-    id: u9
+    name: "u009"
+    id: u009
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u10"
-    id: u10
+    name: "u010"
+    id: u010
     unit_of_measurement: "V"
     accuracy_decimals: 3
 
   # Cell 11-20
   - platform: template
-    name: "u11"
-    id: u11
+    name: "u011"
+    id: u011
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u12"
-    id: u12
+    name: "u012"
+    id: u012
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u13"
-    id: u13
+    name: "u013"
+    id: u013
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u14"
-    id: u14
+    name: "u014"
+    id: u014
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u15"
-    id: u15
+    name: "u015"
+    id: u015
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u16"
-    id: u16
+    name: "u016"
+    id: u016
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u17"
-    id: u17
+    name: "u017"
+    id: u017
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u18"
-    id: u18
+    name: "u018"
+    id: u018
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u19"
-    id: u19
+    name: "u019"
+    id: u019
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u20"
-    id: u20
+    name: "u020"
+    id: u020
     unit_of_measurement: "V"
     accuracy_decimals: 3
 
   # Cell 21-30
   - platform: template
-    name: "u21"
-    id: u21
+    name: "u021"
+    id: u021
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u22"
-    id: u22
+    name: "u022"
+    id: u022
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u23"
-    id: u23
+    name: "u023"
+    id: u023
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u24"
-    id: u24
+    name: "u024"
+    id: u024
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u25"
-    id: u25
+    name: "u025"
+    id: u025
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u26"
-    id: u26
+    name: "u026"
+    id: u026
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u27"
-    id: u27
+    name: "u027"
+    id: u027
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u28"
-    id: u28
+    name: "u028"
+    id: u028
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u29"
-    id: u29
+    name: "u029"
+    id: u029
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u30"
-    id: u30
+    name: "u030"
+    id: u030
     unit_of_measurement: "V"
     accuracy_decimals: 3
 
   # Cell 31-40
   - platform: template
-    name: "u31"
-    id: u31
+    name: "u031"
+    id: u031
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u32"
-    id: u32
+    name: "u032"
+    id: u032
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u33"
-    id: u33
+    name: "u033"
+    id: u033
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u34"
-    id: u34
+    name: "u034"
+    id: u034
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u35"
-    id: u35
+    name: "u035"
+    id: u035
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u36"
-    id: u36
+    name: "u036"
+    id: u036
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u37"
-    id: u37
+    name: "u037"
+    id: u037
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u38"
-    id: u38
+    name: "u038"
+    id: u038
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u39"
-    id: u39
+    name: "u039"
+    id: u039
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u40"
-    id: u40
+    name: "u040"
+    id: u040
     unit_of_measurement: "V"
     accuracy_decimals: 3
 
   # Cell 41-50
   - platform: template
-    name: "u41"
-    id: u41
+    name: "u041"
+    id: u041
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u42"
-    id: u42
+    name: "u042"
+    id: u042
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u43"
-    id: u43
+    name: "u043"
+    id: u043
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u44"
-    id: u44
+    name: "u044"
+    id: u044
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u45"
-    id: u45
+    name: "u045"
+    id: u045
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u46"
-    id: u46
+    name: "u046"
+    id: u046
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u47"
-    id: u47
+    name: "u047"
+    id: u047
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u48"
-    id: u48
+    name: "u048"
+    id: u048
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u49"
-    id: u49
+    name: "u049"
+    id: u049
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u50"
-    id: u50
+    name: "u050"
+    id: u050
     unit_of_measurement: "V"
     accuracy_decimals: 3
 
   # Cell 51-60
   - platform: template
-    name: "u51"
-    id: u51
+    name: "u051"
+    id: u051
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u52"
-    id: u52
+    name: "u052"
+    id: u052
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u53"
-    id: u53
+    name: "u053"
+    id: u053
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u54"
-    id: u54
+    name: "u054"
+    id: u054
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u55"
-    id: u55
+    name: "u055"
+    id: u055
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u56"
-    id: u56
+    name: "u056"
+    id: u056
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u57"
-    id: u57
+    name: "u057"
+    id: u057
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u58"
-    id: u58
+    name: "u058"
+    id: u058
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u59"
-    id: u59
+    name: "u059"
+    id: u059
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u60"
-    id: u60
+    name: "u060"
+    id: u060
     unit_of_measurement: "V"
     accuracy_decimals: 3
 
   # Cell 61-70
   - platform: template
-    name: "u61"
-    id: u61
+    name: "u061"
+    id: u061
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u62"
-    id: u62
+    name: "u062"
+    id: u062
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u63"
-    id: u63
+    name: "u063"
+    id: u063
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u64"
-    id: u64
+    name: "u064"
+    id: u064
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u65"
-    id: u65
+    name: "u065"
+    id: u065
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u66"
-    id: u66
+    name: "u066"
+    id: u066
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u67"
-    id: u67
+    name: "u067"
+    id: u067
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u68"
-    id: u68
+    name: "u068"
+    id: u068
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u69"
-    id: u69
+    name: "u069"
+    id: u069
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u70"
-    id: u70
+    name: "u070"
+    id: u070
     unit_of_measurement: "V"
     accuracy_decimals: 3
 
   # Cell 71-80
   - platform: template
-    name: "u71"
-    id: u71
+    name: "u071"
+    id: u071
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u72"
-    id: u72
+    name: "u072"
+    id: u072
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u73"
-    id: u73
+    name: "u073"
+    id: u073
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u74"
-    id: u74
+    name: "u074"
+    id: u074
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u75"
-    id: u75
+    name: "u075"
+    id: u075
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u76"
-    id: u76
+    name: "u076"
+    id: u076
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u77"
-    id: u77
+    name: "u077"
+    id: u077
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u78"
-    id: u78
+    name: "u078"
+    id: u078
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u79"
-    id: u79
+    name: "u079"
+    id: u079
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u80"
-    id: u80
+    name: "u080"
+    id: u080
     unit_of_measurement: "V"
     accuracy_decimals: 3
 
   # Cell 81-90
   - platform: template
-    name: "u81"
-    id: u81
+    name: "u081"
+    id: u081
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u82"
-    id: u82
+    name: "u082"
+    id: u082
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u83"
-    id: u83
+    name: "u083"
+    id: u083
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u84"
-    id: u84
+    name: "u084"
+    id: u084
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u85"
-    id: u85
+    name: "u085"
+    id: u085
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u86"
-    id: u86
+    name: "u086"
+    id: u086
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u87"
-    id: u87
+    name: "u087"
+    id: u087
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u88"
-    id: u88
+    name: "u088"
+    id: u088
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u89"
-    id: u89
+    name: "u089"
+    id: u089
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u90"
-    id: u90
+    name: "u090"
+    id: u090
     unit_of_measurement: "V"
     accuracy_decimals: 3
 
   # Cell 91-100
   - platform: template
-    name: "u91"
-    id: u91
+    name: "u091"
+    id: u091
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u92"
-    id: u92
+    name: "u092"
+    id: u092
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u93"
-    id: u93
+    name: "u093"
+    id: u093
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u94"
-    id: u94
+    name: "u094"
+    id: u094
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u95"
-    id: u95
+    name: "u095"
+    id: u095
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u96"
-    id: u96
+    name: "u096"
+    id: u096
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u97"
-    id: u97
+    name: "u097"
+    id: u097
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u98"
-    id: u98
+    name: "u098"
+    id: u098
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
   - platform: template
-    name: "u99"
-    id: u99
+    name: "u099"
+    id: u099
     unit_of_measurement: "V"
     accuracy_decimals: 3
     
@@ -667,8 +667,8 @@ sensor:
 # Add this to your text_sensor lambda section in the main config:
 
 # Cell voltage parsing (add to the existing lambda in text_sensor):
-# else if (param_name == "u1") id(u1).publish_state(value);
-# else if (param_name == "u2") id(u2).publish_state(value);
-# else if (param_name == "u3") id(u3).publish_state(value);
+# else if (param_name == "u001") id(u1).publish_state(value);
+# else if (param_name == "u002") id(u2).publish_state(value);
+# else if (param_name == "u003") id(u3).publish_state(value);
 # ... (continue for all 108 cells)
 # else if (param_name == "u108") id(u108).publish_state(value); 
