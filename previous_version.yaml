@@ -1,0 +1,2211 @@
+esphome:
+  name: tesla-bms-display
+  friendly_name: Tesla BMS Display
+  min_version: 2024.11.0
+  on_boot:
+    priority: 800.0
+    then:
+      - lambda: |-
+          // Test display with a simple message
+          lv_label_set_text((lv_obj_t*)id(label_title), "System Overview");
+          lv_label_set_text((lv_obj_t*)id(label_cells), "Backlight: ON");
+          lv_label_set_text((lv_obj_t*)id(label_connected), "Status: OK");
+          ESP_LOGI("DISPLAY", "Display labels updated");
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      COMPILER_OPTIMIZATION_SIZE: y
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
+      CONFIG_SPIRAM_RODATA: y
+
+preferences:
+  flash_write_interval: 1min
+
+
+
+# Include individual cell voltage sensors
+packages:
+  cell_voltages: !include cell_voltage_sensors.yaml
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+# Enable logging
+logger:
+  level: ERROR
+  hardware_uart: USB_SERIAL_JTAG
+
+# WiFi configuration
+wifi:
+  #use_address: 10.60.5.130
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  reboot_timeout: 0s
+  ap:
+    ssid: "Tesla_BMS_Display_AP"
+    password: "12345678"
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_encryption_key
+  reboot_timeout: 0s
+
+# Enable OTA updates
+ota:
+  platform: esphome
+  password: !secret ota_password
+
+# Enable web server
+web_server:
+  port: 80
+  version: 3
+
+# Time component for timestamps
+time:
+  - platform: sntp
+    id: sntp_time
+
+# UART for communication with Tesla BMS
+uart:
+  id: tesla_bms_uart_uart
+  tx_pin: GPIO43
+  rx_pin: GPIO44
+  baud_rate: 115200
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+
+# Global variables to store UART buffer
+globals:
+  - id: uart_buffer
+    type: std::string
+    restore_value: no
+    initial_value: '""'
+  - id: cell_bars_created
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Display update synchronization
+  - id: last_data_received
+    type: unsigned long
+    restore_value: no
+    initial_value: '0'
+  - id: display_needs_update
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Alternative: Parameter request queue for more sophisticated control
+  # - id: param_request_queue
+  #   type: std::vector<std::string>
+  #   restore_value: no
+  # - id: current_param_index
+  #   type: int
+  #   restore_value: no
+  #   initial_value: '0'
+
+# Display backlight control
+output:
+  - platform: ledc 
+    pin: GPIO1
+    id: backlight
+    frequency: "1000Hz"
+
+light:
+  - platform: monochromatic
+    output: backlight
+    name: Display Backlight
+    id: display_backlight
+    restore_mode: ALWAYS_ON
+
+i2c:
+  sda: 4
+  scl: 8
+  id: touchscreen_bus
+
+touchscreen:
+  - platform: axs15231
+    id: my_touchscreen
+    display: my_display
+    i2c_id: touchscreen_bus
+    calibration:
+      x_min: 0
+      x_max: 480
+      y_min: 0
+      y_max: 320
+    transform:
+      swap_xy: true
+      mirror_x: true
+      mirror_y: false
+    on_touch:
+      - lambda: |-
+          ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
+            touch.x,
+            touch.y,
+            touch.x_raw,
+            touch.y_raw
+          );
+
+# QSPI Display (matching ESPHome EVSE configuration)
+spi:
+  id: display_qspi
+  type: quad
+  clk_pin: 47
+  data_pins: [21, 48, 40, 39]
+
+display:
+  - platform: qspi_dbi
+    model: JC4832W535
+    data_rate: 40MHz
+    id: my_display
+    spi_id: display_qspi
+    dimensions:
+      height: 480
+      width: 320
+    cs_pin:
+      number: 45
+      ignore_strapping_warning: true
+    rotation: 270
+    auto_clear_enabled: false
+
+# LVGL interface
+lvgl:
+  displays:
+    - my_display
+  touchscreens:
+    - my_touchscreen
+  page_wrap: true
+  theme:
+    obj:
+      border_width: 0
+      pad_all: 0
+      bg_color: 0
+      text_color: white
+      scrollable: false
+    label:
+      border_width: 0
+      scrollable: false
+    button:
+      text_font: montserrat_14
+      scroll_on_focus: true
+      radius: 10px
+      shadow_width: 0
+      checked:
+        bg_color: green
+        text_color: white
+
+# Main Page
+  pages:
+    - id: main_page
+      height: 320
+      width: 480
+      text_font: montserrat_14
+      scrollable: false
+      text_color: white
+      bg_color: 0
+      bg_opa: COVER
+      radius: 0
+      pad_all: 2
+      widgets:
+        - obj:
+            align: LEFT_MID
+            width: 480
+            height: 320
+            pad_all: 2
+            layout:
+              pad_column: 2
+              type: GRID
+              grid_rows: [FR(35), FR(25), FR(25), FR(25), FR(25), FR(25), FR(25), FR(40), FR(40), FR(40)]
+              grid_columns: [FR(240), FR(240)]
+            widgets:
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 0
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_title
+                  align: LEFT_MID
+                  text: "M3Y BMS MOD Interface"
+                  text_color: white
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 0
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_time
+                  align: RIGHT_MID
+                  text: "00:00:00"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 1
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_cells
+                  align: LEFT_MID
+                  text: "BMBs: 0 | Balance: OFF"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 1
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_connected
+                  align: RIGHT_MID
+                  text: "Connected: No"
+                  text_color: red
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_max_voltage
+                  align: LEFT_MID
+                  text: "Max: 0.000V (Cell 0)"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_min_voltage
+                  align: RIGHT_MID
+                  text: "Min: 0.000V (Cell 0)"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 3
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_delta
+                  align: LEFT_MID
+                  text: "Delta: 0.000V"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 3
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_avg_display
+                  align: RIGHT_MID
+                  text: "Cell Avg: 0.000V"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 4
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_pack_voltage
+                  align: LEFT_MID
+                  text: "Pack: 0.00V"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 4
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_current
+                  align: RIGHT_MID
+                  text: "Current: 0.00A"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 5
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_power
+                  align: LEFT_MID
+                  text: "Power: 0.0W"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 5
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_energy_kwh
+                  align: RIGHT_MID
+                  text: "Energy: 0.000kWh"
+                  text_color: white
+                  text_font: montserrat_12
+
+              - button:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 7
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_pack_contactors
+                  bg_color: grey
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "Pack Contactors"
+                        text_color: white
+                  on_short_click:
+                    - lambda: |-
+                        // Toggle pack contactors via Home Assistant switch
+                        if (id(pack_contactors_switch).state) {
+                          id(pack_contactors_switch).turn_off();
+                        } else {
+                          id(pack_contactors_switch).turn_on();
+                        }
+              - button:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 7
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_cp_contactors
+                  bg_color: grey
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "CP Contactors"
+                        text_color: white
+                  on_short_click:
+                    - lambda: |-
+                        // Toggle CP contactors via Home Assistant switch
+                        if (id(cp_contactors_switch).state) {
+                          id(cp_contactors_switch).turn_off();
+                        } else {
+                          id(cp_contactors_switch).turn_on();
+                        }
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 6
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_soc
+                  align: RIGHT_MID
+                  text: "SOC: --.-%"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 6
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_loop
+                  align: LEFT_MID
+                  text: "Loop: 0 (State: 0)"
+                  text_color: white
+                  text_font: montserrat_12
+              - button:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 8
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_balance_on
+                  bg_color: grey
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "Balance ON"
+                        text_color: white
+                  on_short_click:
+                    - uart.write:
+                        id: tesla_bms_uart_uart
+                        data: "balance on\n"
+              - button:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 8
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_balance_off
+                  bg_color: grey
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "Balance OFF"
+                        text_color: white
+                  on_short_click:
+                    - uart.write:
+                        id: tesla_bms_uart_uart
+                        data: "balance off\n"
+
+              - button:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 9
+                  grid_cell_column_span: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_next_page
+                  bg_color: 0x003366
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "Details >"
+                        text_color: white
+                  on_short_click:
+                    - lvgl.page.next:
+
+    # Battery Details Page
+    - id: details_page
+      height: 320
+      width: 480
+      text_font: montserrat_14
+      scrollable: false
+      text_color: white
+      bg_color: 0
+      bg_opa: COVER
+      radius: 0
+      pad_all: 2
+      widgets:
+        - obj:
+            align: LEFT_MID
+            width: 480
+            height: 320
+            pad_all: 2
+            layout:
+              pad_column: 2
+              type: GRID
+              grid_rows: [FR(40), FR(26), FR(26), FR(26), FR(26), FR(26), FR(26), FR(26), FR(26), FR(40)]
+              grid_columns: [FR(240), FR(240)]
+            widgets:
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 0
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_details_title
+                  align: LEFT_MID
+                  text: "Battery Details"
+                  text_color: 0x00CCFF
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 0
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_details_time
+                  align: RIGHT_MID
+                  text: "00:00:00"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 1
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_avg_voltage
+                  align: LEFT_MID
+                  text: "Cell Avg: 0.000V"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 1
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_dc_voltage
+                  align: RIGHT_MID
+                  text: "DC: 0.00V"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_cells_present
+                  align: LEFT_MID
+                  text: "Cells: 0"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_cells_balancing
+                  align: RIGHT_MID
+                  text: "Balancing: 0"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 3
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_chip_temp
+                  align: LEFT_MID
+                  text: "Chip: --°C"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 3
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_cell_temp0
+                  align: RIGHT_MID
+                  text: "Cell0: --°C"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 4
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_cell_temp1
+                  align: LEFT_MID
+                  text: "Cell1: --°C"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 4
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_temp_range
+                  align: RIGHT_MID
+                  text: "Range: --°C"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 5
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_bmb_count
+                  align: LEFT_MID
+                  text: "BMBs: 0"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 5
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_loop_details
+                  align: RIGHT_MID
+                  text: "Loop: 0"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 6
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_balance_status
+                  align: LEFT_MID
+                  text: "Balance: OFF"
+                  text_color: red
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 6
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_system_status
+                  align: RIGHT_MID
+                  text: "State: 0"
+                  text_color: white
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 7
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_batt_pos
+                  align: LEFT_MID
+                  text: "Batt+: 0.000V"
+                  text_color: 0x00CCFF
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 7
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_batt_neg
+                  align: RIGHT_MID
+                  text: "Batt-: 0.000V"
+                  text_color: 0x00CCFF
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 8
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_link_pos
+                  align: LEFT_MID
+                  text: "Link+: 0.000V"
+                  text_color: 0x00CCFF
+                  text_font: montserrat_12
+              - label:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 8
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: label_link_neg
+                  align: RIGHT_MID
+                  text: "Link-: 0.000V"
+                  text_color: 0x00CCFF
+                  text_font: montserrat_12
+              - button:
+                  grid_cell_column_pos: 0
+                  grid_cell_row_pos: 9
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_prev_page
+                  bg_color: 0x003366
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "< Back"
+                        text_color: white
+                  on_short_click:
+                    - lvgl.page.previous:
+              - button:
+                  grid_cell_column_pos: 1
+                  grid_cell_row_pos: 9
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: STRETCH
+                  id: btn_cells_page
+                  bg_color: 0x336600
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "Cells >"
+                        text_color: white
+                  on_short_click:
+                    - lvgl.page.next:
+
+    # Cell Voltages Graph Page
+    - id: cells_page
+      height: 320
+      width: 480
+      text_font: montserrat_14
+      scrollable: false
+      text_color: white
+      bg_color: 0
+      bg_opa: COVER
+      radius: 0
+      pad_all: 5
+      widgets:
+        # Title and scale labels
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 5
+            text: "Cell Voltages (V)"
+            text_color: 0x00CCFF
+        - label:
+            align: TOP_RIGHT
+            x: -10
+            y: 5
+            id: label_cells_time
+            text: "00:00:00"
+            text_color: white
+            text_font: montserrat_12
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 20
+            text: "4.2"
+            text_color: 0xFF6666
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 50
+            text: "4.0"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 80
+            text: "3.8"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 110
+            text: "3.6"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 140
+            text: "3.4"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 170
+            text: "3.2"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 200
+            text: "3.0"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 230
+            text: "2.8"
+            text_color: white
+        - label:
+            align: TOP_LEFT
+            x: 10
+            y: 260
+            text: "2.6"
+            text_color: 0x6666FF
+        # Grid lines for reference
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 25
+            width: 440
+            height: 1
+            bg_color: 0xFF6666
+            bg_opa: 50%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 55
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 85
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 115
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 145
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 175
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 205
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 235
+            width: 440
+            height: 1
+            bg_color: white
+            bg_opa: 30%
+        - obj:
+            align: TOP_LEFT
+            x: 35
+            y: 265
+            width: 440
+            height: 1
+            bg_color: 0x6666FF
+            bg_opa: 50%
+        # Cell voltage bars container
+        - obj:
+            id: cells_container
+            align: TOP_LEFT
+            x: 35
+            y: 25
+            width: 440
+            height: 240
+            bg_opa: 0
+            border_width: 0
+            pad_all: 0
+        # Navigation and info
+        - button:
+            align: BOTTOM_LEFT
+            x: 5
+            y: -5
+            width: 100
+            height: 30
+            id: btn_back_to_details
+            bg_color: 0x003366
+            widgets:
+              - label:
+                  align: CENTER
+                  text: "< Details"
+                  text_color: white
+            on_short_click:
+              - lvgl.page.previous:
+        - label:
+            align: BOTTOM_MID
+            x: 0
+            y: -5
+            id: label_cells_info
+            text: "All 108 Cells (Real BMS Data)"
+            text_color: white
+
+        
+        # Color Legend/Index
+        - label:
+            align: BOTTOM_LEFT
+            x: 110
+            y: -25
+            text: "Colors:"
+            text_color: white
+        - obj:
+            align: BOTTOM_LEFT
+            x: 160
+            y: -30
+            width: 8
+            height: 8
+            bg_color: 0xFF0000
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+        - label:
+            align: BOTTOM_LEFT
+            x: 172
+            y: -25
+            text: ">4.1V"
+            text_color: 0xFF6666
+        - obj:
+            align: BOTTOM_LEFT
+            x: 210
+            y: -30
+            width: 8
+            height: 8
+            bg_color: 0xFFFF00
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+        - label:
+            align: BOTTOM_LEFT
+            x: 222
+            y: -25
+            text: "3.9-4.1V"
+            text_color: 0xFFFF66
+        - obj:
+            align: BOTTOM_LEFT
+            x: 275
+            y: -30
+            width: 8
+            height: 8
+            bg_color: 0x00FF00
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+        - label:
+            align: BOTTOM_LEFT
+            x: 287
+            y: -25
+            text: "3.2-3.9V"
+            text_color: 0x66FF66
+        - obj:
+            align: BOTTOM_LEFT
+            x: 340
+            y: -30
+            width: 8
+            height: 8
+            bg_color: 0x0066FF
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+        - label:
+            align: BOTTOM_LEFT
+            x: 352
+            y: -25
+            text: "<3.2V"
+            text_color: 0x6666FF
+        - obj:
+            align: BOTTOM_LEFT
+            x: 390
+            y: -30
+            width: 8
+            height: 8
+            bg_color: 0xFF8C00
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+        - label:
+            align: BOTTOM_LEFT
+            x: 402
+            y: -25
+            text: "Balancing"
+            text_color: 0xFF8C00
+
+# Binary sensors for system status
+binary_sensor:
+  - platform: status
+    name: "Tesla BMS Display Status"
+    id: display_status
+
+# Switches for contactor control (Home Assistant integration)
+switch:
+  - platform: template
+    name: "Pack Contactors"
+    id: pack_contactors_switch
+    optimistic: true
+    restore_mode: DISABLED
+    turn_on_action:
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "pack contactors on\n"
+      - lambda: |-
+          // Update button color immediately
+          lv_obj_set_style_bg_color((lv_obj_t*)id(btn_pack_contactors), lv_color_make(0, 255, 0), LV_PART_MAIN);
+    turn_off_action:
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "pack contactors off\n"
+      - lambda: |-
+          // Update button color immediately
+          lv_obj_set_style_bg_color((lv_obj_t*)id(btn_pack_contactors), lv_color_make(128, 128, 128), LV_PART_MAIN);
+
+  - platform: template
+    name: "Charge Port Contactors"
+    id: cp_contactors_switch
+    optimistic: true
+    restore_mode: DISABLED
+    turn_on_action:
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "cp contactors on\n"
+      - lambda: |-
+          // Update button color immediately
+          lv_obj_set_style_bg_color((lv_obj_t*)id(btn_cp_contactors), lv_color_make(0, 255, 0), LV_PART_MAIN);
+    turn_off_action:
+      - uart.write:
+          id: tesla_bms_uart_uart
+          data: "cp contactors off\n"
+      - lambda: |-
+          // Update button color immediately
+          lv_obj_set_style_bg_color((lv_obj_t*)id(btn_cp_contactors), lv_color_make(128, 128, 128), LV_PART_MAIN);
+
+# Sensors for system parameters
+sensor:
+  # System parameters
+  - platform: template
+    name: "Batman ICs Detected"
+    id: numbmbs
+    unit_of_measurement: "boards"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Batman Loop Counter"
+    id: loopcnt
+    unit_of_measurement: "count"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Batman Loop State"
+    id: loopstate
+    unit_of_measurement: "state"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Cells Present"
+    id: cellspresent
+    unit_of_measurement: "cells"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Cells Balancing"
+    id: cellsbalancing
+    unit_of_measurement: "cells"
+    accuracy_decimals: 0
+
+  # Voltage statistics
+  - platform: template
+    name: "Cell Number Max"
+    id: cellmax
+    unit_of_measurement: "cell"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Cell Number Min"
+    id: cellmin
+    unit_of_measurement: "cell"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "Cell Voltage Max"
+    id: umax
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Cell Voltage Min"
+    id: umin
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Cell Voltage Delta"
+    id: deltav
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Cell Voltage Average"
+    id: uavg
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Batt Contactor V Sum"
+    id: udc
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+
+  - platform: template
+    name: "Cell Voltage Sum"
+    id: cell_sum_voltage
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+
+  # Chip voltages
+  - platform: template
+    name: "Chip 1 Voltage"
+    id: chipv1
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip 2 Voltage"
+    id: chipv2
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip 3 Voltage"
+    id: chipv3
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Chip 4 Voltage"
+    id: chipv4
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+
+  # ADS1115 Pack Voltage sensors
+  - platform: template
+    name: "Batt Contactor V+"
+    id: batt_pos
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Batt Contactor V-"
+    id: batt_neg
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Batt Link V+"
+    id: link_pos
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    
+  - platform: template
+    name: "Batt Link V-"
+    id: link_neg
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+
+  # Temperature sensors
+  - platform: template
+    name: "Chip Temperature"
+    id: chipt0
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "Cell Temperature 0"
+    id: cellt0_0
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "Cell Temperature 1"
+    id: cellt0_1
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "Cell Temperature Max"
+    id: tempmax
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "Cell Temperature Min"
+    id: tempmin
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+
+  # Balance control
+  - platform: template
+    name: "Cell Balance Status"
+    id: balance
+    unit_of_measurement: "status"
+    accuracy_decimals: 0
+
+  # Contactor status sensors
+  - platform: template
+    name: "Pack Contactors Status"
+    id: pack_contactors_status
+    unit_of_measurement: "status"
+    accuracy_decimals: 0
+
+  - platform: template
+    name: "CP Contactors Status"
+    id: cp_contactors_status
+    unit_of_measurement: "status"
+    accuracy_decimals: 0
+
+  # Current sensor (AS8510)
+  - platform: template
+    name: "BMS Current"
+    id: bms_current
+    unit_of_measurement: "A"
+    accuracy_decimals: 2
+
+  # AS8510 IC temperature sensor
+  - platform: template
+    name: "AS8510 Temperature"
+    id: as8510_temp
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+
+  # AS8510 Coulomb Counter sensors
+  - platform: template
+    name: "BMS Power"
+    id: bms_power
+    unit_of_measurement: "W"
+    accuracy_decimals: 1
+    device_class: power
+    
+  - platform: template
+    name: "BMS Energy Wh"
+    id: bms_energy_wh
+    unit_of_measurement: "Wh"
+    accuracy_decimals: 1
+    device_class: energy
+    
+  - platform: template
+    name: "BMS Energy kWh"
+    id: bms_energy_kwh
+    unit_of_measurement: "kWh"
+    accuracy_decimals: 3
+    device_class: energy
+    
+  - platform: template
+    name: "BMS State of Charge"
+    id: bms_soc
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+    device_class: battery
+    
+  - platform: template
+    name: "BMS Remaining Capacity"
+    id: bms_remaining_capacity
+    unit_of_measurement: "Ah"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "BMS Battery Capacity"
+    id: bms_battery_capacity
+    unit_of_measurement: "Ah"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "BMS Fully Charged Voltage"
+    id: bms_fully_charged_voltage
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "BMS Current Efficiency"
+    id: bms_current_efficiency
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+
+# Text sensor for balance cell list
+text_sensor:
+  - platform: template
+    name: "Cell Balance List"
+    id: balance_cell_list
+
+# Interval to process incoming UART data (simplified - no more requests!)
+interval:
+  # Fast interval to read and parse incoming UART data
+  - interval: 100ms
+    then:
+      - lambda: |-
+          // Read available UART data
+          std::string &buffer = id(uart_buffer);
+          uint8_t data;
+          while (id(tesla_bms_uart_uart).available()) {
+            id(tesla_bms_uart_uart).read_byte(&data);
+            char c = (char)data;
+            if (c == '\n' || c == '\r') {
+              if (!buffer.empty()) {
+                ESP_LOGI("BMS", "RECEIVED: [%s] (length: %d)", buffer.c_str(), buffer.length());
+                
+                // Skip the end marker and comments
+                if (buffer == "DATA_COMPLETE" || buffer.find("#") != std::string::npos) {
+                  if (buffer == "DATA_COMPLETE") {
+                    // Mark that we received a complete data packet
+                    id(last_data_received) = millis();
+                    id(display_needs_update) = true;
+                    ESP_LOGI("BMS", "DATA_COMPLETE received - triggering display update");
+                  }
+                  ESP_LOGV("BMS", "Skipping marker/comment line: %s", buffer.c_str());
+                } else {
+                  // Parse the line in format "param=value"
+                  size_t pos = buffer.find("=");
+                  if (pos != std::string::npos) {
+                    std::string param = buffer.substr(0, pos);
+                    std::string value_str = buffer.substr(pos + 1);
+                    
+                    // Trim whitespace
+                    param.erase(0, param.find_first_not_of(" \t\r\n"));
+                    param.erase(param.find_last_not_of(" \t\r\n") + 1);
+                    value_str.erase(0, value_str.find_first_not_of(" \t\r\n"));
+                    value_str.erase(value_str.find_last_not_of(" \t\r\n") + 1);
+                    
+                    // Skip if parameter name is empty
+                    if (!param.empty()) {
+                      ESP_LOGI("BMS", "DEBUG: PARSING: param='%s' value_str='%s'", param.c_str(), value_str.c_str());
+                      
+                      // Validate that value_str is not empty and looks like a number for numeric params
+                      if (!value_str.empty() && (isdigit(value_str[0]) || value_str[0] == '.' || value_str[0] == '-')) {
+                        float value = atof(value_str.c_str());
+                        ESP_LOGI("BMS", "DEBUG: PARSED VALUE: %s = %f", param.c_str(), value);
+                        
+                        // Update corresponding sensors - All parameter names match BMS exactly
+                        bool sensor_updated = false;
+                        if (param == "numbmbs") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING numbmbs = %f", value);
+                          id(numbmbs).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "LoopCnt") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING LoopCnt = %f", value);
+                          id(loopcnt).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "LoopState") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING LoopState = %f", value);
+                          id(loopstate).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "CellsPresent") { id(cellspresent).publish_state(value); sensor_updated = true; }
+                        else if (param == "CellsBalancing") { id(cellsbalancing).publish_state(value); sensor_updated = true; }
+                        else if (param == "CellMax") { id(cellmax).publish_state(value); sensor_updated = true; }
+                        else if (param == "CellMin") { id(cellmin).publish_state(value); sensor_updated = true; }
+                        else if (param == "umax") { 
+                          // Check for 5V initialization value (5000mV) and skip
+                          if (value == 5000.0) {
+                            ESP_LOGI("BMS", "Detected 5V initialization value for %s, skipping", param.c_str());
+                          } else {
+                            id(umax).publish_state(value / 1000.0); 
+                          }
+                          sensor_updated = true; 
+                        }
+                        else if (param == "umin") { 
+                          // Check for 5V initialization value (5000mV) and skip
+                          if (value == 5000.0) {
+                            ESP_LOGI("BMS", "Detected 5V initialization value for %s, skipping", param.c_str());
+                          } else {
+                            id(umin).publish_state(value / 1000.0); 
+                          }
+                          sensor_updated = true; 
+                        }
+                        else if (param == "deltaV") { id(deltav).publish_state(value / 1000.0); sensor_updated = true; }
+                        else if (param == "uavg") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING uavg = %f mV -> %f V", value, value / 1000.0);
+                          id(uavg).publish_state(value / 1000.0); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "udc") { id(udc).publish_state(value); sensor_updated = true; }
+                        else if (param == "CellVoltageSum") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING CellVoltageSum = %f mV -> %f V", value, value / 1000.0);
+                          id(cell_sum_voltage).publish_state(value / 1000.0); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "Chipt0") { id(chipt0).publish_state(value); sensor_updated = true; }
+                        else if (param == "Cellt0_0") { id(cellt0_0).publish_state(value); sensor_updated = true; }
+                        else if (param == "Cellt0_1") { id(cellt0_1).publish_state(value); sensor_updated = true; }
+                        else if (param == "TempMax") { id(tempmax).publish_state(value); sensor_updated = true; }
+                        else if (param == "TempMin") { id(tempmin).publish_state(value); sensor_updated = true; }
+                        else if (param == "balance") { 
+                          id(balance).publish_state(value); 
+                          // Clear balance cell list when balancing is turned off
+                          if (value < 0.5) {
+                            id(balance_cell_list).publish_state("");
+                            ESP_LOGI("BMS", "Balancing OFF - clearing balance cell list");
+                          }
+                          sensor_updated = true; 
+                        }
+                        else if (param == "ChipV1") { id(chipv1).publish_state(value); sensor_updated = true; }
+                        else if (param == "ChipV2") { id(chipv2).publish_state(value); sensor_updated = true; }
+                        else if (param == "ChipV3") { id(chipv3).publish_state(value); sensor_updated = true; }
+                        else if (param == "ChipV4") { id(chipv4).publish_state(value); sensor_updated = true; }
+                        else if (param == "current") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING current = %f A", value);
+                          id(bms_current).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "as8510_temp") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING as8510_temp = %f °C", value);
+                          id(as8510_temp).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "battPos") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING battPos = %f V", value);
+                          id(batt_pos).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "battNeg") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING battNeg = %f V", value);
+                          id(batt_neg).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "linkPos") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING linkPos = %f V", value);
+                          id(link_pos).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "linkNeg") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING linkNeg = %f V", value);
+                          id(link_neg).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "packContactors") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING packContactors = %f", value);
+                          id(pack_contactors_status).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "cpContactors") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING cpContactors = %f", value);
+                          id(cp_contactors_status).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "PowerWatts") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING PowerWatts = %f", value);
+                          id(bms_power).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "EnergyWh") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING EnergyWh = %f", value);
+                          id(bms_energy_wh).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "EnergyKWh") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING EnergyKWh = %f", value);
+                          id(bms_energy_kwh).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "StateOfCharge") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING StateOfCharge = %f", value);
+                          id(bms_soc).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "RemainingCapacityAh") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING RemainingCapacityAh = %f", value);
+                          id(bms_remaining_capacity).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "BatteryCapacityAh") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING BatteryCapacityAh = %f", value);
+                          id(bms_battery_capacity).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "FullyChargedVoltage") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING FullyChargedVoltage = %f", value);
+                          id(bms_fully_charged_voltage).publish_state(value); 
+                          sensor_updated = true; 
+                        }
+                        else if (param == "CurrentEfficiency") { 
+                          ESP_LOGI("BMS", "DEBUG: UPDATING CurrentEfficiency = %f", value);
+                          id(bms_current_efficiency).publish_state(value * 100.0); // Convert to percentage
+                          sensor_updated = true; 
+                        }
+                        
+                        // Individual cell voltages - Handle both old format (u1-u108) and new numeric format (1-108)
+                        else if ((param.substr(0,1) == "u" && param.length() >= 2) || 
+                                 (isdigit(param[0]) && param.length() >= 1 && param.length() <= 3)) {
+                          ESP_LOGI("BMS", "DEBUG: Processing cell voltage %s = %f", param.c_str(), value);
+                          
+                          // Convert numeric cell ID to corresponding sensor ID
+                          int cell_num = 0;
+                          if (param.substr(0,1) == "u") {
+                            // Old format: u1, u2, etc. - extract number after 'u'
+                            cell_num = atoi(param.substr(1).c_str());
+                          } else {
+                            // New format: 1, 2, etc. - direct numeric ID
+                            cell_num = atoi(param.c_str());
+                          }
+                          
+                          // Skip 5V initialization values (5000mV) and values below 10mV
+                          if (value == 5000.0) {
+                            ESP_LOGV("BMS", "Skipping 5V initialization value for cell %d", cell_num);
+                            sensor_updated = true;
+                          } else if (value < 10.0) {
+                            ESP_LOGV("BMS", "Skipping low voltage value (%.1fmV) for cell %d", value, cell_num);
+                            sensor_updated = true;
+                          } else {
+                            // Publish the voltage value converted from mV to V
+                            float voltage_v = value / 1000.0;
+                            
+                            // Update individual cell sensors (cells 1-108)
+                            if (cell_num == 1) { id(u001).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 2) { id(u002).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 3) { id(u003).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 4) { id(u004).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 5) { id(u005).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 6) { id(u006).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 7) { id(u007).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 8) { id(u008).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 9) { id(u009).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 10) { id(u010).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 11) { id(u011).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 12) { id(u012).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 13) { id(u013).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 14) { id(u014).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 15) { id(u015).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 16) { id(u016).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 17) { id(u017).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 18) { id(u018).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 19) { id(u019).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 20) { id(u020).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 21) { id(u021).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 22) { id(u022).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 23) { id(u023).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 24) { id(u024).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 25) { id(u025).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 26) { id(u026).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 27) { id(u027).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 28) { id(u028).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 29) { id(u029).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 30) { id(u030).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 31) { id(u031).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 32) { id(u032).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 33) { id(u033).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 34) { id(u034).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 35) { id(u035).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 36) { id(u036).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 37) { id(u037).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 38) { id(u038).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 39) { id(u039).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 40) { id(u040).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 41) { id(u041).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 42) { id(u042).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 43) { id(u043).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 44) { id(u044).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 45) { id(u045).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 46) { id(u046).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 47) { id(u047).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 48) { id(u048).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 49) { id(u049).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 50) { id(u050).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 51) { id(u051).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 52) { id(u052).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 53) { id(u053).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 54) { id(u054).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 55) { id(u055).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 56) { id(u056).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 57) { id(u057).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 58) { id(u058).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 59) { id(u059).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 60) { id(u060).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 61) { id(u061).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 62) { id(u062).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 63) { id(u063).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 64) { id(u064).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 65) { id(u065).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 66) { id(u066).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 67) { id(u067).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 68) { id(u068).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 69) { id(u069).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 70) { id(u070).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 71) { id(u071).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 72) { id(u072).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 73) { id(u073).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 74) { id(u074).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 75) { id(u075).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 76) { id(u076).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 77) { id(u077).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 78) { id(u078).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 79) { id(u079).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 80) { id(u080).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 81) { id(u081).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 82) { id(u082).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 83) { id(u083).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 84) { id(u084).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 85) { id(u085).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 86) { id(u086).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 87) { id(u087).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 88) { id(u088).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 89) { id(u089).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 90) { id(u090).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 91) { id(u091).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 92) { id(u092).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 93) { id(u093).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 94) { id(u094).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 95) { id(u095).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 96) { id(u096).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 97) { id(u097).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 98) { id(u098).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 99) { id(u099).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 100) { id(u100).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 101) { id(u101).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 102) { id(u102).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 103) { id(u103).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 104) { id(u104).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 105) { id(u105).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 106) { id(u106).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 107) { id(u107).publish_state(voltage_v); sensor_updated = true; }
+                            else if (cell_num == 108) { id(u108).publish_state(voltage_v); sensor_updated = true; }
+                          }
+                        }
+                        
+                        // Handle special case for BalanceCellList (string parameter)
+                        if (!sensor_updated && param == "BalanceCellList") {
+                          // For string parameters, use the original value_str without converting to float
+                          id(balance_cell_list).publish_state(value_str.c_str());
+                          ESP_LOGI("BMS", "STRING SENSOR UPDATED: %s = %s", param.c_str(), value_str.c_str());
+                          sensor_updated = true;
+                        }
+                        
+                        if (sensor_updated) {
+                          ESP_LOGI("BMS", "DEBUG: SENSOR UPDATED: %s = %f", param.c_str(), value);
+                        } else {
+                          ESP_LOGW("BMS", "DEBUG: UNKNOWN PARAMETER: %s", param.c_str());
+                        }
+                      } else {
+                        ESP_LOGW("BMS", "Invalid value for parameter %s: '%s'", param.c_str(), value_str.c_str());
+                      }
+                    } else {
+                      ESP_LOGV("BMS", "Empty parameter name in line: %s", buffer.c_str());
+                    }
+                  } else {
+                    ESP_LOGV("BMS", "Line without '=' separator: %s", buffer.c_str());
+                  }
+                }
+                buffer.clear();
+              }
+            } else {
+              // Prevent buffer overflow - limit buffer size to reasonable length
+              if (buffer.length() < 200) {
+                buffer += c;
+              } else {
+                ESP_LOGW("BMS", "Buffer overflow, clearing buffer");
+                buffer.clear();
+              }
+            }
+          }
+
+  # Synchronized display update - triggers on data arrival or timeout
+  - interval: 100ms
+    then:
+      - lambda: |-
+          // Check if we should update display
+          unsigned long now = millis();
+          bool data_timeout = (now - id(last_data_received)) > 2000;  // 2 second timeout
+          bool data_ready = id(display_needs_update);
+          
+          // Only update if we have new data or timeout occurred
+          if (!data_ready && !data_timeout) {
+            return;  // Skip update this cycle
+          }
+          
+          // Reset the update flag
+          id(display_needs_update) = false;
+          
+          if (data_timeout) {
+            ESP_LOGW("BMS", "Display update triggered by timeout (no data for >2s)");
+          } else {
+            ESP_LOGD("BMS", "Display update triggered by new data");
+          }
+          // Update display labels with current sensor values
+          char buffer[64];
+          
+          // Update cells info - show BMB count and balance status combined
+          if (id(numbmbs).has_state()) {
+            snprintf(buffer, sizeof(buffer), "BMBs: %d | Balance: %s", 
+                     (int)id(numbmbs).state, 
+                     (id(balance).has_state() && id(balance).state > 0.5) ? "ON" : "OFF");
+          } else {
+            snprintf(buffer, sizeof(buffer), "BMBs: -- | Balance: --");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_cells), buffer);
+          
+          // Set color based on balance status
+          if (id(balance).has_state() && id(balance).state > 0.5) {
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_cells), lv_color_make(0, 255, 0), LV_PART_MAIN); // Green when balancing
+          } else {
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_cells), lv_color_make(255, 255, 255), LV_PART_MAIN); // White when not balancing
+          }
+          
+          // Update voltage info - check for valid data
+          if (id(umax).has_state() && id(cellmax).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Max: %.3fV (Cell %d)", 
+                     id(umax).state, (int)id(cellmax).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Max: --.---V (Cell --)");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_max_voltage), buffer);
+          
+          if (id(umin).has_state() && id(cellmin).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Min: %.3fV (Cell %d)", 
+                     id(umin).state, (int)id(cellmin).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Min: --.---V (Cell --)");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_min_voltage), buffer);
+          
+          if (id(deltav).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Delta: %.3fV", 
+                     id(deltav).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Delta: --.---V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_delta), buffer);
+          
+
+          
+          // Use cell sum voltage from BMS (via serial API)
+          float cell_sum = 0.0f;
+          if (id(cell_sum_voltage).has_state() && id(cell_sum_voltage).state > 0.1f) {
+            cell_sum = id(cell_sum_voltage).state;
+          }
+          
+          // Update average voltage display on main page - use uavg parameter from BMS
+          if (id(uavg).has_state() && id(uavg).state > 0.01f) {
+            snprintf(buffer, sizeof(buffer), "Cell Avg: %.3fV", id(uavg).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Cell Avg: --.---V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_avg_display), buffer);
+          
+          // Update pack voltage display (from BMS cell sum)
+          if (cell_sum > 0.1f) {
+            snprintf(buffer, sizeof(buffer), "Pack: %.2fV", cell_sum);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Pack: --.--V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_pack_voltage), buffer);
+          
+          // Update current display
+          if (id(bms_current).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Current: %.2fA", id(bms_current).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Current: --.--A");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_current), buffer);
+          
+          // Update SOC display
+          if (id(bms_soc).has_state()) {
+            snprintf(buffer, sizeof(buffer), "SOC: %.1f%%", id(bms_soc).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "SOC: --.-%");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_soc), buffer);
+          
+          // Update power display
+          if (id(bms_power).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Power: %.1fW", id(bms_power).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Power: --.--W");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_power), buffer);
+          
+          // Update energy kWh display
+          if (id(bms_energy_kwh).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Energy: %.3fkWh", id(bms_energy_kwh).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Energy: -.---kWh");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_energy_kwh), buffer);
+          
+          // Update ADS1115 pack voltage displays
+          if (id(batt_pos).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Batt+: %.3fV", id(batt_pos).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Batt+: 0.000V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_batt_pos), buffer);
+          
+          if (id(batt_neg).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Batt-: %.3fV", id(batt_neg).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Batt-: 0.000V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_batt_neg), buffer);
+          
+          if (id(link_pos).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Link+: %.3fV", id(link_pos).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Link+: 0.000V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_link_pos), buffer);
+          
+          if (id(link_neg).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Link-: %.3fV", id(link_neg).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Link-: 0.000V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_link_neg), buffer);
+          
+          // Update loop info - check for valid data
+          if (id(loopcnt).has_state() && id(loopstate).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Loop: %d (State: %d)", 
+                     (int)id(loopcnt).state, (int)id(loopstate).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Loop: -- (State: --)");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_loop), buffer);
+          
+          // Update connection status
+          if (id(display_status).state) {
+            lv_label_set_text((lv_obj_t*)id(label_connected), "Connected: Yes");
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_connected), lv_color_make(0, 255, 0), LV_PART_MAIN); // Green
+          } else {
+            lv_label_set_text((lv_obj_t*)id(label_connected), "Connected: No");
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_connected), lv_color_make(255, 0, 0), LV_PART_MAIN); // Red
+          }
+          
+          // Update contactor button colors based on BMS status
+          if (id(pack_contactors_status).has_state()) {
+            if (id(pack_contactors_status).state > 0.5) {
+              lv_obj_set_style_bg_color((lv_obj_t*)id(btn_pack_contactors), lv_color_make(0, 255, 0), LV_PART_MAIN); // Green when on
+              // Sync Home Assistant switch state
+              if (!id(pack_contactors_switch).state) {
+                id(pack_contactors_switch).publish_state(true);
+              }
+            } else {
+              lv_obj_set_style_bg_color((lv_obj_t*)id(btn_pack_contactors), lv_color_make(128, 128, 128), LV_PART_MAIN); // Gray when off
+              // Sync Home Assistant switch state
+              if (id(pack_contactors_switch).state) {
+                id(pack_contactors_switch).publish_state(false);
+              }
+            }
+          }
+          
+          if (id(cp_contactors_status).has_state()) {
+            if (id(cp_contactors_status).state > 0.5) {
+              lv_obj_set_style_bg_color((lv_obj_t*)id(btn_cp_contactors), lv_color_make(0, 255, 0), LV_PART_MAIN); // Green when on
+              // Sync Home Assistant switch state
+              if (!id(cp_contactors_switch).state) {
+                id(cp_contactors_switch).publish_state(true);
+              }
+            } else {
+              lv_obj_set_style_bg_color((lv_obj_t*)id(btn_cp_contactors), lv_color_make(128, 128, 128), LV_PART_MAIN); // Gray when off
+              // Sync Home Assistant switch state
+              if (id(cp_contactors_switch).state) {
+                id(cp_contactors_switch).publish_state(false);
+              }
+            }
+          }
+          
+          // Update time
+          auto time = id(sntp_time).now();
+          if (time.is_valid()) {
+            snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", 
+                     time.hour, time.minute, time.second);
+            lv_label_set_text((lv_obj_t*)id(label_time), buffer);
+            lv_label_set_text((lv_obj_t*)id(label_details_time), buffer);
+            lv_label_set_text((lv_obj_t*)id(label_cells_time), buffer);
+          }
+          
+          // Update second page (Battery Details) labels
+          // Average voltage - use uavg parameter from BMS
+          if (id(uavg).has_state() && id(uavg).state > 0.01f) {
+            snprintf(buffer, sizeof(buffer), "Cell Avg: %.3fV", id(uavg).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Cell Avg: --.---V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_avg_voltage), buffer);
+          
+          // DC voltage (and show cell sum as well)
+          if (id(udc).has_state()) {
+            if (cell_sum > 0.1f) {
+              snprintf(buffer, sizeof(buffer), "DC: %.2fV (Sum: %.2fV)", id(udc).state, cell_sum);
+            } else {
+              snprintf(buffer, sizeof(buffer), "DC: %.2fV", id(udc).state);
+            }
+          } else {
+            snprintf(buffer, sizeof(buffer), "DC: --.--V");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_dc_voltage), buffer);
+          
+          // Cells present and balancing
+          if (id(cellspresent).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Cells: %d", (int)id(cellspresent).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Cells: --");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_cells_present), buffer);
+          
+          if (id(cellsbalancing).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Balancing: %d", (int)id(cellsbalancing).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Balancing: --");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_cells_balancing), buffer);
+          
+          // Temperature sensors
+          if (id(chipt0).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Chip: %.1f°C", id(chipt0).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Chip: --°C");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_chip_temp), buffer);
+          
+          if (id(cellt0_0).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Cell0: %.1f°C", id(cellt0_0).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Cell0: --°C");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_cell_temp0), buffer);
+          
+          if (id(cellt0_1).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Cell1: %.1f°C", id(cellt0_1).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Cell1: --°C");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_cell_temp1), buffer);
+          
+          // Temperature range
+          if (id(tempmax).has_state() && id(tempmin).has_state()) {
+            float temp_delta = id(tempmax).state - id(tempmin).state;
+            snprintf(buffer, sizeof(buffer), "Range: %.1f°C", temp_delta);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Range: --°C");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_temp_range), buffer);
+          
+          // BMB count
+          if (id(numbmbs).has_state()) {
+            snprintf(buffer, sizeof(buffer), "BMBs: %d", (int)id(numbmbs).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "BMBs: --");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_bmb_count), buffer);
+          
+          // Loop details
+          if (id(loopcnt).has_state()) {
+            snprintf(buffer, sizeof(buffer), "Loop: %d", (int)id(loopcnt).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "Loop: --");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_loop_details), buffer);
+          
+          // Balance status on details page
+          if (id(balance).has_state() && id(balance).state > 0.5) {
+            lv_label_set_text((lv_obj_t*)id(label_balance_status), "Balance: ON");
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_balance_status), lv_color_make(0, 255, 0), LV_PART_MAIN);
+          } else {
+            lv_label_set_text((lv_obj_t*)id(label_balance_status), "Balance: OFF");
+            lv_obj_set_style_text_color((lv_obj_t*)id(label_balance_status), lv_color_make(255, 0, 0), LV_PART_MAIN);
+          }
+          
+          // System state
+          if (id(loopstate).has_state()) {
+            snprintf(buffer, sizeof(buffer), "State: %d", (int)id(loopstate).state);
+          } else {
+            snprintf(buffer, sizeof(buffer), "State: --");
+          }
+          lv_label_set_text((lv_obj_t*)id(label_system_status), buffer);
+          
+          // Create and update cell voltage bars on cells page
+          if (!id(cell_bars_created)) {
+            // Create 108 cell voltage bars (3px wide, 180px max height, 3V-4.2V scale)
+            lv_obj_t* container = (lv_obj_t*)id(cells_container);
+            if (container) {
+              for (int i = 0; i < 108; i++) {
+                // Create voltage bar
+                lv_obj_t* bar = lv_obj_create(container);
+                lv_obj_set_size(bar, 3, 2); // Start with minimal height
+                lv_obj_set_pos(bar, i * 4, 238); // Position at bottom (240-2)
+                lv_obj_set_style_bg_color(bar, lv_color_make(100, 100, 100), LV_PART_MAIN);
+                lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_MAIN);
+                lv_obj_set_style_border_width(bar, 0, LV_PART_MAIN);
+                lv_obj_set_style_radius(bar, 0, LV_PART_MAIN);
+                lv_obj_set_style_pad_all(bar, 0, LV_PART_MAIN);
+              }
+              id(cell_bars_created) = true;
+              ESP_LOGI("DISPLAY", "Created 108 cell voltage bars");
+            }
+          }
+          
+          // Update cell voltage bars with current values (all 108 cells)
+          lv_obj_t* container = (lv_obj_t*)id(cells_container);
+          if (container && lv_obj_get_child_cnt(container) >= 108) {
+            // Array of cell voltage sensors - collect all 108 cells, use actual BMS values (including 0V)
+            std::vector<std::pair<int, float>> cell_data;
+            
+            // Cells 1-20 - Use NaN for uninitialized sensors to avoid showing misleading 0V or 5V values
+            cell_data.push_back({0, id(u001).has_state() ? id(u001).state : NAN});
+            cell_data.push_back({1, id(u002).has_state() ? id(u002).state : NAN});
+            cell_data.push_back({2, id(u003).has_state() ? id(u003).state : NAN});
+            cell_data.push_back({3, id(u004).has_state() ? id(u004).state : NAN});
+            cell_data.push_back({4, id(u005).has_state() ? id(u005).state : NAN});
+            cell_data.push_back({5, id(u006).has_state() ? id(u006).state : NAN});
+            cell_data.push_back({6, id(u007).has_state() ? id(u007).state : NAN});
+            cell_data.push_back({7, id(u008).has_state() ? id(u008).state : NAN});
+            cell_data.push_back({8, id(u009).has_state() ? id(u009).state : NAN});
+            cell_data.push_back({9, id(u010).has_state() ? id(u010).state : NAN});
+            cell_data.push_back({10, id(u011).has_state() ? id(u011).state : 0.0f});
+            cell_data.push_back({11, id(u012).has_state() ? id(u012).state : 0.0f});
+            cell_data.push_back({12, id(u013).has_state() ? id(u013).state : 0.0f});
+            cell_data.push_back({13, id(u014).has_state() ? id(u014).state : 0.0f});
+            cell_data.push_back({14, id(u015).has_state() ? id(u015).state : 0.0f});
+            cell_data.push_back({15, id(u016).has_state() ? id(u016).state : 0.0f});
+            cell_data.push_back({16, id(u017).has_state() ? id(u017).state : 0.0f});
+            cell_data.push_back({17, id(u018).has_state() ? id(u018).state : 0.0f});
+            cell_data.push_back({18, id(u019).has_state() ? id(u019).state : 0.0f});
+            cell_data.push_back({19, id(u020).has_state() ? id(u020).state : 0.0f});
+            
+            // Cells 21-40
+            cell_data.push_back({20, id(u021).has_state() ? id(u021).state : 0.0f});
+            cell_data.push_back({21, id(u022).has_state() ? id(u022).state : 0.0f});
+            cell_data.push_back({22, id(u023).has_state() ? id(u023).state : 0.0f});
+            cell_data.push_back({23, id(u024).has_state() ? id(u024).state : 0.0f});
+            cell_data.push_back({24, id(u025).has_state() ? id(u025).state : 0.0f});
+            cell_data.push_back({25, id(u026).has_state() ? id(u026).state : 0.0f});
+            cell_data.push_back({26, id(u027).has_state() ? id(u027).state : 0.0f});
+            cell_data.push_back({27, id(u028).has_state() ? id(u028).state : 0.0f});
+            cell_data.push_back({28, id(u029).has_state() ? id(u029).state : 0.0f});
+            cell_data.push_back({29, id(u030).has_state() ? id(u030).state : 0.0f});
+            cell_data.push_back({30, id(u031).has_state() ? id(u031).state : 0.0f});
+            cell_data.push_back({31, id(u032).has_state() ? id(u032).state : 0.0f});
+            cell_data.push_back({32, id(u033).has_state() ? id(u033).state : 0.0f});
+            cell_data.push_back({33, id(u034).has_state() ? id(u034).state : 0.0f});
+            cell_data.push_back({34, id(u035).has_state() ? id(u035).state : 0.0f});
+            cell_data.push_back({35, id(u036).has_state() ? id(u036).state : 0.0f});
+            cell_data.push_back({36, id(u037).has_state() ? id(u037).state : 0.0f});
+            cell_data.push_back({37, id(u038).has_state() ? id(u038).state : 0.0f});
+            cell_data.push_back({38, id(u039).has_state() ? id(u039).state : 0.0f});
+            cell_data.push_back({39, id(u040).has_state() ? id(u040).state : 0.0f});
+            
+            // Cells 41-60
+            cell_data.push_back({40, id(u041).has_state() ? id(u041).state : 0.0f});
+            cell_data.push_back({41, id(u042).has_state() ? id(u042).state : 0.0f});
+            cell_data.push_back({42, id(u043).has_state() ? id(u043).state : 0.0f});
+            cell_data.push_back({43, id(u044).has_state() ? id(u044).state : 0.0f});
+            cell_data.push_back({44, id(u045).has_state() ? id(u045).state : 0.0f});
+            cell_data.push_back({45, id(u046).has_state() ? id(u046).state : 0.0f});
+            cell_data.push_back({46, id(u047).has_state() ? id(u047).state : 0.0f});
+            cell_data.push_back({47, id(u048).has_state() ? id(u048).state : 0.0f});
+            cell_data.push_back({48, id(u049).has_state() ? id(u049).state : 0.0f});
+            cell_data.push_back({49, id(u050).has_state() ? id(u050).state : 0.0f});
+            cell_data.push_back({50, id(u051).has_state() ? id(u051).state : 0.0f});
+            cell_data.push_back({51, id(u052).has_state() ? id(u052).state : 0.0f});
+            cell_data.push_back({52, id(u053).has_state() ? id(u053).state : 0.0f});
+            cell_data.push_back({53, id(u054).has_state() ? id(u054).state : 0.0f});
+            cell_data.push_back({54, id(u055).has_state() ? id(u055).state : 0.0f});
+            cell_data.push_back({55, id(u056).has_state() ? id(u056).state : 0.0f});
+            cell_data.push_back({56, id(u057).has_state() ? id(u057).state : 0.0f});
+            cell_data.push_back({57, id(u058).has_state() ? id(u058).state : 0.0f});
+            cell_data.push_back({58, id(u059).has_state() ? id(u059).state : 0.0f});
+            cell_data.push_back({59, id(u060).has_state() ? id(u060).state : 0.0f});
+            
+            // Cells 61-80
+            cell_data.push_back({60, id(u061).has_state() ? id(u061).state : 0.0f});
+            cell_data.push_back({61, id(u062).has_state() ? id(u062).state : 0.0f});
+            cell_data.push_back({62, id(u063).has_state() ? id(u063).state : 0.0f});
+            cell_data.push_back({63, id(u064).has_state() ? id(u064).state : 0.0f});
+            cell_data.push_back({64, id(u065).has_state() ? id(u065).state : 0.0f});
+            cell_data.push_back({65, id(u066).has_state() ? id(u066).state : 0.0f});
+            cell_data.push_back({66, id(u067).has_state() ? id(u067).state : 0.0f});
+            cell_data.push_back({67, id(u068).has_state() ? id(u068).state : 0.0f});
+            cell_data.push_back({68, id(u069).has_state() ? id(u069).state : 0.0f});
+            cell_data.push_back({69, id(u070).has_state() ? id(u070).state : 0.0f});
+            cell_data.push_back({70, id(u071).has_state() ? id(u071).state : 0.0f});
+            cell_data.push_back({71, id(u072).has_state() ? id(u072).state : 0.0f});
+            cell_data.push_back({72, id(u073).has_state() ? id(u073).state : 0.0f});
+            cell_data.push_back({73, id(u074).has_state() ? id(u074).state : 0.0f});
+            cell_data.push_back({74, id(u075).has_state() ? id(u075).state : 0.0f});
+            cell_data.push_back({75, id(u076).has_state() ? id(u076).state : 0.0f});
+            cell_data.push_back({76, id(u077).has_state() ? id(u077).state : 0.0f});
+            cell_data.push_back({77, id(u078).has_state() ? id(u078).state : 0.0f});
+            cell_data.push_back({78, id(u079).has_state() ? id(u079).state : 0.0f});
+            cell_data.push_back({79, id(u080).has_state() ? id(u080).state : 0.0f});
+            
+            // Cells 81-100
+            cell_data.push_back({80, id(u081).has_state() ? id(u081).state : 0.0f});
+            cell_data.push_back({81, id(u082).has_state() ? id(u082).state : 0.0f});
+            cell_data.push_back({82, id(u083).has_state() ? id(u083).state : 0.0f});
+            cell_data.push_back({83, id(u084).has_state() ? id(u084).state : 0.0f});
+            cell_data.push_back({84, id(u085).has_state() ? id(u085).state : 0.0f});
+            cell_data.push_back({85, id(u086).has_state() ? id(u086).state : 0.0f});
+            cell_data.push_back({86, id(u087).has_state() ? id(u087).state : 0.0f});
+            cell_data.push_back({87, id(u088).has_state() ? id(u088).state : 0.0f});
+            cell_data.push_back({88, id(u089).has_state() ? id(u089).state : 0.0f});
+            cell_data.push_back({89, id(u090).has_state() ? id(u090).state : 0.0f});
+            cell_data.push_back({90, id(u091).has_state() ? id(u091).state : 0.0f});
+            cell_data.push_back({91, id(u092).has_state() ? id(u092).state : 0.0f});
+            cell_data.push_back({92, id(u093).has_state() ? id(u093).state : 0.0f});
+            cell_data.push_back({93, id(u094).has_state() ? id(u094).state : 0.0f});
+            cell_data.push_back({94, id(u095).has_state() ? id(u095).state : 0.0f});
+            cell_data.push_back({95, id(u096).has_state() ? id(u096).state : 0.0f});
+            cell_data.push_back({96, id(u097).has_state() ? id(u097).state : 0.0f});
+            cell_data.push_back({97, id(u098).has_state() ? id(u098).state : 0.0f});
+            cell_data.push_back({98, id(u099).has_state() ? id(u099).state : 0.0f});
+            cell_data.push_back({99, id(u100).has_state() ? id(u100).state : 0.0f});
+            
+            // Cells 101-108
+            cell_data.push_back({100, id(u101).has_state() ? id(u101).state : 0.0f});
+            cell_data.push_back({101, id(u102).has_state() ? id(u102).state : 0.0f});
+            cell_data.push_back({102, id(u103).has_state() ? id(u103).state : 0.0f});
+            cell_data.push_back({103, id(u104).has_state() ? id(u104).state : 0.0f});
+            cell_data.push_back({104, id(u105).has_state() ? id(u105).state : 0.0f});
+            cell_data.push_back({105, id(u106).has_state() ? id(u106).state : 0.0f});
+            cell_data.push_back({106, id(u107).has_state() ? id(u107).state : 0.0f});
+            cell_data.push_back({107, id(u108).has_state() ? id(u108).state : 0.0f});
+            
+            // Get balance cell list from the BMS (exact cell numbers being balanced)
+            std::vector<int> balancing_cells;
+            if (id(balance_cell_list).has_state() && id(balance).has_state() && id(balance).state > 0.5) {
+              std::string balance_list = id(balance_cell_list).state;
+              if (!balance_list.empty()) {
+                // Parse comma-separated list of cell numbers (manual parsing to avoid sstream dependency)
+                size_t start = 0;
+                size_t end = 0;
+                while ((end = balance_list.find(',', start)) != std::string::npos) {
+                  std::string cell_num_str = balance_list.substr(start, end - start);
+                  int cell_num = std::atoi(cell_num_str.c_str());
+                  if (cell_num > 0 && cell_num <= 108) {
+                    balancing_cells.push_back(cell_num - 1); // Convert to 0-based index
+                  }
+                  start = end + 1;
+                }
+                // Handle the last cell number (after the last comma or if no comma)
+                if (start < balance_list.length()) {
+                  std::string cell_num_str = balance_list.substr(start);
+                  int cell_num = std::atoi(cell_num_str.c_str());
+                  if (cell_num > 0 && cell_num <= 108) {
+                    balancing_cells.push_back(cell_num - 1); // Convert to 0-based index
+                  }
+                }
+                ESP_LOGI("DISPLAY", "Balance cells from BMS: %s", balance_list.c_str());
+              }
+            }
+            
+            // Update bars for all 108 cells
+            for (auto& cell : cell_data) {
+              int cell_idx = cell.first;
+              float voltage = cell.second;
+              
+              if (cell_idx < lv_obj_get_child_cnt(container)) {
+                lv_obj_t* bar = lv_obj_get_child(container, cell_idx);
+                if (bar) {
+                  // Handle NaN values (uninitialized sensors) - show minimal bar with gray color
+                  if (std::isnan(voltage)) {
+                    lv_obj_set_size(bar, 3, 2);
+                    lv_obj_set_pos(bar, cell_idx * 4, 238);
+                    lv_obj_set_style_bg_color(bar, lv_color_make(100, 100, 100), LV_PART_MAIN); // Gray for no data
+                    lv_obj_set_style_border_width(bar, 0, LV_PART_MAIN);
+                    continue; // Skip rest of processing for this cell
+                  }
+                  
+                  // Map voltage to bar height - scale matches visual grid lines exactly
+                  voltage = std::max(0.0f, std::min(4.2f, voltage)); // Clamp to range (allow 0V)
+                  int base_height;
+                  if (voltage < 2.6f) {
+                    // For voltages below 2.6V (including 0V), scale from 2-10px height
+                    base_height = (int)(voltage / 2.6f * 8.0f) + 2;
+                  } else {
+                    // For normal voltages (2.6-4.2V), map to bar height correctly
+                    // 2.6V = 0px height (at bottom), 4.2V = 240px height (full height)
+                    base_height = (int)((voltage - 2.6f) / 1.6f * 240.0f);
+                  }
+                  
+                  // Check if this cell is in the balancing list
+                  bool cell_balancing = std::find(balancing_cells.begin(), balancing_cells.end(), cell_idx) != balancing_cells.end();
+                  
+                  int total_height, y_pos;
+                  if (cell_balancing) {
+                    // Extend bar below graph with blue indicator (extra 8px below)
+                    total_height = base_height + 8;
+                    y_pos = 240 - base_height;
+                  } else {
+                    // Normal bar height
+                    total_height = base_height;
+                    y_pos = 240 - base_height;
+                  }
+                  
+                  lv_obj_set_size(bar, 3, total_height);
+                  lv_obj_set_pos(bar, cell_idx * 4, y_pos);
+                  
+                  // Remove any borders (no longer needed)
+                  lv_obj_set_style_border_width(bar, 0, LV_PART_MAIN);
+                  
+                  if (cell_balancing) {
+                    // For balancing cells, use bright orange to distinguish from voltage status
+                    lv_obj_set_style_bg_color(bar, lv_color_make(255, 140, 0), LV_PART_MAIN);
+                  } else {
+                    // Standard voltage color coding for non-balancing cells
+                    if (voltage > 4.1f) {
+                      lv_obj_set_style_bg_color(bar, lv_color_make(255, 0, 0), LV_PART_MAIN);
+                    } else if (voltage > 3.9f) {
+                      lv_obj_set_style_bg_color(bar, lv_color_make(255, 255, 0), LV_PART_MAIN);
+                    } else if (voltage > 3.2f) {
+                      lv_obj_set_style_bg_color(bar, lv_color_make(0, 255, 0), LV_PART_MAIN);
+                    } else {
+                      lv_obj_set_style_bg_color(bar, lv_color_make(0, 100, 255), LV_PART_MAIN);
+                    }
+                  }
+                }
+              }
+            }
+            
+            ESP_LOGI("DISPLAY", "Updated all 108 cell voltage bars (real BMS data)");
+          }
+
+# Remove all the old complex interval sections - they're no longer needed!
+# The auto-send approach is much simpler and more efficient.
+
+font:
+  - file: "gfonts://Montserrat"
+    id: montserrat_14
+    size: 14
+  - file: "gfonts://Montserrat"
+    id: montserrat_12
+    size: 12

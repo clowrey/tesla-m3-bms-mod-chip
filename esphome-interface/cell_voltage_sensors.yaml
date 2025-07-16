@@ -1,674 +1,344 @@
-# Cell Voltage Sensors Configuration
-# This file contains all 108 individual cell voltage sensors (u1-u108)
-# Include this in your main configuration if you want individual cell monitoring
+# Cell Voltage Sensors Configuration (Concise Version)
+# This file contains all 108 individual cell voltage sensors (u001-u108)
+# Uses YAML anchors to reduce repetition from 674 lines to ~50 lines
 
-# Cell Voltage Sensors (u1-u108)
+# Cell Voltage Sensors (u001-u108) - Using YAML anchors for conciseness
 sensor:
-  # Cell 1-10
-  - platform: template
+  # Cells 1-20 (u001 serves as template anchor)
+  - &cell_voltage_template
+    platform: template
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
     name: "u001"
     id: u001
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u002"
     id: u002
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u003"
     id: u003
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u004"
     id: u004
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u005"
     id: u005
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u006"
     id: u006
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u007"
     id: u007
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u008"
     id: u008
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u009"
     id: u009
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u010"
     id: u010
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-
-  # Cell 11-20
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u011"
     id: u011
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u012"
     id: u012
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u013"
     id: u013
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u014"
     id: u014
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u015"
     id: u015
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u016"
     id: u016
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u017"
     id: u017
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u018"
     id: u018
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u019"
     id: u019
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u020"
     id: u020
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
 
-  # Cell 21-30
-  - platform: template
+  # Cells 21-40
+  - <<: *cell_voltage_template
     name: "u021"
     id: u021
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u022"
     id: u022
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u023"
     id: u023
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u024"
     id: u024
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u025"
     id: u025
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u026"
     id: u026
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u027"
     id: u027
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u028"
     id: u028
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u029"
     id: u029
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u030"
     id: u030
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-
-  # Cell 31-40
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u031"
     id: u031
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u032"
     id: u032
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u033"
     id: u033
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u034"
     id: u034
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u035"
     id: u035
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u036"
     id: u036
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u037"
     id: u037
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u038"
     id: u038
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u039"
     id: u039
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u040"
     id: u040
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
 
-  # Cell 41-50
-  - platform: template
+  # Cells 41-60
+  - <<: *cell_voltage_template
     name: "u041"
     id: u041
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u042"
     id: u042
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u043"
     id: u043
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u044"
     id: u044
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u045"
     id: u045
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u046"
     id: u046
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u047"
     id: u047
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u048"
     id: u048
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u049"
     id: u049
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u050"
     id: u050
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-
-  # Cell 51-60
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u051"
     id: u051
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u052"
     id: u052
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u053"
     id: u053
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u054"
     id: u054
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u055"
     id: u055
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u056"
     id: u056
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u057"
     id: u057
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u058"
     id: u058
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u059"
     id: u059
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u060"
     id: u060
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
 
-  # Cell 61-70
-  - platform: template
+  # Cells 61-80
+  - <<: *cell_voltage_template
     name: "u061"
     id: u061
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u062"
     id: u062
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u063"
     id: u063
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u064"
     id: u064
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u065"
     id: u065
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u066"
     id: u066
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u067"
     id: u067
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u068"
     id: u068
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u069"
     id: u069
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u070"
     id: u070
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-
-  # Cell 71-80
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u071"
     id: u071
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u072"
     id: u072
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u073"
     id: u073
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u074"
     id: u074
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u075"
     id: u075
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u076"
     id: u076
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u077"
     id: u077
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u078"
     id: u078
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u079"
     id: u079
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u080"
     id: u080
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
 
-  # Cell 81-90
-  - platform: template
+  # Cells 81-100
+  - <<: *cell_voltage_template
     name: "u081"
     id: u081
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u082"
     id: u082
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u083"
     id: u083
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u084"
     id: u084
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u085"
     id: u085
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u086"
     id: u086
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u087"
     id: u087
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u088"
     id: u088
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u089"
     id: u089
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u090"
     id: u090
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-
-  # Cell 91-100
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u091"
     id: u091
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u092"
     id: u092
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u093"
     id: u093
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u094"
     id: u094
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u095"
     id: u095
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u096"
     id: u096
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u097"
     id: u097
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u098"
     id: u098
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u099"
     id: u099
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u100"
     id: u100
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
 
-  # Cell 101-108
-  - platform: template
+  # Cells 101-108
+  - <<: *cell_voltage_template
     name: "u101"
     id: u101
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u102"
     id: u102
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u103"
     id: u103
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u104"
     id: u104
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u105"
     id: u105
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u106"
     id: u106
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u107"
     id: u107
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-    
-  - platform: template
+  - <<: *cell_voltage_template
     name: "u108"
-    id: u108
-    unit_of_measurement: "V"
-    accuracy_decimals: 3
-
-# Additional lambda code for cell voltage parsing
-# Add this to your text_sensor lambda section in the main config:
-
-# Cell voltage parsing (add to the existing lambda in text_sensor):
-# else if (param_name == "u001") id(u1).publish_state(value);
-# else if (param_name == "u002") id(u2).publish_state(value);
-# else if (param_name == "u003") id(u3).publish_state(value);
-# ... (continue for all 108 cells)
-# else if (param_name == "u108") id(u108).publish_state(value); 
+    id: u108 

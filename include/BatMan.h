@@ -180,12 +180,13 @@ private:
     bool BmbConnected[8];           // Track which BMBs are currently responding
     unsigned long LastBmbResponse[8]; // Timestamp of last valid response from each BMB
     uint8_t ActualBmbCount;         // Actual number of responding BMBs
-    static const unsigned long BMB_TIMEOUT_MS = 5000; // 5 second timeout for BMB responses
+    static const unsigned long BMB_TIMEOUT_MS = 10000; // 10 second timeout for BMB responses (increased for debugging)
     
     // Private methods for connectivity monitoring
     bool validateBmbResponse(uint8_t chipIndex, uint8_t reqID);
     void updateBmbConnectivity();
     void markBmbDataAsStale(uint8_t chipIndex);
+    int getCellParameterIndex(uint8_t chipIndex, uint8_t regIndex);  // Map chip/reg to cell parameter index
 };
 
 #endif // BATMAN_H 

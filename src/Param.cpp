@@ -59,7 +59,7 @@ static const char* paramNames[] = {
 
 // Initialize default values
 static void initParams() {
-    intParams[Param::numbmbs] = 1;  // Set default number of BMBs to 1
+    intParams[Param::numbmbs] = 4;  // Set default number of BMBs to 4 (8 Batman ICs)
     intParams[Param::balance] = 0;  // Balance disabled by default
     intParams[Param::LoopCnt] = 0;
     intParams[Param::LoopState] = 0;
@@ -69,9 +69,9 @@ static void initParams() {
     // Initialize string parameters
     stringParams[Param::BalanceCellList] = "";
     
-    // Initialize all cell voltages to 0
+    // Initialize all cell voltages to NaN (no data available initially)
     for (int i = Param::u1; i <= Param::u108; i++) {
-        intParams[static_cast<Param::PARAM_NUM>(i)] = 0;
+        floatParams[static_cast<Param::PARAM_NUM>(i)] = NAN;
     }
     
     // Initialize voltage statistics
@@ -81,9 +81,12 @@ static void initParams() {
     intParams[Param::umin] = 0;
     intParams[Param::deltaV] = 0;
     intParams[Param::udc] = 0;
-    intParams[Param::uavg] = 0;
     intParams[Param::chargeVlim] = 0;
     intParams[Param::dischargeVlim] = 0;
+    
+    // Initialize float voltage statistics
+    floatParams[Param::uavg] = NAN; // Average starts as NaN (no data)
+    floatParams[Param::CellVoltageSum] = 0.0f;
     
     // Initialize balance control
     intParams[Param::CellVmax] = 0;
@@ -255,7 +258,7 @@ void Param::PrintParamHelp() {
     Serial.println("Examples:");
     Serial.println("  param get balance             - Get balance status");
     Serial.println("  param set balance 1           - Enable balance");
-    Serial.println("  param set numbmbs 2           - Set number of BMBs to 2");
+    Serial.println("  param set numbmbs 4           - Set number of BMBs to 4");
     Serial.println("  param set u1 4200             - Set cell 1 voltage to 4200mV");
     Serial.println("  param set ChipV1 3.3          - Set chip 1 voltage to 3.3V");
     Serial.println("");
@@ -355,7 +358,7 @@ void Param::PrintParamHelp(HardwareSerial& serialPort) {
     serialPort.println("Examples:");
     serialPort.println("  param get balance             - Get balance status");
     serialPort.println("  param set balance 1           - Enable balance");
-    serialPort.println("  param set numbmbs 2           - Set number of BMBs to 2");
+    serialPort.println("  param set numbmbs 4           - Set number of BMBs to 4");
     serialPort.println("  param set u1 4200             - Set cell 1 voltage to 4200mV");
     serialPort.println("  param set ChipV1 3.3          - Set chip 1 voltage to 3.3V");
     serialPort.println("");

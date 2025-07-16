@@ -1,0 +1,46 @@
+# Batman IC Communication Fix - Step by Step Commands
+# Copy and paste these commands one at a time into your serial terminal
+
+# Step 1: Check current system state
+param get numbmbs
+param get ExpectedBmbCount
+param get ActualBmbCount
+param get BmbConnectedMask
+
+# Step 2: Configure for 1 Batman IC
+# For Tesla Model 3: numbmbs represents BMB boards, each with 2 Batman ICs
+# Since you have 1 Batman IC, set numbmbs = 1 (system will expect 2 ICs but detect 1)
+param set numbmbs 1
+
+# Step 3: Verify configuration updated
+param get numbmbs
+param get ExpectedBmbCount
+
+# Step 4: Reset ESP32 to apply new SPI configuration
+# You'll need to physically reset the ESP32 after changing numbmbs
+# This ensures the SPI system reinitializes with the correct ChipNum
+
+# Step 5: After reset, check if Batman IC is detected
+param get ActualBmbCount
+param get BmbConnectedMask
+param get u1
+param get u7
+param get u15
+
+# Step 6: If still not working, try numbmbs = 0 with forced communication
+# This bypasses the expected count but may still attempt basic communication
+param set numbmbs 0
+
+# Alternative approach for single Batman IC:
+# If numbmbs=1 doesn't work, you may need to modify the firmware to handle
+# single Batman IC configurations better
+
+# Commands to check SPI communication:
+param list | grep -E "(numbmbs|Bmb|Expected|Actual)"
+
+# Expected results after fix:
+# - numbmbs = 1
+# - ExpectedBmbCount = 2  
+# - ActualBmbCount = 1 (hopefully!)
+# - BmbConnectedMask = 1 (bit 0 set)
+# - Cell voltages (u1, u7, etc.) should show real values instead of NaN 

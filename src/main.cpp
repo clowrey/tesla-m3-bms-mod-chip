@@ -1,11 +1,12 @@
 #include <Arduino.h>
-#include "BatMan.h"
 #include <SPI.h>
-#include "AS8510_CoulombCounter.h"
-#include <HardwareSerial.h>
-#include <cstdint>
 #include <Wire.h>
 #include <Adafruit_ADS1X15.h>
+#include <cmath>  // For std::isnan
+#include "BatMan.h"
+#include "Param.h"
+#include "AS8510_CoulombCounter.h"
+#include "ParamLogger.h"
 
 /*> 
 balance on
@@ -54,7 +55,7 @@ BATMan batman;
 // Serial Interface Configuration
 #define SERIAL2_RX_PIN 22       // GPIO pin for Serial2 RX
 #define SERIAL2_TX_PIN 23      // GPIO pin for Serial2 TX
-#define SERIAL2_BAUD_RATE 115200 // Baud rate for Serial2
+#define SERIAL2_BAUD_RATE 921600 // Baud rate for Serial2
 
 // PWM Configuration for PackContactors (moved to avoid conflict with Serial2)
 #define PACK_CONTACTORS_PWM_PIN 4  // Changed from 12 to 14 to avoid conflict with Serial2
@@ -115,6 +116,7 @@ String serial2Command = "";
 // Function declarations
 void processSerialInputs();
 void sendAllParametersToESPHome();
+void sendAllParametersToStream(Stream& stream);
 void setPackContactorsDutyCycle(uint8_t dutyCycle);
 void setPreChargeRelayDutyCycle(uint8_t dutyCycle);
 
@@ -453,86 +455,97 @@ static const unsigned long MAIN_LOOP_INTERVAL = 50; // 50ms interval without blo
 
 
 void sendAllParametersToESPHome() {
-    // Send all parameters in param=value format to Serial2 (ESPHome)
-    // This replaces the individual parameter requests
+    // Send all parameters to Serial2 (ESPHome) using the generic function
+    sendAllParametersToStream(Serial2);
+    
+    // Keep the debug output for cell 7 specifically for troubleshooting
+    float cell7Voltage = Param::GetFloat(Param::u7);
+    if (!std::isnan(cell7Voltage) && cell7Voltage > 0) {
+        Serial.printf("DEBUG Cell7: enum=%d, cellID=7, stored_value=%.1f, sending=%.0f\n", 
+                     Param::u7, 7, cell7Voltage, cell7Voltage);
+    }
+}
+
+// Generic function to send all parameters to any Stream (Serial, Serial2, etc.)
+void sendAllParametersToStream(Stream& stream) {
+    // Send all parameters in param=value format
     
     // System parameters
-    Serial2.printf("numbmbs=%d\n", Param::GetInt(Param::numbmbs));
-    Serial2.printf("LoopCnt=%d\n", Param::GetInt(Param::LoopCnt));
-    Serial2.printf("LoopState=%d\n", Param::GetInt(Param::LoopState));
-    Serial2.printf("CellsPresent=%d\n", Param::GetInt(Param::CellsPresent));
-    Serial2.printf("CellsBalancing=%d\n", Param::GetInt(Param::CellsBalancing));
-    Serial2.printf("balance=%d\n", Param::GetInt(Param::balance));
-    Serial2.printf("BalanceCellList=%s\n", Param::GetString(Param::BalanceCellList).c_str());
+    stream.printf("numbmbs=%d\n", Param::GetInt(Param::numbmbs));
+    stream.printf("LoopCnt=%d\n", Param::GetInt(Param::LoopCnt));
+    stream.printf("LoopState=%d\n", Param::GetInt(Param::LoopState));
+    stream.printf("CellsPresent=%d\n", Param::GetInt(Param::CellsPresent));
+    stream.printf("CellsBalancing=%d\n", Param::GetInt(Param::CellsBalancing));
+    stream.printf("balance=%d\n", Param::GetInt(Param::balance));
+    stream.printf("BalanceCellList=%s\n", Param::GetString(Param::BalanceCellList).c_str());
     
     // BMB Connectivity parameters
-    Serial2.printf("ActualBmbCount=%d\n", Param::GetInt(Param::ActualBmbCount));
-    Serial2.printf("ExpectedBmbCount=%d\n", Param::GetInt(Param::ExpectedBmbCount));
-    Serial2.printf("BmbConnectedMask=%d\n", Param::GetInt(Param::BmbConnectedMask));
+    stream.printf("ActualBmbCount=%d\n", Param::GetInt(Param::ActualBmbCount));
+    stream.printf("ExpectedBmbCount=%d\n", Param::GetInt(Param::ExpectedBmbCount));
+    stream.printf("BmbConnectedMask=%d\n", Param::GetInt(Param::BmbConnectedMask));
     
     // Contactor states
-    Serial2.printf("packContactors=%d\n", packContactorsEnabled ? 1 : 0);
-    Serial2.printf("preChargeRelay=%d\n", preChargeRelayEnabled ? 1 : 0);
+    stream.printf("packContactors=%d\n", packContactorsEnabled ? 1 : 0);
+    stream.printf("preChargeRelay=%d\n", preChargeRelayEnabled ? 1 : 0);
     
     // Voltage statistics
-    Serial2.printf("CellMax=%d\n", Param::GetInt(Param::CellMax));
-    Serial2.printf("CellMin=%d\n", Param::GetInt(Param::CellMin));
-    Serial2.printf("umax=%d\n", Param::GetInt(Param::umax));
-    Serial2.printf("umin=%d\n", Param::GetInt(Param::umin));
-    Serial2.printf("deltaV=%d\n", Param::GetInt(Param::deltaV));
-    Serial2.printf("uavg=%.3f\n", Param::GetFloat(Param::uavg));
-    Serial2.printf("udc=%.2f\n", Param::GetFloat(Param::udc));
-    Serial2.printf("CellVoltageSum=%.2f\n", Param::GetFloat(Param::CellVoltageSum));
+    stream.printf("CellMax=%d\n", Param::GetInt(Param::CellMax));
+    stream.printf("CellMin=%d\n", Param::GetInt(Param::CellMin));
+    stream.printf("umax=%.0f\n", Param::GetFloat(Param::umax));
+    stream.printf("umin=%.0f\n", Param::GetFloat(Param::umin));
+    stream.printf("deltaV=%.0f\n", Param::GetFloat(Param::deltaV));
+    stream.printf("uavg=%.3f\n", Param::GetFloat(Param::uavg));
+    stream.printf("udc=%.2f\n", Param::GetFloat(Param::udc));
+    stream.printf("CellVoltageSum=%.2f\n", Param::GetFloat(Param::CellVoltageSum));
     
     // Temperature parameters
-    Serial2.printf("Chipt0=%d\n", Param::GetInt(Param::Chipt0));
-    Serial2.printf("Cellt0_0=%d\n", Param::GetInt(Param::Cellt0_0));
-    Serial2.printf("Cellt0_1=%d\n", Param::GetInt(Param::Cellt0_1));
-    Serial2.printf("TempMax=%d\n", Param::GetInt(Param::TempMax));
-    Serial2.printf("TempMin=%d\n", Param::GetInt(Param::TempMin));
+    stream.printf("Chipt0=%d\n", Param::GetInt(Param::Chipt0));
+    stream.printf("Cellt0_0=%d\n", Param::GetInt(Param::Cellt0_0));
+    stream.printf("Cellt0_1=%d\n", Param::GetInt(Param::Cellt0_1));
+    stream.printf("TempMax=%d\n", Param::GetInt(Param::TempMax));
+    stream.printf("TempMin=%d\n", Param::GetInt(Param::TempMin));
     
     // ADS1115 pack voltages
-    Serial2.printf("battContactorPos=%.3f\n", Param::GetFloat(Param::battContactorPos));  // Batt-Pos
-    Serial2.printf("battContactorNeg=%.3f\n", Param::GetFloat(Param::battContactorNeg));  // Batt-Neg
-    Serial2.printf("battLinkPos=%.3f\n", Param::GetFloat(Param::battLinkPos));  // Link-Pos
-    Serial2.printf("battLinkNeg=%.3f\n", Param::GetFloat(Param::battLinkNeg));  // Link-Neg
+    stream.printf("battContactorPos=%.3f\n", Param::GetFloat(Param::battContactorPos));  // Batt-Pos
+    stream.printf("battContactorNeg=%.3f\n", Param::GetFloat(Param::battContactorNeg));  // Batt-Neg
+    stream.printf("battLinkPos=%.3f\n", Param::GetFloat(Param::battLinkPos));  // Link-Pos
+    stream.printf("battLinkNeg=%.3f\n", Param::GetFloat(Param::battLinkNeg));  // Link-Neg
     
     // AS8510 Current and Temperature
-    Serial2.printf("current=%.3f\n", Param::GetFloat(Param::current));
-    Serial2.printf("as8510_temp=%.1f\n", Param::GetFloat(Param::as8510_temp));
+    stream.printf("current=%.3f\n", Param::GetFloat(Param::current));
+    stream.printf("as8510_temp=%.1f\n", Param::GetFloat(Param::as8510_temp));
     
     // AS8510 Coulomb Counting
-    Serial2.printf("PowerWatts=%.3f\n", Param::GetFloat(Param::PowerWatts));
-    Serial2.printf("EnergyWh=%.2f\n", Param::GetFloat(Param::EnergyWh));
-    Serial2.printf("EnergyKWh=%.3f\n", Param::GetFloat(Param::EnergyKWh));
-    Serial2.printf("StateOfCharge=%.1f\n", Param::GetFloat(Param::StateOfCharge));
-    Serial2.printf("RemainingCapacityAh=%.1f\n", Param::GetFloat(Param::RemainingCapacityAh));
-    Serial2.printf("BatteryCapacityAh=%.1f\n", Param::GetFloat(Param::BatteryCapacityAh));
-    Serial2.printf("FullyChargedVoltage=%.2f\n", Param::GetFloat(Param::FullyChargedVoltage));
-    Serial2.printf("CurrentEfficiency=%.2f\n", Param::GetFloat(Param::CurrentEfficiency));
+    stream.printf("PowerWatts=%.3f\n", Param::GetFloat(Param::PowerWatts));
+    stream.printf("EnergyWh=%.2f\n", Param::GetFloat(Param::EnergyWh));
+    stream.printf("EnergyKWh=%.3f\n", Param::GetFloat(Param::EnergyKWh));
+    stream.printf("StateOfCharge=%.1f\n", Param::GetFloat(Param::StateOfCharge));
+    stream.printf("RemainingCapacityAh=%.1f\n", Param::GetFloat(Param::RemainingCapacityAh));
+    stream.printf("BatteryCapacityAh=%.1f\n", Param::GetFloat(Param::BatteryCapacityAh));
+    stream.printf("FullyChargedVoltage=%.2f\n", Param::GetFloat(Param::FullyChargedVoltage));
+    stream.printf("CurrentEfficiency=%.2f\n", Param::GetFloat(Param::CurrentEfficiency));
     
-    // Individual cell voltages (u1-u108) - Use numeric IDs for faster/more reliable transmission
-    // Format: cellID=voltage (e.g., 1=3770, 2=3814, etc.)
+    // Send individual cell voltages in optimized format
+    // Format: cellID=voltage (e.g., 1=3770, 2=3814, etc.) or cellID=nan for offline cells
     int cellID = 1;
     for (int i = Param::u1; i <= Param::u108; i++) {
         float cellVoltage = Param::GetFloat(static_cast<Param::PARAM_NUM>(i));
         
-        // Only send cells that have valid voltage readings (non-zero)
-        if (cellVoltage > 0) {
-            // Debug output for cell 7 specifically to trace the issue
-            if (cellID == 7) {
-                Serial.printf("DEBUG Cell7: enum=%d, cellID=%d, stored_value=%.1f, sending=%.0f\n", 
-                             i, cellID, cellVoltage, cellVoltage);
-            }
-            
-            // Send as: cellID=voltage (much faster than parameter names)
-            Serial2.printf("%d=%.0f\n", cellID, cellVoltage);
+        // Send all configured cells, including NaN values for offline BMBs
+        if (std::isnan(cellVoltage)) {
+            // Send NaN as "nan" string for offline BMB cells
+            stream.printf("%d=nan\n", cellID);
+            cellID++;
+        } else if (cellVoltage > 0) {
+            // Send valid voltage readings
+            stream.printf("%d=%.0f\n", cellID, cellVoltage);
             cellID++;
         }
+        // Skip cells with 0 voltage (unused cell positions)
     }
     
     // Send end marker to indicate complete data packet
-    Serial2.println("DATA_COMPLETE");
+    stream.println("DATA_COMPLETE");
 }
 
 void setup() {
@@ -626,6 +639,9 @@ void setup() {
     Serial.printf("AS8510 on VSPI bus - BMB on HSPI - ADS1115 on I2C (%s) - All systems enabled\n", 
                   ads1115Initialized ? "OK" : "FAILED");
     Serial.println("============ Setup Complete - Starting Main Loop =============");
+    
+    // Initialize parameter logger
+    ParamLogger::begin();
 }
 
 void loop() {
@@ -637,6 +653,15 @@ void loop() {
     if (currentMillis - lastESPHomeUpdate >= 1000) {
         sendAllParametersToESPHome();
         lastESPHomeUpdate = currentMillis;
+    }
+    
+    // Debug: Send Serial2 data stream to Serial every 10 seconds for monitoring
+    static unsigned long lastSerialDebugUpdate = 0;
+    if (currentMillis - lastSerialDebugUpdate >= 10000) {
+        Serial.println("\n=== Serial2 Data Stream Debug (10s interval) ===");
+        sendAllParametersToStream(Serial);
+        Serial.println("=== End Serial2 Data Stream Debug ===\n");
+        lastSerialDebugUpdate = currentMillis;
     }
     
     // Throttle main loop execution to maintain timing without blocking delays
@@ -820,6 +845,9 @@ void loop() {
     
     // Process serial commands (moved to separate function for reuse)
     processSerialInputs();
+    
+    // Update parameter logger (every 3 seconds)
+    ParamLogger::update();
     
     // Run non-blocking diagnostic steps if in progress
     coulombCounter.runDiagnosticStep();

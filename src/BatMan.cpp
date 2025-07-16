@@ -4,6 +4,7 @@
 #include <driver/spi_master.h>
 #include <driver/gpio.h>
 #include <stdint.h>
+#include <cmath>  // For std::isnan
 
 /*
 This library supports SPI communication for the Tesla Model 3 BMB (battery managment boards) "Batman" chip
@@ -34,7 +35,7 @@ Tom de Bree - Volt Influx
 Damien Mcguire - EV Bmw
 */
 
-#define cycletime 5  // 5 * 100ms = 500ms = more stable balancing cycle to reduce voltage bouncing
+#define cycletime 2  // 2 * 50ms = 100ms = faster balancing cycle for better response time
 float BalHys = 20; //mV balance limit
 
 uint16_t WakeUp[2] = {0x2ad4, 0x0000};
@@ -184,7 +185,7 @@ uint8_t WaitCnt = 0;
 uint16_t IdleCnt = 0;
 uint8_t ChipNum =0;
 float CellVMax = 0;
-float CellVMin = 5000;
+float CellVMin = NAN;
 float TempMax = 0;
 float TempMin = 1000;
 uint16_t SendDelay = 125;  // 125 microseconds
@@ -199,7 +200,7 @@ BATMan::BATMan() {
     spi_dev = NULL;
     ChipNum = 0;
     CellVMax = 0;
-    CellVMin = 5000;
+    CellVMin = NAN;
     TempMax = 0;
     TempMin = 1000;
     BalanceFlag = false;
@@ -220,7 +221,7 @@ BATMan::BATMan() {
     ActualBmbCount = 0;
     for(int i = 0; i < 8; i++) {
         BmbConnected[i] = false;
-        LastBmbResponse[i] = 0;
+        LastBmbResponse[i] = millis(); // Start with current time to avoid immediate timeout
     }
 }
 
@@ -337,6 +338,18 @@ void BATMan::loop() //runs every 100ms
 
 void BATMan::StateMachine()
 {
+    // Debug: Track state machine cycle timing
+    static unsigned long lastCycleStart = 0;
+    
+    if (LoopState == 0 && millis() - lastCycleStart > 200) {
+        // New cycle starting
+        if (lastCycleStart > 0) {
+            Serial.printf("BMS Cycle: %lu ms (Phase %d)\n", 
+                         millis() - lastCycleStart, BalancePhase);
+        }
+        lastCycleStart = millis();
+    }
+    
     switch (LoopState)
     {
     case 0: //first state check if there is time out of commms requiring full wake
@@ -583,7 +596,7 @@ void BATMan::GetData(uint8_t ReqID)
         // -AI- Read Register A: Contains cell voltage measurements for cells 1-3
         // -AI- Each chip returns 3 words (6 bytes) of data
         // -AI- Data format: [Word1][Word2][Word3] where each word represents one cell voltage
-        for (int h = 0; h <= 8; h++)
+        for (int h = 0; h < ChipNum; h++)
         {
             for (int g = 0; g <= 2; g++)
             {
@@ -609,6 +622,9 @@ void BATMan::GetData(uint8_t ReqID)
             if (validateBmbResponse(h, ReqID)) {
                 BmbConnected[h] = true;
                 LastBmbResponse[h] = millis();
+                // Debug: Track BMB response validation
+                Serial.printf("BMB %d response validated for register 0x%02X at %lu ms (Phase %d)\n", 
+                             h, ReqID, millis(), BalancePhase);
             }
         }
         break;
@@ -617,7 +633,7 @@ void BATMan::GetData(uint8_t ReqID)
         // -AI- Read Register B: Contains cell voltage measurements for cells 4-6
         // -AI- Each chip returns 3 words (6 bytes) of data
         // -AI- Data format: [Word1][Word2][Word3] where each word represents one cell voltage
-        for (int h = 0; h <= 8; h++)
+        for (int h = 0; h < ChipNum; h++)
         {
             for (int g = 3; g <= 5; g++)
             {
@@ -651,7 +667,7 @@ void BATMan::GetData(uint8_t ReqID)
         // -AI- Read Register C: Contains cell voltage measurements for cells 7-9
         // -AI- Each chip returns 3 words (6 bytes) of data
         // -AI- Data format: [Word1][Word2][Word3] where each word represents one cell voltage
-        for (int h = 0; h <= 8; h++)
+        for (int h = 0; h < ChipNum; h++)
         {
             for (int g = 6; g <= 8; g++)
             {
@@ -685,7 +701,7 @@ void BATMan::GetData(uint8_t ReqID)
         // -AI- Read Register D: Contains cell voltage measurements for cells 10-12
         // -AI- Each chip returns 3 words (6 bytes) of data
         // -AI- Data format: [Word1][Word2][Word3] where each word represents one cell voltage
-        for (int h = 0; h <= 8; h++)
+        for (int h = 0; h < ChipNum; h++)
         {
             for (int g = 9; g <= 11; g++)
             {
@@ -719,7 +735,7 @@ void BATMan::GetData(uint8_t ReqID)
         // -AI- Read Register E: Contains cell voltage measurements for cells 13-15
         // -AI- Each chip returns 3 words (6 bytes) of data
         // -AI- Data format: [Word1][Word2][Word3] where each word represents one cell voltage
-        for (int h = 0; h <= 8; h++)
+        for (int h = 0; h < ChipNum; h++)
         {
             for (int g = 12; g <= 14; g++)
             {
@@ -753,7 +769,7 @@ void BATMan::GetData(uint8_t ReqID)
         // -AI- Read Register F: Contains chip total voltage in word 1
         // -AI- Each chip returns 7 bytes of data
         // -AI- Data format: [Word1] where Word1 represents total chip voltage
-        for (int h = 0; h <= 8; h++)
+        for (int h = 0; h < ChipNum; h++)
         {
             tempvol = Fluffer[3 + (h * 7)] * 256 + Fluffer [2 + (h * 7)];
             if (tempvol != 0xffff)
@@ -778,7 +794,7 @@ void BATMan::GetData(uint8_t ReqID)
         // -AI-   Temp1: Internal Temperature 1
         // -AI-   5V: 5V Supply Voltage (needs byte order reversal for chips 0,3,5,7)
         // -AI-   Temp2: Internal Temperature 2
-        for (int h = 0; h < 8; h++)
+        for (int h = 0; h < ChipNum; h++)
         {
             // Read first word - Internal Temperature 1
             // Each chip returns 9 bytes of data (3 words) in this format:
@@ -831,7 +847,7 @@ void BATMan::GetData(uint8_t ReqID)
         // -AI- Data format: [Word1][Word2] where:
         // -AI-   Word1: Configuration register 1
         // -AI-   Word2: Configuration register 2
-        for (int h = 0; h < 8; h++)
+        for (int h = 0; h < ChipNum; h++)
         {
             tempvol = Fluffer[0 + (h * 7)] * 256 + Fluffer [1 + (h * 7)];
             if (tempvol != 0xffff)
@@ -1001,12 +1017,18 @@ void BATMan::upDateCellVolts(void)
     // -AI- Reset balancing state and voltage tracking
     BalanceFlag = false;
     CellVMax = 0;
-    CellVMin = 5000;
+    CellVMin = NAN;
 
     // -AI- Clear all cell balancing commands
     for(uint8_t L =0; L < 8; L++)
     {
         CellBalCmd[L] = 0;
+    }
+
+    // -AI- First, set all cell parameters to NaN (clear stale data)
+    // This ensures that if BMBs are disconnected, we don't show stale values
+    for (int i = 0; i < 108; i++) {
+        Param::SetFloat((Param::PARAM_NUM)(Param::u1 + i), NAN);
     }
 
     // -AI- Process all cells across all BMB chips
@@ -1016,41 +1038,65 @@ void BATMan::upDateCellVolts(void)
         {
             if(Voltage[Xr][Yc] > 10) //Check actual measurement present
             {
-                // -AI- Track maximum cell voltage and its position
-                if (CellVMax< Voltage[Xr][Yc])
-                {
-                    CellVMax =  Voltage[Xr][Yc];
-                    // Store both sequential cell number and hardware position
-                    Param::SetInt(Param::CellMax, h+1);
+                // Check if this BMB is currently connected
+                if (!BmbConnected[Xr]) {
+                    // BMB is offline - set this cell parameter to NaN
+                    Param::SetFloat((Param::PARAM_NUM)(Param::u1 + h), NAN);
+                    h++; // Still increment cell index to maintain parameter mapping
+                    // Skip min/max and balancing calculations for offline BMB
                 }
-                // -AI- Track minimum cell voltage and its position
-                if (CellVMin > Voltage[Xr][Yc])
-                {
-                    CellVMin =  Voltage[Xr][Yc];
-                    // Store both sequential cell number and hardware position
-                    Param::SetInt(Param::CellMin, h+1);
-                }
-                // -AI- Store cell voltage in parameter system
-                Param::SetFloat((Param::PARAM_NUM)(Param::u1 + h), (Voltage[Xr][Yc]));
-
-                // -AI- Cell balancing logic:
-                // 1. Check if balancing is enabled
-                // 2. If cell voltage is above minimum + hysteresis, enable balancing
-                // 3. Set corresponding bit in CellBalCmd register using HARDWARE POSITION
-                if(Param::GetInt(Param::balance)) // Check if balancing flag is set
-                {
-                    if((Param::GetFloat(Param::umin) + BalHys) < Voltage[Xr][Yc])
+                else {
+                    // BMB is online - process normally
+                    float cellVoltage = Voltage[Xr][Yc];
+                    
+                    // -AI- Track maximum cell voltage and its position
+                    if (CellVMax < cellVoltage)
                     {
-                        // -AI- CRITICAL FIX: Set bit in balancing command register using HARDWARE REGISTER POSITION (Yc)
-                        // NOT sequential cell number (h). This ensures balancing commands map to correct hardware registers.
-                        CellBalCmd[Xr] = CellBalCmd[Xr] | (0x01 << Yc);
-                        CellBalancing++;
-                        BalanceFlag = true;
+                        CellVMax = cellVoltage;
+                        // Store both sequential cell number and hardware position
+                        Param::SetInt(Param::CellMax, h+1);
                     }
+                    // -AI- Track minimum cell voltage and its position
+                    // Handle NaN initialization properly
+                    if (std::isnan(CellVMin) || CellVMin > cellVoltage)
+                    {
+                        CellVMin = cellVoltage;
+                        // Store both sequential cell number and hardware position
+                        Param::SetInt(Param::CellMin, h+1);
+                    }
+                    // -AI- Store cell voltage in parameter system
+                    Param::SetFloat((Param::PARAM_NUM)(Param::u1 + h), cellVoltage);
+
+                    // -AI- Cell balancing logic:
+                    // 1. Check if balancing is enabled
+                    // 2. If cell voltage is above minimum + hysteresis, enable balancing
+                    // 3. Set corresponding bit in CellBalCmd register using HARDWARE POSITION
+                    if(Param::GetInt(Param::balance)) // Check if balancing flag is set
+                    {
+                        if((Param::GetFloat(Param::umin) + BalHys) < cellVoltage)
+                        {
+                            // -AI- CRITICAL FIX: Set bit in balancing command register using HARDWARE REGISTER POSITION (Yc)
+                            // NOT sequential cell number (h). This ensures balancing commands map to correct hardware registers.
+                            CellBalCmd[Xr] = CellBalCmd[Xr] | (0x01 << Yc);
+                            CellBalancing++;
+                            BalanceFlag = true;
+                        }
+                    }
+                    
+                    h++; //next cell spot value along
+                    hc++; //one more cell present
                 }
-                //
-                h++; //next cell spot value along
-                hc++; //one more cell present
+            }
+            else {
+                // No valid voltage reading - check if BMB is connected
+                if (BmbConnected[Xr]) {
+                    // BMB is connected but this register has no valid data - this is normal for unused registers
+                    // Don't increment h (cell index) as this register doesn't map to a cell parameter
+                } else {
+                    // BMB is offline and register has no data - set corresponding parameter to NaN if it was previously valid
+                    // This handles the case where a BMB goes offline and we need to mark its cells as NaN
+                    // We'll let markBmbDataAsStale() handle this case
+                }
             }
 
             Yc++; //next cell along
@@ -1226,26 +1272,29 @@ void BATMan::upDateAuxVolts(void)
         Param::SetFloat(Param::udc,(Param::GetFloat(Param::udc)+Param::GetFloat(Param::ChipV7)+Param::GetFloat(Param::ChipV8)));
     }
 
-    // -AI- Calculate average cell voltage from sum of individual cell voltages (more accurate than using pack voltage)
-    // -AI- Dynamically count and sum all present cells
+    // -AI- Calculate average cell voltage from individual cell parameters (skips NaN from offline BMBs)
+    // -AI- Use parameter values instead of raw Voltage array to automatically exclude NaN values
     float totalCellVoltage = 0;
     int cellCount = 0;
-    for (int chip = 0; chip < ChipNum; chip++) {
-        for (int reg = 0; reg < 15; reg++) {
-            if (Voltage[chip][reg] > 10) { // Cell is present
-                totalCellVoltage += Voltage[chip][reg];
-                cellCount++;
-            }
+    
+    // Sum all cell voltage parameters that are not NaN
+    for (int i = 0; i < 108; i++) {
+        float cellVoltage = Param::GetFloat((Param::PARAM_NUM)(Param::u1 + i));
+        if (!std::isnan(cellVoltage) && cellVoltage > 10) { // Valid cell voltage (not NaN and reasonable value)
+            totalCellVoltage += cellVoltage;
+            cellCount++;
         }
     }
+    
     // Store the cell voltage sum in the parameter system (in mV)
     Param::SetFloat(Param::CellVoltageSum, totalCellVoltage);
+    
     // Calculate average and store in mV
     if (cellCount > 0) {
         float avgVoltage = totalCellVoltage / cellCount;
         Param::SetFloat(Param::uavg, avgVoltage);
     } else {
-        Param::SetFloat(Param::uavg, 0);
+        Param::SetFloat(Param::uavg, NAN); // Set to NaN if no valid cells
     }
 
     //Set Charge and discharge voltage limits !!! Update with configrable
@@ -1524,7 +1573,7 @@ BATMan::BalancingInfo BATMan::getBalancingInfo() const {
     int balancingCount = 0;
     
     // Always calculate total cells present for info completeness
-    for (int chip = 0; chip < 8; chip++) {
+    for (int chip = 0; chip < ChipNum; chip++) {
         for (int reg = 0; reg < 15; reg++) {
             if (Voltage[chip][reg] > 10) { // Cell is present
                 cellCount++;
@@ -1549,7 +1598,7 @@ BATMan::BalancingInfo BATMan::getBalancingInfo() const {
     
     // Scan through all cells to find which ones SHOULD be balanced
     // This checks the original balancing logic, not the current phase-masked state
-    for (int chip = 0; chip < 8; chip++) {
+    for (int chip = 0; chip < ChipNum; chip++) {
         for (int reg = 0; reg < 15; reg++) {
             if (Voltage[chip][reg] > 10) { // Cell is present
                 cellCount++;
@@ -1580,17 +1629,27 @@ void BATMan::updateIndividualCellVoltageParameters(void)
     uint8_t Yc = 0; //Cell voltage register number
     uint8_t h = 0;  //Sequential cell index for parameter system
     
+    // -AI- First, set all cell parameters to NaN (clear stale data)
+    // This ensures that if BMBs are disconnected, we don't show stale values
+    for (int i = 0; i < 108; i++) {
+        Param::SetFloat((Param::PARAM_NUM)(Param::u1 + i), NAN);
+    }
+    
     // -AI- Process all cells across all BMB chips - ONLY update parameters, no balancing logic
     while (h <= 108)
     {
         if(Yc < 15) //Check actual measurement present (include register 14)
         {
-            if(Voltage[Xr][Yc] > 10) //Check actual measurement present
+            if(Voltage[Xr][Yc] > 10 && BmbConnected[Xr]) //Check actual measurement present AND BMB is connected
             {
                 // -AI- Update individual cell voltage parameter in parameter system
                 // This ensures ESPHome interface gets current voltage data during all phases
                 Param::SetFloat((Param::PARAM_NUM)(Param::u1 + h), (Voltage[Xr][Yc]));
                 
+                h++; //next cell spot value along
+            }
+            else if(Voltage[Xr][Yc] > 10) {
+                // -AI- Cell register has data but BMB is offline - keep NaN and increment counter
                 h++; //next cell spot value along
             }
             Yc++; //next cell along
@@ -1691,18 +1750,27 @@ void BATMan::updateBmbConnectivity() {
         }
     }
     
-    // Update the numbmbs parameter to reflect actual connected BMBs
-    // Convert chip count back to module count (divide by 2)
-    uint8_t actualModules = ActualBmbCount / 2;
-    Param::SetInt(Param::numbmbs, actualModules);
+    // DON'T automatically update numbmbs - let user control expected BMB count
+    // This allows the system to work with partial BMB configurations
+    // User can manually adjust numbmbs if needed via param command
     
     // Update BMB connectivity parameters for monitoring
     Param::SetInt(Param::ActualBmbCount, ActualBmbCount);
     Param::SetInt(Param::ExpectedBmbCount, ChipNum);
     Param::SetInt(Param::BmbConnectedMask, connectedMask);
     
-    // Update BmbTimeout flag - if no BMBs are responding, we need to wake them
-    BmbTimeout = !anyBmbConnected;
+    // Update BmbTimeout flag - only timeout if NO BMBs are responding for extended period
+    // This allows the system to work with partial BMB configurations
+    static unsigned long lastAnyBmbResponse = 0;
+    if (anyBmbConnected) {
+        lastAnyBmbResponse = currentTime;
+        BmbTimeout = false;
+    } else {
+        // Only set timeout if no BMBs have responded for a significant period (30 seconds)
+        if (currentTime - lastAnyBmbResponse > 30000) {
+            BmbTimeout = true;
+        }
+    }
     
     // Log connectivity status periodically
     static unsigned long lastConnectivityReport = 0;
@@ -1723,9 +1791,37 @@ void BATMan::updateBmbConnectivity() {
 }
 
 void BATMan::markBmbDataAsStale(uint8_t chipIndex) {
-    // Clear voltage data for disconnected BMB
+    // Clear voltage data for disconnected BMB and set corresponding parameters to NaN
     for (int reg = 0; reg < 15; reg++) {
+        // Check if this register had valid voltage data before clearing
+        bool hadValidData = (Voltage[chipIndex][reg] > 10);
+        
+        // Clear internal voltage array
         Voltage[chipIndex][reg] = 0; // Mark as no data
+        
+        // If this register had valid data, we need to find its parameter index and set to NaN
+        if (hadValidData) {
+            // Find which cell parameter this corresponds to by scanning through the parameter mapping
+            // This uses the same logic as upDateCellVolts() to maintain consistency
+            int h = 0; // Sequential cell index
+            bool found = false;
+            
+            for (int chip = 0; chip < ChipNum && !found; chip++) {
+                for (int r = 0; r < 15 && !found; r++) {
+                    // Check if this register position had valid data (before we cleared it)
+                    bool wasValid = (chip == chipIndex && r == reg) ? hadValidData : (Voltage[chip][r] > 10);
+                    
+                    if (wasValid) {
+                        if (chip == chipIndex && r == reg) {
+                            // Found the matching cell parameter - set it to NaN
+                            Param::SetFloat((Param::PARAM_NUM)(Param::u1 + h), NAN);
+                            found = true;
+                        }
+                        h++; // Increment cell index for valid cells
+                    }
+                }
+            }
+        }
     }
     
     // Clear auxiliary data
@@ -1742,6 +1838,37 @@ void BATMan::markBmbDataAsStale(uint8_t chipIndex) {
     // Clear balancing commands for this chip
     CellBalCmd[chipIndex] = 0;
     
-    Serial.printf("Marked data as stale for disconnected BMB chip %d\n", chipIndex);
+    Serial.printf("Marked data as stale for disconnected BMB chip %d (set cell voltages to NaN)\n", chipIndex);
+}
+
+int BATMan::getCellParameterIndex(uint8_t chipIndex, uint8_t regIndex) {
+    // Map chip index and register index to sequential cell parameter index
+    // This follows the same logic as upDateCellVolts() function
+    
+    int cellIndex = 0;
+    
+    // Count cells from previous chips
+    for (int chip = 0; chip < chipIndex; chip++) {
+        for (int reg = 0; reg < 15; reg++) {
+            if (Voltage[chip][reg] > 10 || chip < chipIndex) {
+                // Count valid cells from previous chips or all regs from previous chips
+                cellIndex++;
+            }
+        }
+    }
+    
+    // Add cells from current chip up to current register
+    for (int reg = 0; reg < regIndex; reg++) {
+        if (Voltage[chipIndex][reg] > 10) {
+            cellIndex++;
+        }
+    }
+    
+    // Validate the cell index is within valid range
+    if (cellIndex >= 0 && cellIndex < 108) {
+        return cellIndex;
+    }
+    
+    return -1; // Invalid index
 }
 
